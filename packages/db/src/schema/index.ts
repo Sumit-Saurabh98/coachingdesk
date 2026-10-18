@@ -1,2 +1,2 @@
-// Every table is exported from here. drizzle-kit reads this file to generate migrations.
-export {};
+export * from './identity';
+export * from './institutes';
