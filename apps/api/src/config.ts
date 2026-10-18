@@ -1,0 +1,40 @@
+import { z } from 'zod';
+
+// Every environment variable the API reads, validated once at startup.
+// A missing or malformed variable stops the server immediately with a clear message,
+// instead of failing later on the first request that needs it.
+const ConfigSchema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  HOST: z.string().default('0.0.0.0'),
+  PORT: z.coerce.number().int().positive().default(3000),
+  // true behind a load balancer / Caddy, so request.ip is the client's IP, not the proxy's
+  TRUST_PROXY: z.stringbool().default(false),
+  DATABASE_URL: z.url(),
+  REDIS_URL: z.url(),
+  OTP_HASH_SECRET: z.string().min(32, 'must be at least 32 characters'),
+  SMS_PROVIDER: z.enum(['console', 'msg91']).default('console'),
+  OTP_DAILY_BUDGET: z.coerce.number().int().positive().default(2000),
+  REVIEW_LOGIN_PHONE: z.string().optional(),
+  REVIEW_LOGIN_OTP: z
+    .string()
+    .regex(/^\d{6}$/, 'must be 6 digits')
+    .optional(),
+});
+
+export type Config = z.infer<typeof ConfigSchema>;
+
+export function loadConfig(env: Record<string, string | undefined>): Config {
+  // Treat `KEY=` (empty) the same as not set.
+  const cleaned = Object.fromEntries(Object.entries(env).filter(([, value]) => value !== ''));
+  const result = ConfigSchema.safeParse(cleaned);
+  if (!result.success) {
+    throw new Error(`Invalid configuration:\n${z.prettifyError(result.error)}`);
+  }
+  const config = result.data;
+  if ((config.REVIEW_LOGIN_PHONE === undefined) !== (config.REVIEW_LOGIN_OTP === undefined)) {
+    throw new Error(
+      'Invalid configuration: set both REVIEW_LOGIN_PHONE and REVIEW_LOGIN_OTP, or neither',
+    );
+  }
+  return config;
+}
