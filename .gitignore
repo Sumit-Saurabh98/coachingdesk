@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.turbo/
+coverage/
+.expo/
+*.log
+.DS_Store
+
+# secrets: never commit real env files
+.env
+.env.*
+!.env.example
