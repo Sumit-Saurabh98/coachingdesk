@@ -6,37 +6,39 @@ export interface RateLimitResult {
 }
 
 export interface RateLimiter {
-  /** Counts one hit for `key`; refuses once `limit` hits happened within `windowSeconds`. */
   hit(key: string, limit: number, windowSeconds: number): Promise<RateLimitResult>;
 }
 
 /**
- * Fixed-window limiter kept in memory: for tests and local dev.
- * Production uses Redis (Step 7), because memory isn't shared between servers.
- * Note it also takes a Clock: that's how the "after 15 minutes" test runs instantly.
+ * Windows are aligned to the clock: with 15 min, they are 10:00-10:15, 10:15-10:30, ...
+ * Shared by both implementations, so they can't drift apart.
  */
+export function windowStartMs(nowMs: number, windowMs: number): number {
+  return Math.floor(nowMs / windowMs) * windowMs;
+}
+
+/** For tests and local dev only (never production: memory isn't shared between servers). */
 export class InMemoryRateLimiter implements RateLimiter {
-  private readonly windows = new Map<string, { startedAtMs: number; count: number }>();
+  private readonly counts = new Map<string, number>();
 
   constructor(private readonly clock: Clock) {}
 
   async hit(key: string, limit: number, windowSeconds: number): Promise<RateLimitResult> {
     const nowMs = this.clock.now().getTime();
     const windowMs = windowSeconds * 1000;
+    const windowStart = windowStartMs(nowMs, windowMs);
+    // One counter per (key, window): a new window simply means a new, empty counter.
+    const bucketKey = `${key}:${windowStart}`;
 
-    // No window yet, or the old one has ended: start a fresh one.
-    let window = this.windows.get(key);
-    if (!window || nowMs - window.startedAtMs >= windowMs) {
-      window = { startedAtMs: nowMs, count: 0 };
-      this.windows.set(key, window);
+    const count = (this.counts.get(bucketKey) ?? 0) + 1;
+    this.counts.set(bucketKey, count);
+
+    if (count > limit) {
+      return {
+        allowed: false,
+        retryAfterSeconds: Math.ceil((windowStart + windowMs - nowMs) / 1000),
+      };
     }
-
-    if (window.count >= limit) {
-      const retryAfterMs = window.startedAtMs + windowMs - nowMs;
-      return { allowed: false, retryAfterSeconds: Math.ceil(retryAfterMs / 1000) };
-    }
-
-    window.count += 1;
     return { allowed: true, retryAfterSeconds: 0 };
   }
 }
