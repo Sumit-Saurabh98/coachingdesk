@@ -64,7 +64,8 @@ coachingdesk/            # repo root (product working name: TuitionMitra)
 ## 3. Versions policy
 
 - Pin exact versions in lockfile; Renovate opens weekly update PRs.
-- Node.js: active LTS only.
+- Node.js: active LTS only (currently 24; `@types/node` major must match the runtime).
+- TypeScript: pinned to `~6.0.x`. TypeScript 7 (native Go compiler) is out, but `typescript-eslint` and other tooling support only `<6.1` as of 2026-10. Re-check peer ranges before upgrading.
 - Expo: upgrade one SDK at a time, within 2 months of release.
 - Postgres: managed minor upgrades automatic; major upgrades planned.
 
