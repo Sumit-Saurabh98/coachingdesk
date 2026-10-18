@@ -1,0 +1,186 @@
+# KNOWLEDGE_BASE.md
+
+The "why" behind the product. Read this before changing business logic.
+
+## 1. Market context
+
+- Large coaching institutes already use platforms like Classplus and Teachmint. Those products focus on **taking teaching online**: branded apps, content, live classes, course selling.
+- Small offline tuition centers, home tutors, and non-academic academies mostly run on **a notebook + WhatsApp groups + UPI screenshots**. That is our real competitor: habit, not software.
+- Our wedge: **fees and parent communication**, with **zero setup for parents** (WhatsApp + web links, no app install).
+- Pitch: *"You'll recover more pending fees in month one than the app costs for a year."*
+
+## 2. Glossary
+
+| Term | Meaning |
+|---|---|
+| Institute | A tenant: tuition center, home tutor, or academy. |
+| Owner | User who created the institute; full control incl. money and plan. |
+| Batch | A group taught together at fixed days/time (e.g. "Class 10 Maths – Evening", "Kathak Beginners Sat"). Indian coaching thinks in batches, not "courses". |
+| Student | A learner. Often a minor. Belongs to one institute. |
+| Guardian | Parent/relative who pays and receives messages. Identified by phone. One guardian may have several students (siblings). |
+| Enrollment | Student ↔ batch link with its own fee. |
+| Fee cycle | `monthly` (most common), `quarterly`, `one_time` (e.g. crash course), `none` (free batch). Set per enrollment; the batch only provides the default. |
+| Pay page | One web page per guardian per institute listing all their open dues (siblings included). The link in every reminder points here. |
+| Credit | Money received that couldn't be applied to an open due (overpayment, or a late payment on an already-paid invoice). |
+| Billing day | Day of month when invoices are generated (default 1st). |
+| Invoice / Due | Amount a student owes for a period. UI calls it "Fee due", not "invoice". |
+| Absence alert | WhatsApp to guardian when a student is marked absent. |
+| Outbox | Table of all outgoing messages; the only way messages are sent. |
+| Template | Pre-approved WhatsApp message format required for business-initiated messages. |
+| Entitlements | What an institute's plan allows (limits + features). |
+
+## 3. Business rules (source of truth)
+
+### Fees
+- Money stored in paise. Display with Indian grouping: ₹1,23,456.
+- Due date default = billing day + 6 days (i.e. 7th).
+- Mid-month joiners: MVP does **not prorate**. Owner chooses "bill now" (full amount) or "start next cycle".
+- `one_time` fees are invoiced once, when the student is enrolled. Quarterly cycles repeat every 3 months from the first billed period.
+- Never create a ₹0 invoice (fee fully discounted or fee = 0) — it would look like a due to the guardian.
+- If invoice generation misses the billing day (outage), it catches up the next day; the period is never skipped.
+- Partial payments allowed. A payment covering several dues is applied **oldest due date first**. Anything left over is recorded as credit (applied manually in MVP).
+- An offline payment entered by mistake can be **voided** by the owner (reason required, audited). The invoice reopens and reminders resume. Online payments can't be voided — they're reversed only by a refund through the provider.
+- A payment link must never ask for an outdated amount: whenever a due's remaining amount changes, outstanding links for it are cancelled. Links also expire after 24 h.
+- Waive/cancel require a reason; both are audited.
+- A student marked "left" → no new invoices; existing dues remain until owner cancels.
+
+### Reminders
+- Default offsets: 3 days before, on due date, 3 and 7 days after. After that, stop automatic reminders (owner can still remind manually).
+- Max **1 fee reminder per guardian per day**; siblings' dues combined in one message. When any one due hits a reminder offset, the message covers all of that guardian's open dues.
+- Reminder content (names, total) is computed at **send** time, not when it's scheduled. If the guardian paid while the message waited (e.g. quiet hours), it's skipped.
+- Quiet hours 21:00–08:00 IST: never send automatic messages.
+- Tone: polite, respectful, never threatening. Hindi + English templates.
+
+### Attendance
+- Default = everyone present; teacher marks absentees (fastest flow).
+- Absence alert sent once per session, after submission. Not sent at all if attendance syncs after 10:00 the day after the class — a stale "absent" message confuses parents.
+- Edits allowed up to 7 days back.
+- When two phones edit the same session, the sync that reached the server last wins per student. Phone clocks are not trusted.
+
+### Messaging & consent
+- WhatsApp business-initiated messages need **approved templates**; free text only allowed inside an active customer-service window.
+- Guardians must have **opted in**. Institutes confirm consent when adding students (checkbox: "Guardian agreed to receive updates on WhatsApp"), including bulk import. Store source + timestamp.
+- Consent status `unknown` means **do not send** — only `opted_in` guardians get automatic messages. The owner sees "consent missing" and can share manually.
+- All institutes share **one** sender number (ARCHITECTURE §13). So a STOP reply opts the guardian out of automatic messages from **every** institute, immediately; payment receipts are still sent. START resumes.
+- Guardian replies other than STOP/START get one auto-reply per 24 h ("this number only sends automatic updates for {institute}; contact them on {phone}") and are shown to the owner as "Parent replies". We never hold conversations on the institute's behalf.
+- Protect the shared number: new and trial institutes have daily caps; notices are limited; an institute with a high STOP/block rate is paused automatically (LLD §6.8).
+- Template parameters can't contain newlines, tabs, or more than 4 consecutive spaces — sanitise all free text (notices, names) before sending.
+- Template categories matter for pricing (e.g. utility vs. marketing). Fee reminders, receipts, absence alerts, and results should be utility. Never put promotional content in utility templates — Meta can re-categorise a template to marketing, which costs several times more.
+- Meta charges **per delivered template message** (pricing model since 1 July 2025; the old per-conversation model is gone). Utility templates sent while the guardian's 24-hour customer-service window is open are free. Rates vary by category and country — check Meta's current India rate card; don't hard-code a price.
+
+### Payments
+- Guardian money should settle to the **institute's own account**, not the platform's, using the provider's linked/sub-merchant accounts. This avoids the platform acting as a payment intermediary holding funds.
+- Institute onboarding to payouts (KYC) is done through the provider's flow, started from the app. Until it's active, the owner can set the institute's own UPI ID: the pay page shows a UPI QR / "Pay with UPI app" button for it, and the owner records the payment manually (no automatic reconciliation). With neither set, the pay page shows the dues and "please pay at the center".
+- Gateway fees: configurable — absorbed by institute (default) or added as convenience fee (check provider rules).
+
+### Plans (single source of truth — `packages/shared/src/plans.ts` must match this table)
+| Plan | Active students | Members besides owner | Messages/mo | Price | Included |
+|---|---|---|---|---|---|
+| Free | 25 | 0 | 0 automatic | ₹0 | Batches, attendance, manual fee tracking, pay page & payment links. "Share via WhatsApp" opens WhatsApp manually. |
+| Starter | 100 | 0 | 1,000 | ₹299/mo · ₹2,999/yr | Free + automatic reminders, absence alerts, receipts, notices |
+| Pro | 300 | 5 | 3,000 | ₹699/mo · ₹6,999/yr | Starter + tests/result cards, team members, progress reports (v2) |
+| Academy | ∞ | ∞ | 8,000 | ₹1,499/mo · ₹14,999/yr | Pro + multi-branch (v2), priority support |
+
+- "Active students" = `status = 'active'`; students marked left are not counted.
+- **Trial:** 30 days of Pro on signup, then Free unless they subscribe. Automatic messages during the trial are capped at **200 total and 100/day** (not the Pro quota) — the trial must not be usable as a free bulk-messaging channel.
+- **New institutes:** first 7 days max 100 automatic messages/day, any plan.
+- **Notices:** max 2 per institute per day (5 on paid plans), 1–500 chars, no third-party links.
+- **Grace:** 7 days after a failed renewal before downgrade.
+- **Downgrade:** data is never deleted; over-limit students become read-only until upgrade or archive.
+- **Message packs:** extra 1,000 messages for ₹149 (must stay above provider cost — see cost check below).
+- Whether prices include 18% GST is not yet decided (open question 8).
+
+**Cost check (NFR-14: infra + messaging < 25% of plan price)** — rough, recompute with Meta's current India rate card:
+| Plan | Price (pre-GST, if GST-inclusive) | Store fee if billed via Play (~15%) | Messages at full quota × ~₹0.12–0.20 utility | Messaging as % of net |
+|---|---|---|---|---|
+| Starter ₹299 | ≈ ₹253 | ≈ ₹38 → net ≈ ₹215 | ≈ ₹120–200 | **≈ 55–95%** ❌ |
+| Pro ₹699 | ≈ ₹592 | ≈ ₹89 → net ≈ ₹503 | ≈ ₹360–600 | **≈ 70–120%** ❌ |
+| Academy ₹1,499 | ≈ ₹1,270 | ≈ ₹190 → net ≈ ₹1,080 | ≈ ₹960–1,600 | **≈ 90–150%** ❌ |
+
+At full quota every paid plan breaks NFR-14; message packs at ₹149/1,000 are near or below cost. Typical usage will be well under quota, but the numbers can't be left like this. Open question 9 must be decided before launch.
+
+## 4. WhatsApp templates (draft list)
+
+| Name | Category | Example (EN) | Button |
+|---|---|---|---|
+| `fee_reminder` | utility | "Hello {{guardian}}, {{student}}'s fee of ₹{{amount}} at {{institute}} is due on {{date}}." | "Pay now" → `https://<domain>/p/{{token}}` |
+| `fee_reminder_multi` | utility | "Hello {{guardian}}, fees of ₹{{total}} are due for {{students}} at {{institute}}." | "Pay now" → `https://<domain>/p/{{token}}` |
+| `payment_receipt` | utility | "Received ₹{{amount}} for {{students}} at {{institute}}. Thank you!" | "View receipt" → `https://<domain>/r/{{token}}` |
+| `absence_alert` | utility | "{{student}} was absent on {{date}} from {{batch}} at {{institute}}." | — |
+| `result_card` | utility | "{{student}}'s result for {{test}}: {{marks}}/{{max}}." | "View details" → `https://<domain>/t/{{token}}` |
+| `notice` | utility | "Notice from {{institute}}: {{text}}" (1–500 chars, sanitised, no promos) | — |
+| `notice_holiday` | utility | "{{institute}} will be closed on {{date}} ({{reason}}). Classes resume on {{resume_date}}." | — |
+| `notice_schedule_change` | utility | "{{batch}} at {{institute}} will be held at {{time}} on {{date}} instead of the usual time." | — |
+| `otp` | authentication | "{{code}} is your login code." | — |
+
+The free-text `notice` template is the one most likely to be rejected or re-categorised as marketing by Meta, since it can carry any text. Submit the structured `notice_holiday` / `notice_schedule_change` templates too. The app offers those first ("Holiday", "Timing change", "Other"), so most notices still work if `notice` is rejected.
+
+Free-form replies (STOP/START confirmations, the auto-reply) need no template: they're sent inside the guardian's 24 h customer-service window opened by their message.
+
+Links go in **URL buttons with a dynamic suffix**, not in the body text: the domain is fixed at template approval and only the token varies. Tokens are minted by the send worker at send time and never stored raw.
+
+Each needs Hindi version. Template approval takes time — submit early.
+
+## 5. Go-to-market notes (online only)
+
+- Channels: cold calls to Google Maps listings → WhatsApp demo video → video-call setup; Play Store keyword optimization ("tuition fees app", "attendance app for tuition"); Hindi Shorts/Reels for tutors; Facebook/Telegram tutor groups; free web tools as lead magnets; referrals (free month per referral).
+- Product implication: **fully self-serve onboarding** — OTP signup, paste/import students, first invoice in < 5 minutes, help button opens WhatsApp chat with founder.
+- North-star metric: **₹ collected through the app per institute per month.**
+
+## 6. Decision log (ADR-lite)
+
+| # | Date | Decision | Reason |
+|---|---|---|---|
+| 1 | 2026-10 | Target small offline centers + academies, not large institutes | Big players cover large institutes; small ones are underserved |
+| 2 | 2026-10 | Parents use WhatsApp + web links, no parent app | Removes the biggest adoption barrier |
+| 3 | 2026-10 | Modular monolith + worker, TypeScript everywhere | Solo developer speed |
+| 4 | 2026-10 | Postgres + BullMQ/Redis | Relational money data; simple reliable jobs |
+| 5 | 2026-10 | Outbox pattern for all messages | Reliability, auditing, quota enforcement |
+| 6 | 2026-10 | Money settles to institute accounts via provider | Avoid holding customer funds |
+| 7 | 2026-10 | Online-only customer acquisition | Founder constraint; drives self-serve UX |
+| 8 | 2026-10 | One pay page per guardian (live open dues), not one link per invoice | Sibling reminders need one link; a live page never shows a stale amount |
+| 9 | 2026-10 | Public GETs have no side effects; payment links created on checkout POST, expire in 24 h, cancelled when amounts change | Link prefetchers would create links; stale links let guardians pay twice |
+| 10 | 2026-10 | Payments split into invoices via `payment_allocations` (oldest due first; leftover = credit) | One UPI payment can cover several dues; enables void/refund cleanly |
+| 11 | 2026-10 | Offline payments can be voided (audited); online only via provider refund | Owners mistype cash entries; online money must match the provider |
+| 12 | 2026-10 | Fee cycle lives on the enrollment; invoice runs tracked per period with catch-up; ₹0 invoices never created | Students pay on different cycles; outages must not skip a month |
+| 13 | 2026-10 | Message content re-validated at send time; guardian link tokens minted at send time and only hashed at rest | Avoid reminders for paid fees; raw tokens in the outbox would defeat hashing |
+| 14 | 2026-10 | Fixed role matrix: teacher = teaching only (no fees); staff = front desk (view fees, record offline payments); owner-only for waive/cancel/void/settings | One unambiguous, testable permission model |
+| 15 | 2026-10 | Login OTP is the only message sent directly by the API, not via outbox | User waits on screen; outbox adds latency |
+| 16 | 2026-10 | MVP hosting: single EC2 + RDS + ElastiCache in ap-south-1; Fargate at Growth stage; Railway/Render dropped | Lower cost; those hosts have no India region |
+| 17 | 2026-10 | Plans/prices defined only in KNOWLEDGE_BASE §3 (+ `plans.ts`) | One source of truth |
+| 18 | 2026-10 | One shared WhatsApp number in MVP; global STOP opt-out; inbound replies routed + auto-reply; per-institute quality guard and daily caps | One verification/template set to launch; protect the number every tenant depends on |
+| 19 | 2026-10 | Trial messaging capped at 200 total / 100 per day; notices limited | Prevent trial signups from being used for spam |
+| 20 | 2026-10 | Money as safe-integer `number` in TS (Postgres `bigint`), not JS `BigInt` | `BigInt` breaks JSON and adds friction across Zod/RN; paise fits safely in a double |
+| 21 | 2026-10 | Attendance conflicts: last sync received by server wins; alerts expire 10:00 next day | Phone clocks unreliable; stale absence alerts mislead parents |
+| 22 | 2026-10 | Data rights in MVP: export, institute deletion (30-day undo then purge), student erasure, account deletion (app + web) | DPDP + Google Play account-deletion policy |
+| 23 | 2026-10 | OTP only to +91 numbers; fixed-OTP reviewer number | Block SMS-pumping fraud; app-store review needs a login |
+| 24 | 2026-10 | Pay page falls back to the institute's own UPI ID (manual reconciliation) until payouts KYC is active | Tiny tutors may never finish KYC; they still get value |
+| 25 | 2026-10 | OOP + SOLID: value objects/entities, services with constructor-injected interfaces, repository interfaces, hand-written composition root | Founder preference and learning goal; clear seams for testing with fakes |
+
+## 7. Open questions
+
+1. **Final product name** (working name: TuitionMitra). Check Play Store, domain (.in/.app fallback), trademark.
+2. **In-app subscription billing:** confirm current Google Play / Apple rules for Indian B2B SaaS subscriptions (store billing vs. alternative billing vs. web checkout).
+3. **DPDP Act + DPDP Rules, 2025** (Rules notified Nov 2025, obligations phased in — confirm exact dates). Working assumption: the **institute is the Data Fiduciary**, we are its **Data Processor** (needs a processing agreement in our terms). Children's data needs verifiable parental consent — the institute's duty, but our consent checkbox/flow must support it. Children's data must not be used for tracking or behavioural monitoring → no product analytics on guardian pages. Still to confirm with a lawyer: consent wording, retention periods, breach-notification process, whether we have any direct obligations.
+4. **WhatsApp provider:** Meta Cloud API direct vs. a BSP (support, onboarding, pricing).
+5. **Payment provider** linked-account onboarding friction for tiny tutors; fallback for those without KYC. Also: Route vs Partner model (§8 P-2), and whether direct UPI should be the default (§8 P-1).
+6. SMS fallback in v1.0 or v1.1?
+7. Proration for mid-cycle joiners — needed by users?
+8. **GST:** are plan prices GST-inclusive or exclusive? We need GST registration and GST invoices for subscriptions once over the threshold (confirm with a CA).
+9. **Message economics vs NFR-14:** at full quota, messaging alone exceeds 25% of every paid plan (see §3 cost check). Options: lower included quotas, raise prices, define NFR-14 against expected (not maximum) usage, use free customer-service-window sends where possible, and re-price message packs above cost.
+10. **Free/Starter members:** plans table gives Free and Starter 0 members besides the owner, but our ICP includes 1–3 teacher centers. Should Starter allow 1–2 teachers?
+11. **Data residency:** DPDP doesn't generally require data to stay in India (cross-border transfer is allowed except to restricted countries). Keeping everything in ap-south-1 is a **product choice** (trust, sales pitch), not a legal requirement — confirm and keep or relax.
+
+## 8. Product proposals (not yet decided)
+
+Ideas from the doc review, kept here so they stay visible. Each one is a **proposal**: the rest of the docs still describe the current plan. When one is accepted, add it to the decision log (§6), update the affected docs, and change its status here.
+
+| ID | Proposal | Why | What it would change | Status |
+|---|---|---|---|---|
+| P-1 | **Make direct UPI the default payment mode.** Pay page shows a `upi://pay` QR/button for the institute's own UPI ID plus an "I've paid" button; the owner confirms with one tap. Razorpay links become an opt-in for owners who want automatic reconciliation. | Tutors already receive UPI free and with no KYC. Gateway fees and KYC paperwork are likely the biggest objections. Today the UPI ID is only a fallback until KYC (decision #24). | Pay page, new "guardian says paid → owner confirms" flow, onboarding (no KYC step), F-09 wording, dashboard "awaiting confirmation" state | Proposed — test the fee/KYC objection in Phase 0 calls |
+| P-2 | **Check Razorpay Route vs Partner/sub-merchant model before building payouts.** With Route, money lands in our merchant account first and is then transferred to the institute; with the Partner model, each institute has its own account and we act on its behalf. | Route may conflict with "we never hold institute money" (decision #6) and may bring payment-aggregator obligations. | `PaymentProvider` onboarding, payouts endpoints, KNOWLEDGE_BASE → Payments, open question 5 | Proposed — ask Razorpay in week 0 |
+| P-3 | **Launch Android-only.** Ship iOS after the MVP proves itself. | Most owners use Android phones. Skips Apple review and Apple subscription rules for now. Expo keeps iOS cheap to add later. | ROADMAP Phase 5, store-billing open question 2 (Play only), TECH_STACK rejected-alternatives note | Proposed |
+| P-4 | **Move tests/result cards (F-14) and possibly notices (F-15) to v1.1.** | Shrinks a tight 12-week solo plan: fewer screens and fewer WhatsApp templates to get approved. Fees + attendance are the core value. Meta verification, template approval and Razorpay activation can each take weeks. | REQUIREMENTS §2.1, ROADMAP Phase 4, Pro plan "Included" column (Pro would need another differentiator at launch) | Proposed |
+| P-5 | **Message language per guardian**, not per institute (`guardian_contacts.locale`, default = institute's `messageLanguage`). | One center often has both Hindi- and English-preferring parents. | `guardian_contacts` schema, send worker template locale, student form | Proposed |
+| P-6 | **Pick the mobile UI library now** (suggest React Native Paper: simpler, Material look familiar to Android users). | "Paper or Tamagui" left open means AI agents will mix both. | TECH_STACK → Mobile UI | Proposed — decide before Phase 1 |
+| P-7 | **Fewer observability vendors for MVP:** Sentry (errors, all apps) + one log service (CloudWatch or Better Stack). Add OpenTelemetry/Grafana at Growth stage. | Each vendor is another account, SDK, and bill for a solo developer. Queue depth/latency can be exported as simple metrics to the same log service at first. | TECH_STACK → Logging/Errors/Metrics rows, ARCHITECTURE §11 | Proposed |
