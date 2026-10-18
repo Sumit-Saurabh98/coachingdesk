@@ -1,2 +1,1 @@
-// Interfaces for external services (SMS, WhatsApp, payments) + their real and Fake implementations.
-export {};
+export { FakeSmsProvider, type SmsProvider } from './sms-provider';
