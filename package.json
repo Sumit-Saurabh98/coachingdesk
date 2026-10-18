@@ -12,7 +12,10 @@
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "db:generate": "pnpm --filter @coachingdesk/db generate",
+    "db:migrate": "pnpm --filter @coachingdesk/db migrate",
+    "db:studio": "pnpm --filter @coachingdesk/db studio"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
