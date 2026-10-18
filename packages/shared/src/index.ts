@@ -4,3 +4,5 @@ export { InvalidLocalDateError, LocalDate } from './local-date';
 export { type Clock, FixedClock, SystemClock } from './clock';
 export { InstituteClock } from './institute-clock';
 export { AppError, ErrorCode } from './errors';
+export { zPhoneIN } from './schemas/common';
+export { RequestOtpBody, VerifyOtpBody } from './schemas/auth';

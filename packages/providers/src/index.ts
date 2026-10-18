@@ -1,1 +1,1 @@
-export { FakeSmsProvider, type SmsProvider } from './sms-provider';
+export { ConsoleSmsProvider, FakeSmsProvider, type SmsProvider } from './sms-provider';

@@ -20,3 +20,17 @@ export class FakeSmsProvider implements SmsProvider {
     return this.sent.findLast((message) => message.to.equals(phone))?.code;
   }
 }
+
+/**
+ * Local dev only: prints the OTP in the API log instead of sending an SMS.
+ * container.ts refuses to start with this in production.
+ */
+export class ConsoleSmsProvider implements SmsProvider {
+  // The output function is injected (default console.log), so it's testable without spying on console.
+  constructor(private readonly print: (line: string) => void = console.log) {}
+
+  async sendOtp(to: PhoneNumber, code: string): Promise<void> {
+    // `${to}` calls PhoneNumber.toString(), which is MASKED: the log shows +9198XXXXX210.
+    this.print(`[dev sms] OTP for ${to}: ${code}`);
+  }
+}
