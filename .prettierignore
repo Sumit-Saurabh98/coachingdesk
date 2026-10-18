@@ -1,0 +1,7 @@
+node_modules/
+dist/
+coverage/
+.turbo/
+pnpm-lock.yaml
+# docs are hand-formatted (wide tables); don't reflow them
+*.md

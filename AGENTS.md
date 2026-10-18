@@ -77,6 +77,12 @@ pnpm db:generate              # create migration after schema change
   - Wiring happens in one **composition root** per app (`apps/api/src/container.ts`, `apps/worker/src/container.ts`) — hand-written, no DI framework.
   - Prefer composition over inheritance; inheritance only for true "is-a" (e.g. `AppError` subclasses).
   - Methods that implement business rules stay pure (no I/O inside entities/value objects) so they're easy to unit test.
+- **Practical OOP, not OOP everywhere:**
+  - Mobile and web UI are **React function components + hooks** — never class components.
+  - Glue code stays **plain functions**: route registration, Zod schemas, config, small helpers (`maskPhone()`).
+  - No deep inheritance hierarchies (`BaseService → CrudService → …`), no DI framework/decorators, no getters/setters for every field, no abstract base class until a second real implementation exists.
+- Tests live in a `__tests__/` folder next to the code they test (e.g. `src/__tests__/money.test.ts`).
+- Formatting is Prettier's job (`pnpm format`); don't hand-format or argue style in reviews.
 - Comments explain *why*, not *what*.
 
 ## Testing expectations

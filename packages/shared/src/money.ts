@@ -5,9 +5,7 @@ export class InvalidMoneyError extends Error {
   }
 }
 
-
 export class Money {
-
   private constructor(private readonly paise: number) {}
 
   static ofPaise(paise: number): Money {
