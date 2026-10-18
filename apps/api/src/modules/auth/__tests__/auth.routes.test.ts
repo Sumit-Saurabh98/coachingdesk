@@ -1,14 +1,19 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { FixedClock, PhoneNumber } from '@coachingdesk/shared';
+import { FixedClock, PhoneNumber, SequentialIdGenerator } from '@coachingdesk/shared';
 import { FakeSmsProvider } from '@coachingdesk/providers';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../../../app';
 import { InMemoryRateLimiter } from '../../../lib/rate-limiter';
+import { JwtAccessTokens } from '../access-tokens';
 import { AuthController } from '../auth.controller';
+import { AuthService } from '../auth.service';
 import { FixedOtpCodeGenerator } from '../otp-code-generator';
 import { OtpHasher } from '../otp-hasher';
 import { InMemoryOtpStore } from '../otp-store';
 import { OtpService } from '../otp.service';
+import { InMemoryRefreshTokenRepository } from '../refresh-token.repository';
+import { SessionService } from '../session.service';
+import { InMemoryUserRepository } from '../user.repository';
 
 let app: FastifyInstance;
 
@@ -23,8 +28,25 @@ function setup() {
     hasher: new OtpHasher('test-secret-that-is-at-least-32-chars-long'),
     clock,
   });
-  app = buildApp({ authController: new AuthController(otpService), isReady: async () => true });
-  return { app, sms };
+  const ids = new SequentialIdGenerator();
+  const accessTokens = new JwtAccessTokens('jwt-test-secret-that-is-at-least-32-chars', clock);
+  const sessionService = new SessionService({
+    refreshTokens: new InMemoryRefreshTokenRepository(),
+    accessTokens,
+    ids,
+    clock,
+  });
+  const authService = new AuthService({
+    otp: otpService,
+    users: new InMemoryUserRepository(),
+    sessions: sessionService,
+    ids,
+  });
+  app = buildApp({
+    authController: new AuthController({ otpService, authService, sessionService }),
+    isReady: async () => true,
+  });
+  return { app, sms, accessTokens };
 }
 
 afterEach(async () => {
@@ -85,14 +107,30 @@ describe('POST /v1/auth/otp/verify', () => {
       payload: { phone: '9876543210', otp },
     });
 
-  it('returns 200 for the right code', async () => {
-    setup();
+  it('logs in with the right code: tokens + user, new user the first time', async () => {
+    const { accessTokens } = setup();
     await requestOtp('9876543210');
 
     const response = await verify('482913');
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ verified: true });
+    const body = response.json();
+    expect(body).toMatchObject({
+      user: { id: expect.any(String), name: null, locale: 'en' },
+      isNewUser: true,
+    });
+    expect(await accessTokens.verify(body.accessToken)).toEqual({ userId: body.user.id });
+  });
+
+  it('logs the same user in again, not as a new user', async () => {
+    setup();
+    await requestOtp('9876543210');
+    const first = (await verify('482913')).json();
+
+    await requestOtp('9876543210');
+    const second = (await verify('482913')).json();
+
+    expect(second).toMatchObject({ isNewUser: false, user: { id: first.user.id } });
   });
 
   it('returns 400 OTP_INVALID with attempts left for a wrong code', async () => {
@@ -112,6 +150,60 @@ describe('POST /v1/auth/otp/verify', () => {
     setup();
     const response = await verify('12');
     expect(response.statusCode).toBe(422);
+  });
+});
+
+describe('POST /v1/auth/refresh and /v1/auth/logout', () => {
+  const post = (url: string, refreshToken: string) =>
+    app.inject({ method: 'POST', url, payload: { refreshToken } });
+
+  async function login(): Promise<{ accessToken: string; refreshToken: string }> {
+    await requestOtp('9876543210');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/otp/verify',
+      payload: {
+        phone: '9876543210',
+        otp: '482913',
+        device: { platform: 'android', appVersion: '1.0.0' },
+      },
+    });
+    return response.json();
+  }
+
+  it('returns a new token pair', async () => {
+    setup();
+    const tokens = await login();
+
+    const response = await post('/v1/auth/refresh', tokens.refreshToken);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().refreshToken).not.toBe(tokens.refreshToken);
+  });
+
+  it('returns 401 when an old refresh token is replayed, and ends the session', async () => {
+    setup();
+    const tokens = await login();
+    const rotated = (await post('/v1/auth/refresh', tokens.refreshToken)).json();
+
+    const replay = await post('/v1/auth/refresh', tokens.refreshToken);
+    expect(replay.statusCode).toBe(401);
+    expect(replay.json().error.code).toBe('UNAUTHENTICATED');
+
+    expect((await post('/v1/auth/refresh', rotated.refreshToken)).statusCode).toBe(401);
+  });
+
+  it('logs out with 204; the refresh token stops working', async () => {
+    setup();
+    const tokens = await login();
+
+    expect((await post('/v1/auth/logout', tokens.refreshToken)).statusCode).toBe(204);
+    expect((await post('/v1/auth/refresh', tokens.refreshToken)).statusCode).toBe(401);
+  });
+
+  it('returns 422 for a malformed refresh token', async () => {
+    setup();
+    expect((await post('/v1/auth/refresh', 'short')).statusCode).toBe(422);
   });
 });
 

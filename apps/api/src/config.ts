@@ -12,6 +12,7 @@ const ConfigSchema = z.object({
   DATABASE_URL: z.url(),
   REDIS_URL: z.url(),
   OTP_HASH_SECRET: z.string().min(32, 'must be at least 32 characters'),
+  JWT_SECRET: z.string().min(32, 'must be at least 32 characters'),
   SMS_PROVIDER: z.enum(['console', 'msg91']).default('console'),
   OTP_DAILY_BUDGET: z.coerce.number().int().positive().default(2000),
   REVIEW_LOGIN_PHONE: z.string().optional(),

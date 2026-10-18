@@ -10,16 +10,20 @@
     "test:watch": "vitest"
   },
   "devDependencies": {
+    "@testcontainers/postgresql": "^12.2.1",
     "@testcontainers/redis": "^12.2.1",
     "testcontainers": "^12.2.1",
     "tsx": "^4.23.15",
     "vitest": "^5.0.5"
   },
   "dependencies": {
+    "@coachingdesk/db": "workspace:*",
     "@coachingdesk/providers": "workspace:*",
     "@coachingdesk/shared": "workspace:*",
+    "drizzle-orm": "^0.45.4",
     "fastify": "^5.12.7",
     "ioredis": "^6.0.0",
+    "jose": "^6.2.12",
     "zod": "^4.6.7"
   }
 }

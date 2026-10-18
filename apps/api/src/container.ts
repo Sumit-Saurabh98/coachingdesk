@@ -1,14 +1,21 @@
+import { createDb } from '@coachingdesk/db';
 import { ConsoleSmsProvider, type SmsProvider } from '@coachingdesk/providers';
-import { PhoneNumber, SystemClock } from '@coachingdesk/shared';
+import { PhoneNumber, SystemClock, UuidV7Generator } from '@coachingdesk/shared';
+import { sql } from 'drizzle-orm';
 import { Redis } from 'ioredis';
 import type { AppDependencies } from './app';
 import type { Config } from './config';
 import { RedisRateLimiter } from './lib/redis-rate-limiter';
+import { JwtAccessTokens } from './modules/auth/access-tokens';
 import { AuthController } from './modules/auth/auth.controller';
+import { AuthService } from './modules/auth/auth.service';
+import { DrizzleRefreshTokenRepository } from './modules/auth/drizzle-refresh-token.repository';
+import { DrizzleUserRepository } from './modules/auth/drizzle-user.repository';
 import { RandomOtpCodeGenerator } from './modules/auth/otp-code-generator';
 import { OtpHasher } from './modules/auth/otp-hasher';
 import { DEFAULT_OTP_POLICY, OtpService } from './modules/auth/otp.service';
 import { RedisOtpStore } from './modules/auth/redis-otp-store';
+import { SessionService } from './modules/auth/session.service';
 
 export interface Container extends AppDependencies {
   close: () => Promise<void>;
@@ -22,6 +29,8 @@ export function createContainer(config: Config): Container {
   assertSafeForProduction(config); // first, before connecting to anything
 
   const clock = new SystemClock();
+  const ids = new UuidV7Generator(clock);
+  const database = createDb(config.DATABASE_URL);
   const redis = new Redis(config.REDIS_URL, {
     // Fail fast instead of queueing commands while Redis is down.
     // Without this, requests would HANG until Redis came back. With it: an instant, safe 500.
@@ -47,17 +56,33 @@ export function createContainer(config: Config): Container {
     { ...DEFAULT_OTP_POLICY, dailySmsBudget: config.OTP_DAILY_BUDGET, reviewLogin },
   );
 
+  const sessionService = new SessionService({
+    refreshTokens: new DrizzleRefreshTokenRepository(database.db),
+    accessTokens: new JwtAccessTokens(config.JWT_SECRET, clock),
+    ids,
+    clock,
+  });
+  const authService = new AuthService({
+    otp: otpService,
+    users: new DrizzleUserRepository(database.db),
+    sessions: sessionService,
+    ids,
+  });
+
   return {
-    authController: new AuthController(otpService),
+    authController: new AuthController({ otpService, authService, sessionService }),
+    // Ready = BOTH Redis and Postgres answer. Otherwise the load balancer sends traffic elsewhere.
     isReady: async () => {
       try {
-        return (await redis.ping()) === 'PONG';
+        const [redisReply] = await Promise.all([redis.ping(), database.db.execute(sql`select 1`)]);
+        return redisReply === 'PONG';
       } catch {
         return false;
       }
     },
     close: async () => {
       await redis.quit(); // finish pending commands, then disconnect
+      await database.close();
     },
   };
 }

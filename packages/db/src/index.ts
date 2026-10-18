@@ -12,3 +12,4 @@ export function createDb(databaseUrl: string) {
 }
 
 export type Db = ReturnType<typeof createDb>['db'];
+export { migrationsFolder, runMigrations } from './migrate';

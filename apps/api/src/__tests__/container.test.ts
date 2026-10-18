@@ -6,6 +6,7 @@ const base = {
   DATABASE_URL: 'postgres://u:p@localhost:5432/db',
   REDIS_URL: 'redis://localhost:6379',
   OTP_HASH_SECRET: 'x'.repeat(32),
+  JWT_SECRET: 'y'.repeat(32),
 };
 
 describe('createContainer', () => {
