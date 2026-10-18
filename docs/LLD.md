@@ -378,6 +378,21 @@ packages/shared/src/
 ├── local-date.ts        # class LocalDate
 └── clock.ts             # interface Clock + SystemClock + FixedClock (tests)
 ```
+### 4.2 Real vs fake implementations
+
+| Interface | Production / staging | Tests & local dev |
+|---|---|---|
+| `Clock` | `SystemClock` | `FixedClock` |
+| `RateLimiter` | `RedisRateLimiter` (atomic `INCR` + `EXPIRE`) | `InMemoryRateLimiter` |
+| `OtpStore` | `RedisOtpStore` (hash + TTL, `HINCRBY` for attempts) | `InMemoryOtpStore` |
+| `SmsProvider` | `Msg91SmsProvider` (DLT template) | `FakeSmsProvider` |
+| `OtpCodeGenerator` | `RandomOtpCodeGenerator` (`crypto.randomInt`) | `FixedOtpCodeGenerator` |
+
+- Selection happens only in `container.ts`, by environment. Services never know which one they got.
+- Production startup fails if a fake is wired in (AGENTS.md → Testing).
+- A contract test suite per interface runs against both columns.
+- OTP and rate limiting **fail closed**: if Redis is unreachable, OTP requests are refused, never allowed through unlimited.
+
 Value objects serialise to plain JSON at the API boundary (`Money` → `amountPaise: number`); Zod schemas validate the plain shape and controllers convert to/from value objects.
 
 ## 5. Key interfaces

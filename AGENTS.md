@@ -91,6 +91,9 @@ pnpm db:generate              # create migration after schema change
 - New repo query / transaction → integration test (Testcontainers).
 - New endpoint → API test covering: unauthenticated, wrong role, other tenant's id (must 404), validation error, happy path.
 - Provider interactions use fakes; webhook parsing uses fixtures in `packages/providers/__fixtures__`.
+- **Fakes and in-memory implementations are for tests and local dev only.** `container.ts` refuses to start with `NODE_ENV=production` if any `Fake*` / `InMemory*` implementation is wired in.
+- **Every interface with a fake gets a contract test suite**: one shared set of tests run against both the fake and the real implementation (e.g. `InMemoryRateLimiter` and `RedisRateLimiter` via Testcontainers), so the fake provably behaves like production.
+- **Shared state must be concurrency-safe**: counters, attempt limits, and quotas use atomic operations (Redis `INCR`/`HINCRBY`, SQL `UPDATE … RETURNING`, unique constraints) — never read-then-write in application code. Several API instances run in production.
 
 ## Definition of done
 
