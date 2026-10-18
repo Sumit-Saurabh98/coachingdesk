@@ -405,7 +405,7 @@ export interface PaymentProvider {
   parseWebhook(payload: unknown): PaymentEvent;
 }
 
-export interface SmsProvider { sendOtp(phone: string, code: string): Promise<void> }
+export interface SmsProvider { sendOtp(to: PhoneNumber, code: string): Promise<void> }
 
 // apps/api
 export interface Entitlements {

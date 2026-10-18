@@ -21,6 +21,19 @@ importers:
         specifier: ~6.0.3
         version: 6.0.3
 
+  apps/api:
+    dependencies:
+      '@coachingdesk/providers':
+        specifier: workspace:*
+        version: link:../../packages/providers
+      '@coachingdesk/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+    devDependencies:
+      vitest:
+        specifier: ^5.0.5
+        version: 5.0.5(@types/node@24.19.2)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(tsx@4.23.15))
+
   packages/db:
     dependencies:
       drizzle-orm:
@@ -33,6 +46,12 @@ importers:
       drizzle-kit:
         specifier: ^0.31.11
         version: 0.31.11
+
+  packages/providers:
+    dependencies:
+      '@coachingdesk/shared':
+        specifier: workspace:*
+        version: link:../shared
 
   packages/shared:
     devDependencies:
