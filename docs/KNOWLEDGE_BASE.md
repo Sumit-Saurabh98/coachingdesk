@@ -160,6 +160,8 @@ Each needs Hindi version. Template approval takes time — submit early.
 | 27 | 2026-10 | Fee cycles add `half_yearly` and `yearly` (6 / 12 months from `cycle_anchor`), alongside monthly, quarterly, one_time, none | Academies, music and sports classes often bill per term or session; same anchor-based billing, so little extra logic |
 | 28 | 2026-10 | Plan limits are enforced in the repository: count + insert in one transaction holding a row lock on the institute (`SELECT … FOR UPDATE`). The effective plan is computed from the subscription row's dates (an expired trial is Free immediately, no job needed) | Several API instances run; a read-then-write check lets two requests both take the last slot. Dates-not-status means a late background job can't extend a trial |
 | 29 | 2026-10 | Bulk student import: rows validated one by one (bad rows reported, good rows created), but the plan limit is all-or-nothing for the good rows | Owners fix a typo and resend; a half-imported list is harder to reason about than a clear "you can add 5 more" |
+| 30 | 2026-10 | Tenant-owned link tables use composite foreign keys `(institute_id, x_id) → x(institute_id, id)` (first: enrollments → students, batches) | The database itself refuses a cross-institute link, whatever the code does — defence in depth for AGENTS rule 1 |
+| 31 | 2026-10 | Teachers never receive fee fields: responses go through `canSeeFees(role)` (`apps/api/src/http/fee-visibility.ts`), with a teacher test per endpoint that carries money | FR-1.4 "no access to fees" must hold for every response, not just the fee endpoints |
 
 ## 7. Open questions
 

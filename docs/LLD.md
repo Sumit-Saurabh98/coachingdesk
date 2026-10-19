@@ -109,10 +109,16 @@ enrollments (
   cycle_anchor date,                      -- period_start of the first billed cycle; multi-month
                                           -- cycles (quarterly 3, half_yearly 6, yearly 12 months)
                                           -- repeat from here. null until first bill
-  start_date date not null, end_date date,
+  start_date date not null, end_date date,   -- both inclusive; end_date null = still enrolled
   created_at, updated_at,
-  unique (student_id, batch_id, start_date)
+  unique (student_id, batch_id, start_date),
+  check (discount_paise between 0 and fee_paise), check (end_date is null or end_date >= start_date),
+  foreign key (institute_id, student_id) references students (institute_id, id),   -- same institute,
+  foreign key (institute_id, batch_id) references batches (institute_id, id)       -- enforced by the DB
 )
+unique index (student_id, batch_id) where end_date is null   -- one OPEN enrollment per student+batch
+index (institute_id, batch_id), index (institute_id, student_id)
+-- students and batches each carry unique (institute_id, id) as the target of those foreign keys
 
 attendance_sessions (
   id uuid pk, institute_id uuid fk, batch_id uuid fk, date date not null,

@@ -36,6 +36,8 @@ Base URL: `https://api.<domain>/v1` · JSON only · OpenAPI spec generated from 
 
 Roles are institute-wide in MVP (`memberships.batch_scope` stays null). Fixed per role — not configurable — so it can be tested exhaustively. Source: REQUIREMENTS FR-1.4.
 
+**Teachers never see fees.** Where a teacher may read something that carries money, the money fields are left out of the response: `defaultFeePaise` on batches; `feePaise`, `discountPaise`, `netFeePaise`, `feeCycle` on enrollments.
+
 ---
 
 ## 2. Auth
@@ -116,7 +118,7 @@ Roles are institute-wide in MVP (`memberships.batch_scope` stays null). Fixed pe
 |---|---|---|
 | GET | `/institutes/{id}/batches` | `?includeArchived=true\|false` (default `false`) → `200 { batches: [...] }`, oldest first |
 | POST | `/institutes/{id}/batches` | Owner, staff. See body → `201 { batch }` |
-| GET | `/institutes/{id}/batches/{batchId}` | `200 { batch }`. Enrolled students count arrives with enrollments |
+| GET | `/institutes/{id}/batches/{batchId}` | `200 { batch, enrolledCount }` — students enrolled today |
 | PATCH | `/institutes/{id}/batches/{batchId}` | Owner, staff. Partial update (any body field; `schedule` is replaced whole) → `200 { batch }`. `409 CONFLICT` if archived |
 | POST | `/institutes/{id}/batches/{batchId}/archive` | Owner, staff. No body → `200 { batch }`. Idempotent: a retry returns the same `archivedAt` |
 
@@ -145,15 +147,15 @@ Batch object:
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/institutes/{id}/students` | `?q=&status=active\|left\|all&limit=1–100 (50)&cursor=` → `200 { students, nextCursor }`, sorted by name (case-insensitive). `q` matches student/guardian name, or 3+ digits of the guardian phone. `?batchId=` arrives with enrollments |
-| POST | `/institutes/{id}/students` | Owner, staff. Single student → `201 { student }` (+ optional `batchIds` with enrollments) |
+| GET | `/institutes/{id}/students` | `?q=&status=active\|left\|all&limit=1–100 (50)&cursor=` → `200 { students, nextCursor }`, sorted by name (case-insensitive). `q` matches student/guardian name, or 3+ digits of the guardian phone. `?batchId=` = only students enrolled in that batch today (unknown batch → empty list) |
+| POST | `/institutes/{id}/students` | Owner, staff. Single student, optional `batchIds` (max 20) → `201 { student, enrollments }`. Batches are checked first: unknown → `404`, archived → `409`, and then no student is created. Each enrollment uses the batch's default fee/cycle and starts on `joinedOn` |
 | POST | `/institutes/{id}/students/bulk` | Owner, staff. Up to 500 rows → `200 { created, students, failed }` |
-| GET | `/institutes/{id}/students/{studentId}` | `200 { student }`. Enrollments, fee summary and attendance % are added as those modules land |
+| GET | `/institutes/{id}/students/{studentId}` | `200 { student, enrollments }` (past and present, by start date). Fee summary and attendance % are added as those modules land |
 | PATCH | `/institutes/{id}/students/{studentId}` | Owner, staff. `{ name?, guardianName?, guardianPhone?, joinedOn?, notes? }` → `200 { student }`. `409` if erased |
 | POST | `/institutes/{id}/students/{studentId}/leave` | Owner, staff. `{ leftOn? }` (default: today at the institute) → `200 { student }`. Stops invoices/reminders; frees a plan slot. Idempotent: a retry keeps the first date |
 | POST | `/institutes/{id}/students/{studentId}/erase` | Owner. Irreversibly erases the student's and guardian's personal data (on guardian request); amounts are kept |
-| POST | `/institutes/{id}/enrollments` | `{ studentId, batchId, feePaise?, discountPaise?, feeCycle?, startDate, billNow?: boolean }` — `feePaise`/`feeCycle` default to the batch's. `one_time` is invoiced immediately; `billNow` bills the current monthly/quarterly/half-yearly/yearly period now |
-| PATCH | `/institutes/{id}/enrollments/{enrollmentId}` | Change fee / cycle / end date (applies from the next period) |
+| POST | `/institutes/{id}/enrollments` | Owner, staff. `{ studentId, batchId, feePaise?, discountPaise?, feeCycle?, startDate? }` → `201 { enrollment }`. `feePaise`/`feeCycle` default to the batch's, `startDate` to today at the institute. `404` student/batch not in this institute; `409` student left, batch archived, or already enrolled then. **Phase 3 adds** `billNow?: boolean` (bills the current period now) and immediate invoicing of `one_time`; until then `billNow` → `422` |
+| PATCH | `/institutes/{id}/enrollments/{enrollmentId}` | Owner, staff. `{ feePaise?, discountPaise?, feeCycle?, endDate? }` → `200 { enrollment }`. Fee changes apply from the next period; `endDate` = last day attending (can be corrected, not before `startDate`) |
 
 Create student:
 ```json
@@ -169,6 +171,12 @@ Create student:
 - `guardianPhone`: any common Indian format (`98765 43210`, `+91…`); stored and returned as E.164. Siblings may share it.
 - `joinedOn` default: today in the institute's time zone. `leftOn` ≥ `joinedOn`.
 - Name 2–80 chars, guardian name ≤ 80, notes ≤ 1000. `status` is never sent: only `/leave` changes it.
+
+Enrollment object (owner/staff):
+```json
+{ "id": "…", "studentId": "…", "batchId": "…", "feePaise": 150000, "discountPaise": 20000, "netFeePaise": 130000, "feeCycle": "monthly", "startDate": "2026-10-19", "endDate": null }
+```
+Rules: discount ≤ fee; one open enrollment per student and batch (rejoining after `endDate` is fine); changing a batch's default fee never changes existing enrollments.
 
 Student object:
 ```json
