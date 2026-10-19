@@ -60,3 +60,4 @@ export {
 } from './schemas/attendance';
 export { zonedInstant } from './zoned-time';
 export { SendNoticeBody } from './schemas/notices';
+export { CreateTestBody, ListTestsQuery, SaveScoresBody, UpdateTestBody } from './schemas/tests';

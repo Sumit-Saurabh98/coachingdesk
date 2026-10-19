@@ -6,3 +6,4 @@ export * from './attendance';
 export * from './messaging';
 export * from './fees';
 export * from './audit';
+export * from './results';
