@@ -31,17 +31,15 @@ beforeEach(async () => {
     { id: instituteB, name: 'B', type: 'tuition', createdBy: u1 },
   ]);
   const schedule = { days: [1], start: '17:00', end: '18:00' };
-  await db
-    .insert(batches)
-    .values(
-      [b1, b2].map((id) => ({
-        id,
-        instituteId: instituteA,
-        name: 'B',
-        schedule,
-        defaultFeeCycle: 'monthly',
-      })),
-    );
+  await db.insert(batches).values(
+    [b1, b2].map((id) => ({
+      id,
+      instituteId: instituteA,
+      name: 'B',
+      schedule,
+      defaultFeeCycle: 'monthly',
+    })),
+  );
   await db.insert(students).values(
     [s1, s2, s3].map((id) => ({
       id,

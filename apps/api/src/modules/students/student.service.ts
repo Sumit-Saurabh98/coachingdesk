@@ -116,6 +116,19 @@ export class StudentService {
     return { students: page.students, nextCursor: page.next ? encodeCursor(page.next) : null };
   }
 
+  /** The students among these ids that exist in this institute (any status), by name. */
+  async findByIds(instituteId: string, ids: readonly string[]): Promise<Student[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+    const page = await this.deps.students.list(instituteId, {
+      status: 'all',
+      ids,
+      limit: ids.length,
+    });
+    return page.students;
+  }
+
   /** 404 for an unknown id AND for another institute's student. */
   async get(instituteId: string, studentId: string): Promise<Student> {
     const student = await this.deps.students.findById(instituteId, studentId);

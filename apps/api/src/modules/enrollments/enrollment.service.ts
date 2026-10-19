@@ -144,6 +144,15 @@ export class EnrollmentService {
     );
   }
 
+  /** Ids of the students in the batch on a date (attendance: who can be marked that day). */
+  async studentIdsInBatchOn(
+    instituteId: string,
+    batchId: string,
+    date: LocalDate,
+  ): Promise<string[]> {
+    return this.deps.enrollments.studentIdsActiveInBatch(instituteId, batchId, date);
+  }
+
   /** Ids of the students in the batch today (for the student list's ?batchId= filter). */
   async studentIdsInBatchToday(instituteId: string, batchId: string): Promise<string[]> {
     return this.deps.enrollments.studentIdsActiveInBatch(
