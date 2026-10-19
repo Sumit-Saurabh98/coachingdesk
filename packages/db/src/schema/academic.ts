@@ -160,6 +160,8 @@ export const enrollments = pgTable(
       foreignColumns: [batches.instituteId, batches.id],
     }),
     unique('enrollments_student_batch_start_unique').on(t.studentId, t.batchId, t.startDate),
+    // The target for invoices' composite foreign key (fees).
+    unique('enrollments_institute_id_id_unique').on(t.instituteId, t.id),
     // At most ONE open enrollment per student per batch. Rejoining after an end date is fine.
     // A unique index, not app code, so two simultaneous "enroll" taps can't both succeed.
     uniqueIndex('enrollments_one_open_per_student_batch')

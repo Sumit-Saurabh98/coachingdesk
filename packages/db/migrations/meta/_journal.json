@@ -71,6 +71,20 @@
       "when": 1792396941808,
       "tag": "0009_lyrical_wild_pack",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792441292407,
+      "tag": "0010_youthful_human_robot",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792441312155,
+      "tag": "0011_ordinary_redwing",
+      "breakpoints": true
     }
   ]
 }

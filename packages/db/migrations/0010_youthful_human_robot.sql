@@ -1,0 +1,1 @@
+ALTER TABLE "enrollments" ADD CONSTRAINT "enrollments_institute_id_id_unique" UNIQUE("institute_id","id");
