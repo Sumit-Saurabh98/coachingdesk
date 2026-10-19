@@ -28,16 +28,17 @@ export class BillingPeriod {
   private constructor(
     readonly start: LocalDate,
     readonly end: LocalDate,
+    private readonly months: number, // 0 for a one-day (one_time) period
   ) {}
 
   /** A cycle period starting on `start`: 1/3/6/12 months long, ending the day before the next. */
   static ofCycle(start: LocalDate, months: number): BillingPeriod {
-    return new BillingPeriod(start, start.addMonths(months).addDays(-1));
+    return new BillingPeriod(start, start.addMonths(months).addDays(-1), months);
   }
 
   /** A one-time fee: a single day (its start date). */
   static oneDay(day: LocalDate): BillingPeriod {
-    return new BillingPeriod(day, day);
+    return new BillingPeriod(day, day, 0);
   }
 
   /**
@@ -53,13 +54,16 @@ export class BillingPeriod {
     return elapsed >= 0 && elapsed % months === 0;
   }
 
-  /** "Oct 2026", or "Oct 2026 – Dec 2026" for a longer period. */
+  /**
+   * The months the bill is FOR, by its cycle length, not by the end date: with billing day 5,
+   * a monthly period runs 5 Oct - 4 Nov but is "Oct 2026"; a quarterly one is
+   * "Oct 2026 – Dec 2026" (not "– Jan 2027").
+   */
   label(): string {
     const first = monthLabel(this.start);
-    const last = monthLabel(this.end);
-    return monthsBetween(this.start, this.end) <= 0 || first === last
+    return this.months <= 1
       ? first
-      : `${first} – ${last}`;
+      : `${first} – ${monthLabel(this.start.addMonths(this.months - 1))}`;
   }
 }
 

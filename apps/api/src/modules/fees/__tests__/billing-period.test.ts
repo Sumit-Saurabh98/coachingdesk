@@ -60,6 +60,12 @@ describe('labels and monthsBetween', () => {
     expect(BillingPeriod.oneDay(day('2026-10-15')).label()).toBe('Oct 2026');
   });
 
+  it('with billing day 5, labels name the months billed, not the end date', () => {
+    expect(BillingPeriod.ofCycle(day('2026-10-05'), 1).label()).toBe('Oct 2026');
+    expect(BillingPeriod.ofCycle(day('2026-10-05'), 3).label()).toBe('Oct 2026 – Dec 2026');
+    expect(BillingPeriod.ofCycle(day('2026-11-05'), 12).label()).toBe('Nov 2026 – Oct 2027');
+  });
+
   it('monthsBetween ignores the day', () => {
     expect(monthsBetween(day('2026-10-31'), day('2027-01-01'))).toBe(3);
   });
