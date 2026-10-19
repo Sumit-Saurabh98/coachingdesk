@@ -10,12 +10,13 @@ import { JwtAccessTokens } from './modules/auth/access-tokens';
 import { AuthController } from './modules/auth/auth.controller';
 import { AuthService } from './modules/auth/auth.service';
 import { DrizzleRefreshTokenRepository } from './modules/auth/drizzle-refresh-token.repository';
-import { DrizzleUserRepository } from './modules/auth/drizzle-user.repository';
 import { RandomOtpCodeGenerator } from './modules/auth/otp-code-generator';
 import { OtpHasher } from './modules/auth/otp-hasher';
 import { DEFAULT_OTP_POLICY, OtpService } from './modules/auth/otp.service';
 import { RedisOtpStore } from './modules/auth/redis-otp-store';
 import { SessionService } from './modules/auth/session.service';
+import { DrizzleUserRepository } from './modules/users/drizzle-user.repository';
+import { UserService } from './modules/users/user.service';
 
 export interface Container extends AppDependencies {
   close: () => Promise<void>;
@@ -62,11 +63,11 @@ export function createContainer(config: Config): Container {
     ids,
     clock,
   });
+  const userService = new UserService(new DrizzleUserRepository(database.db), ids);
   const authService = new AuthService({
     otp: otpService,
-    users: new DrizzleUserRepository(database.db),
+    users: userService,
     sessions: sessionService,
-    ids,
   });
 
   return {

@@ -13,7 +13,8 @@ import { InMemoryOtpStore } from '../otp-store';
 import { OtpService } from '../otp.service';
 import { InMemoryRefreshTokenRepository } from '../refresh-token.repository';
 import { SessionService } from '../session.service';
-import { InMemoryUserRepository } from '../user.repository';
+import { InMemoryUserRepository } from '../../users/user.repository';
+import { UserService } from '../../users/user.service';
 
 let app: FastifyInstance;
 
@@ -38,9 +39,8 @@ function setup() {
   });
   const authService = new AuthService({
     otp: otpService,
-    users: new InMemoryUserRepository(),
+    users: new UserService(new InMemoryUserRepository(), ids),
     sessions: sessionService,
-    ids,
   });
   app = buildApp({
     authController: new AuthController({ otpService, authService, sessionService }),

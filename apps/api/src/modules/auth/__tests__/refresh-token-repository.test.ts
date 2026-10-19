@@ -3,17 +3,12 @@ import type { Db } from '@coachingdesk/db';
 import { users } from '@coachingdesk/db/schema';
 import { startTestDb } from '../../../test/postgres';
 import { DrizzleRefreshTokenRepository } from '../drizzle-refresh-token.repository';
-import { DrizzleUserRepository } from '../drizzle-user.repository';
 import { InMemoryRefreshTokenRepository } from '../refresh-token.repository';
-import { InMemoryUserRepository } from '../user.repository';
 import {
   CONTRACT_USER_ID,
   describeRefreshTokenRepositoryContract,
 } from './refresh-token-repository.contract';
-import { describeUserRepositoryContract } from './user-repository.contract';
 
-// The fakes
-describeUserRepositoryContract('InMemoryUserRepository', () => new InMemoryUserRepository());
 describeRefreshTokenRepositoryContract(
   'InMemoryRefreshTokenRepository',
   () => new InMemoryRefreshTokenRepository(),
@@ -36,7 +31,6 @@ afterAll(async () => {
   await stop();
 });
 
-describeUserRepositoryContract('DrizzleUserRepository', () => new DrizzleUserRepository(db));
 describeRefreshTokenRepositoryContract(
   'DrizzleRefreshTokenRepository',
   () => new DrizzleRefreshTokenRepository(db),
