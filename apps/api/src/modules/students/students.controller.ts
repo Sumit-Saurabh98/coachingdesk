@@ -1,4 +1,5 @@
 import {
+  BulkCreateStudentsBody,
   CreateStudentBody,
   LeaveStudentBody,
   ListStudentsQuery,
@@ -31,6 +32,25 @@ export class StudentsController {
     const body = CreateStudentBody.parse(request.body);
     const student = await this.students.create(currentTenant(request).instituteId, body);
     await reply.status(201).send({ student: student.toPublicJSON() });
+  }
+
+  /**
+   * POST .../students/bulk { rows, joinedOn? } (owner, staff)
+   * -> 200 { created, students, failed }. 200, not 201: the result is per row, and a request
+   * where every row failed still "worked" (it reports what to fix).
+   */
+  async bulkCreate(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+    const body = BulkCreateStudentsBody.parse(request.body);
+    const result = await this.students.bulkCreate(
+      currentTenant(request).instituteId,
+      body.rows,
+      body.joinedOn,
+    );
+    await reply.status(200).send({
+      created: result.created.length,
+      students: result.created.map((s) => s.toPublicJSON()),
+      failed: result.failed,
+    });
   }
 
   /** GET .../students/:studentId (any member) -> 200 { student } */

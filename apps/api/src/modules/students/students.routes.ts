@@ -20,6 +20,9 @@ export function registerStudentRoutes(
 
   app.get(BASE, { preHandler: read }, (request, reply) => controller.list(request, reply));
   app.post(BASE, { preHandler: write }, (request, reply) => controller.create(request, reply));
+  app.post(`${BASE}/bulk`, { preHandler: write }, (request, reply) =>
+    controller.bulkCreate(request, reply),
+  );
   app.get(`${BASE}/:studentId`, { preHandler: read }, (request, reply) =>
     controller.get(request, reply),
   );

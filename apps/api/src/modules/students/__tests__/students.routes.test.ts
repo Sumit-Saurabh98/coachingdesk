@@ -271,3 +271,100 @@ describe('POST /v1/institutes/:instituteId/students/:studentId/leave', () => {
     ).toBe(403);
   });
 });
+
+describe('POST /v1/institutes/:instituteId/students/bulk', () => {
+  const rows = [
+    { name: 'Aarav', guardianPhone: '9876543210' },
+    { name: 'Ravi', guardianPhone: '98765' },
+    { name: 'Chirag', guardianPhone: '+91 91234 56789', guardianName: 'Sunita' },
+  ];
+
+  it('200: creates the good rows, reports the bad ones by row number', async () => {
+    const { token, studentsUrl } = await setup();
+
+    const response = await http.call(token, 'POST', `${studentsUrl}/bulk`, {
+      rows,
+      joinedOn: '2026-10-01',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(body.created).toBe(2);
+    expect(body.students.map((s: { name: string }) => s.name)).toEqual(['Aarav', 'Chirag']);
+    expect(body.students[1]).toMatchObject({
+      guardianPhone: '+919123456789',
+      joinedOn: '2026-10-01',
+    });
+    expect(body.failed).toEqual([
+      {
+        row: 2,
+        field: 'guardianPhone',
+        message: expect.any(String),
+        input: { name: 'Ravi', guardianPhone: '98765' },
+      },
+    ]);
+    // ...and they really are stored.
+    expect((await http.call(token, 'GET', studentsUrl)).json().students).toHaveLength(2);
+  });
+
+  it('402 when the good rows do not fit the plan; nothing is created', async () => {
+    const { token, instituteId, studentsUrl, createStudent } = await setup();
+    moveToFreePlan(instituteId);
+    for (let i = 0; i < 24; i++) {
+      await createStudent({ ...validStudent, name: `Student ${i}` });
+    }
+
+    const response = await http.call(token, 'POST', `${studentsUrl}/bulk`, { rows }); // 2 good rows, 1 slot
+
+    expect(response.statusCode).toBe(402);
+    expect(
+      (await http.call(token, 'GET', `${studentsUrl}?limit=100`)).json().students,
+    ).toHaveLength(24);
+  });
+
+  it('422 for an empty list or more than 500 rows', async () => {
+    const { token, studentsUrl } = await setup();
+    const row = { name: 'Aarav', guardianPhone: '9876543210' };
+    expect((await http.call(token, 'POST', `${studentsUrl}/bulk`, { rows: [] })).statusCode).toBe(
+      422,
+    );
+    expect(
+      (await http.call(token, 'POST', `${studentsUrl}/bulk`, { rows: Array(501).fill(row) }))
+        .statusCode,
+    ).toBe(422);
+  });
+
+  it('500 rows in one request: all created on Academy (unlimited), 402 on the Pro trial (300)', async () => {
+    const { token, instituteId, studentsUrl } = await setup();
+    const many = Array.from({ length: 500 }, (_, i) => ({
+      name: `Student ${i}`,
+      guardianPhone: '9876543210',
+    }));
+
+    const onTrial = await http.call(token, 'POST', `${studentsUrl}/bulk`, { rows: many });
+    testApp.subscriptionRepository.put({
+      instituteId,
+      plan: 'academy',
+      status: 'active',
+      currentPeriodEnd: new Date('2027-10-19T00:00:00Z'),
+      graceUntil: null,
+    });
+    const onAcademy = await http.call(token, 'POST', `${studentsUrl}/bulk`, { rows: many });
+
+    expect(onTrial.statusCode).toBe(402);
+    expect(onTrial.json().error.details).toEqual({ limit: 300 });
+    expect(onAcademy.json().created).toBe(500);
+  });
+
+  it('403 for a teacher, 404 for a non-member', async () => {
+    const { instituteId, studentsUrl } = await setup();
+    const teacher = await http.memberWithRole(instituteId, 'teacher');
+    const stranger = await loginOverHttp(app, OTHER_PHONE);
+    expect((await http.call(teacher, 'POST', `${studentsUrl}/bulk`, { rows })).statusCode).toBe(
+      403,
+    );
+    expect(
+      (await http.call(stranger.accessToken, 'POST', `${studentsUrl}/bulk`, { rows })).statusCode,
+    ).toBe(404);
+  });
+});
