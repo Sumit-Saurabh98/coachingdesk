@@ -13,6 +13,7 @@ import type {
   InvoiceGenerator,
 } from './invoice-generator';
 import type { InvoiceRepository } from './invoice.repository';
+import { type AuditRecorder, NO_AUDIT } from '../audit/audit-log';
 
 export interface InvoiceStudentLookup {
   get(instituteId: string, studentId: string): Promise<{ id: string }>;
@@ -29,6 +30,7 @@ export interface InvoiceServiceDeps {
   batches: InvoiceBatchLookup;
   ids: IdGenerator;
   clock: Clock;
+  audit?: AuditRecorder;
 }
 
 export interface InvoiceFilter {
@@ -144,14 +146,41 @@ export class InvoiceService {
     return stored;
   }
 
-  async waive(instituteId: string, invoiceId: string, reason: string): Promise<Invoice> {
+  async waive(
+    instituteId: string,
+    invoiceId: string,
+    reason: string,
+    actorUserId: string | null = null,
+  ): Promise<Invoice> {
     const invoice = await this.get(instituteId, invoiceId);
-    return this.saveChange(invoice, invoice.waive(reason));
+    const waived = await this.saveChange(invoice, invoice.waive(reason));
+    await this.audited('invoice.waive', invoice, waived, actorUserId);
+    return waived;
   }
 
-  async cancel(instituteId: string, invoiceId: string, reason: string): Promise<Invoice> {
+  async cancel(
+    instituteId: string,
+    invoiceId: string,
+    reason: string,
+    actorUserId: string | null = null,
+  ): Promise<Invoice> {
     const invoice = await this.get(instituteId, invoiceId);
-    return this.saveChange(invoice, invoice.cancel(reason));
+    const cancelled = await this.saveChange(invoice, invoice.cancel(reason));
+    await this.audited('invoice.cancel', invoice, cancelled, actorUserId);
+    return cancelled;
+  }
+
+  /** Statuses and amounts only: no names (the reason stays on the invoice itself). */
+  private async audited(action: string, before: Invoice, after: Invoice, actor: string | null) {
+    await (this.deps.audit ?? NO_AUDIT).record({
+      instituteId: before.instituteId,
+      actorUserId: actor,
+      action,
+      entityType: 'invoice',
+      entityId: before.id,
+      before: { status: before.status, remainingPaise: before.remaining.toPaise() },
+      after: { status: after.status },
+    });
   }
 
   /** Save only if nobody changed the invoice since we loaded it (e.g. a payment arrived). */

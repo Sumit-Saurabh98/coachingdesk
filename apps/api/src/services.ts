@@ -1,6 +1,8 @@
 import type { Db } from '@coachingdesk/db';
 import type { Clock, IdGenerator } from '@coachingdesk/shared';
 import { AttendanceWindow } from './modules/attendance/attendance-window';
+import { AuditLog } from './modules/audit/audit-log';
+import { DrizzleAuditRepository } from './modules/audit/drizzle-audit.repository';
 import { AttendanceService } from './modules/attendance/attendance.service';
 import { DrizzleAttendanceRepository } from './modules/attendance/drizzle-attendance.repository';
 import { BatchService } from './modules/batches/batch.service';
@@ -37,6 +39,7 @@ export type DomainServices = ReturnType<typeof createDomainServices>;
  * adds the WhatsApp sender). Same modules, same rules, two processes.
  */
 export function createDomainServices(db: Db, clock: Clock, ids: IdGenerator) {
+  const auditLog = new AuditLog(new DrizzleAuditRepository(db), ids, clock);
   const userService = new UserService(new DrizzleUserRepository(db), ids);
   const subscriptionService = new SubscriptionService(new DrizzleSubscriptionRepository(db), clock);
   const entitlements = new EntitlementsService(subscriptionService);
@@ -46,6 +49,7 @@ export function createDomainServices(db: Db, clock: Clock, ids: IdGenerator) {
     entitlements,
     ids,
     clock,
+    audit: auditLog,
   });
   const batchService = new BatchService({ batches: new DrizzleBatchRepository(db), ids, clock });
   const consentRepository = new DrizzleConsentRepository(db);
@@ -108,6 +112,7 @@ export function createDomainServices(db: Db, clock: Clock, ids: IdGenerator) {
     batches: batchService,
     ids,
     clock,
+    audit: auditLog,
   });
 
   const paymentService = new PaymentService({
@@ -117,6 +122,7 @@ export function createDomainServices(db: Db, clock: Clock, ids: IdGenerator) {
     institutes: instituteService,
     ids,
     clock,
+    audit: auditLog,
   });
 
   const messageQuota = new MessageQuota(new DrizzleMessageUsageRepository(db), entitlements, clock);
@@ -131,6 +137,7 @@ export function createDomainServices(db: Db, clock: Clock, ids: IdGenerator) {
   });
 
   return {
+    auditLog,
     subscriptionService,
     messageQuota,
     feeReminders,

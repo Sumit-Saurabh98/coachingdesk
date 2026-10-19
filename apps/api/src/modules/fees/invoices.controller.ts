@@ -1,5 +1,6 @@
 import { CloseInvoiceBody, CreateManualInvoiceBody, ListInvoicesQuery } from '@coachingdesk/shared';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import { currentUserId } from '../../http/auth-guard';
 import { uuidParam } from '../../http/route-params';
 import { currentTenant } from '../../http/tenancy-guard';
 import type { InvoiceService } from './invoice.service';
@@ -56,6 +57,7 @@ export class InvoicesController {
       currentTenant(request).instituteId,
       invoiceIdOf(request),
       reason,
+      currentUserId(request),
     );
     await reply.status(200).send({ invoice: invoice.toPublicJSON() });
   }
@@ -67,6 +69,7 @@ export class InvoicesController {
       currentTenant(request).instituteId,
       invoiceIdOf(request),
       reason,
+      currentUserId(request),
     );
     await reply.status(200).send({ invoice: invoice.toPublicJSON() });
   }

@@ -56,7 +56,11 @@ export class InstitutesController {
   /** PATCH /v1/institutes/:instituteId (owner only) -> 200 { institute } */
   async update(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     const body = UpdateInstituteBody.parse(request.body);
-    const institute = await this.institutes.update(currentTenant(request).instituteId, body);
+    const institute = await this.institutes.update(
+      currentTenant(request).instituteId,
+      body,
+      currentUserId(request),
+    );
     await reply.status(200).send({ institute: institute.toPublicJSON() });
   }
 }

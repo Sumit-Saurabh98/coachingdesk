@@ -15,6 +15,7 @@ import {
   type NewInstituteInput,
 } from './institute';
 import type { InstituteRepository, MemberRole, Membership } from './institute.repository';
+import { type AuditRecorder, NO_AUDIT } from '../audit/audit-log';
 import type { User } from '../users/user';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -30,6 +31,7 @@ export interface InstituteServiceDeps {
   entitlements: MemberLimitLookup;
   ids: IdGenerator;
   clock: Clock;
+  audit?: AuditRecorder;
 }
 
 /** A member as the owner sees them in the team list. */
@@ -101,6 +103,7 @@ export class InstituteService {
   async update(
     instituteId: string,
     changes: DetailsChanges & BillingSettingsChanges & { settings?: Partial<InstituteSettings> },
+    actorUserId: string | null = null,
   ): Promise<Institute> {
     let updated = (await this.get(instituteId))
       .withDetails({ name: changes.name, city: changes.city })
@@ -109,7 +112,29 @@ export class InstituteService {
       updated = updated.withSettings(changes.settings);
     }
     await this.deps.institutes.update(updated);
+    if (
+      changes.billingDay !== undefined ||
+      changes.dueAfterDays !== undefined ||
+      changes.settings
+    ) {
+      await this.audit.record({
+        instituteId,
+        actorUserId,
+        action: 'institute.settings',
+        entityType: 'institute',
+        entityId: instituteId,
+        after: {
+          billingDay: updated.billingDay,
+          dueAfterDays: updated.dueAfterDays,
+          settings: updated.settings,
+        },
+      });
+    }
     return updated;
+  }
+
+  private get audit(): AuditRecorder {
+    return this.deps.audit ?? NO_AUDIT;
   }
 
   /** GET /members (owner): the team, owner first, with names and phones from the users module. */
@@ -127,7 +152,11 @@ export class InstituteService {
    * POST /members (owner). Adds by phone: the user row is created if the phone is new, and they
    * get access on their first OTP login (API_DOCS §4). 409 already a member, 402 plan limit.
    */
-  async addMember(instituteId: string, request: NewMemberRequest): Promise<MemberView> {
+  async addMember(
+    instituteId: string,
+    request: NewMemberRequest,
+    actorUserId: string | null = null,
+  ): Promise<MemberView> {
     const { user } = await this.deps.users.findOrCreateByPhone(request.phone);
     // The name the owner typed is used only if the person hasn't set their own. Validate it
     // BEFORE adding, so a bad name can't leave a half-done member behind.
@@ -149,12 +178,31 @@ export class InstituteService {
     if (named !== user) {
       await this.deps.users.updateProfile(user.id, { name: named.name ?? undefined });
     }
+    await this.audit.record({
+      instituteId,
+      actorUserId,
+      action: 'member.add',
+      entityType: 'user',
+      entityId: user.id,
+      after: { role: request.role },
+    });
     return toView(named, request.role);
   }
 
   /** DELETE /members/:userId (owner). The owner can't be removed (409); unknown member: 404. */
-  async removeMember(instituteId: string, userId: string): Promise<void> {
+  async removeMember(
+    instituteId: string,
+    userId: string,
+    actorUserId: string | null = null,
+  ): Promise<void> {
     if (await this.deps.institutes.removeMember(instituteId, userId)) {
+      await this.audit.record({
+        instituteId,
+        actorUserId,
+        action: 'member.remove',
+        entityType: 'user',
+        entityId: userId,
+      });
       return;
     }
     const membership = await this.deps.institutes.findMembership(instituteId, userId);

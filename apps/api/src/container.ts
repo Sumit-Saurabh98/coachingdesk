@@ -7,6 +7,7 @@ import type { AppDependencies } from './app';
 import type { Config } from './config';
 import { RedisRateLimiter } from './lib/redis-rate-limiter';
 import { AttendanceController } from './modules/attendance/attendance.controller';
+import { AuditController } from './modules/audit/audit.controller';
 import { JwtAccessTokens } from './modules/auth/access-tokens';
 import { AuthController } from './modules/auth/auth.controller';
 import { AuthService } from './modules/auth/auth.service';
@@ -91,6 +92,7 @@ export function createContainer(config: Config): Container {
       services.instituteService,
       services.entitlements,
     ),
+    auditController: new AuditController(services.auditLog),
     subscriptionsController: new SubscriptionsController(services.subscriptionService, {
       entitlements: services.entitlements,
       students: services.studentService,

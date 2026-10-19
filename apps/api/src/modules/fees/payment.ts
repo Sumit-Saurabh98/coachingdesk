@@ -9,7 +9,7 @@ export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 export interface PaymentProps {
   id: string;
   instituteId: string;
-  guardianPhone: PhoneNumber;
+  guardianPhone: PhoneNumber | null; // null once the guardian's data was erased
   amount: Money;
   method: PaymentMethod;
   status: PaymentStatus;
@@ -39,7 +39,7 @@ const FUTURE_TOLERANCE_MS = 5 * 60_000;
 export class Payment {
   readonly id: string;
   readonly instituteId: string;
-  readonly guardianPhone: PhoneNumber;
+  readonly guardianPhone: PhoneNumber | null;
   readonly amount: Money;
   readonly method: PaymentMethod;
   readonly status: PaymentStatus;
@@ -145,7 +145,7 @@ export class Payment {
   toPublicJSON() {
     return {
       id: this.id,
-      guardianPhone: this.guardianPhone.toE164(),
+      guardianPhone: this.guardianPhone?.toE164() ?? null,
       amountPaise: this.amount.toPaise(),
       method: this.method,
       status: this.status,

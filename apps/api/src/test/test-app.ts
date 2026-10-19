@@ -4,6 +4,9 @@ import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../app';
 import { InMemoryRateLimiter } from '../lib/rate-limiter';
 import { InMemoryAttendanceRepository } from '../modules/attendance/attendance.repository';
+import { AuditController } from '../modules/audit/audit.controller';
+import { AuditLog } from '../modules/audit/audit-log';
+import { InMemoryAuditRepository } from '../modules/audit/audit.repository';
 import { AttendanceWindow } from '../modules/attendance/attendance-window';
 import { AttendanceService } from '../modules/attendance/attendance.service';
 import { AttendanceController } from '../modules/attendance/attendance.controller';
@@ -82,6 +85,8 @@ export function buildTestApp() {
     ids,
     clock,
   });
+  const auditRepository = new InMemoryAuditRepository();
+  const auditLog = new AuditLog(auditRepository, ids, clock);
   const userService = new UserService(new InMemoryUserRepository(), ids);
   const subscriptionRepository = new InMemorySubscriptionRepository();
   // Shared like one database: creating an institute writes its trial where subscriptions reads it.
@@ -94,6 +99,7 @@ export function buildTestApp() {
     entitlements,
     ids,
     clock,
+    audit: auditLog,
   });
   const batchService = new BatchService({ batches: new InMemoryBatchRepository(), ids, clock });
   const consentRepository = new InMemoryConsentRepository();
@@ -152,6 +158,7 @@ export function buildTestApp() {
     batches: batchService,
     ids,
     clock,
+    audit: auditLog,
   });
   const paymentService = new PaymentService({
     payments: new InMemoryPaymentRepository(invoiceRepository),
@@ -160,6 +167,7 @@ export function buildTestApp() {
     institutes: instituteService,
     ids,
     clock,
+    audit: auditLog,
   });
   const messageUsageRepository = new InMemoryMessageUsageRepository();
   const messageQuota = new MessageQuota(messageUsageRepository, entitlements, clock);
@@ -182,6 +190,7 @@ export function buildTestApp() {
     authController: new AuthController({ otpService, authService, sessionService }),
     meController: new MeController(userService, instituteService, sessionService),
     institutesController: new InstitutesController(instituteService, entitlements),
+    auditController: new AuditController(auditLog),
     subscriptionsController: new SubscriptionsController(subscriptionService, {
       entitlements,
       students: studentService,
@@ -221,6 +230,7 @@ export function buildTestApp() {
     invoiceRepository,
     invoiceGenerator,
     messageQuota,
+    auditRepository,
   };
 }
 

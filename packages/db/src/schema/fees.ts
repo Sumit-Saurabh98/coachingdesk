@@ -135,7 +135,8 @@ export const payments = pgTable(
     instituteId: uuid()
       .notNull()
       .references(() => institutes.id),
-    guardianPhone: text().notNull(), // E.164, snapshot of who paid
+    // E.164 snapshot of who paid. NULL after the guardian's data was erased (amount kept).
+    guardianPhone: text(),
     amountPaise: bigint({ mode: 'number' }).notNull(),
     method: text().notNull(), // upi_link | cash | bank | other
     provider: text(), // null for offline

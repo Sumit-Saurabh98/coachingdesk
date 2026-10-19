@@ -12,6 +12,7 @@ import type { Invoice } from './invoice';
 import type { InvoiceRepository } from './invoice.repository';
 import { type OfflineMethod, Payment, type PaymentMethod, type PaymentStatus } from './payment';
 import type { PaymentRepository } from './payment.repository';
+import { type AuditRecorder, NO_AUDIT } from '../audit/audit-log';
 
 export interface PaymentStudentLookup {
   get(instituteId: string, studentId: string): Promise<{ guardianPhone: PhoneNumber | null }>;
@@ -31,6 +32,7 @@ export interface PaymentServiceDeps {
   institutes: PaymentInstituteLookup;
   ids: IdGenerator;
   clock: Clock;
+  audit?: AuditRecorder;
 }
 
 export interface OfflinePaymentRequest {
@@ -127,6 +129,18 @@ export class PaymentService {
     if (!result) {
       throw new AppError('NOT_FOUND', 'Payment not found');
     }
+    await (this.deps.audit ?? NO_AUDIT).record({
+      instituteId,
+      actorUserId: userId,
+      action: 'payment.void',
+      entityType: 'payment',
+      entityId: paymentId,
+      before: { status: 'active', amountPaise: result.payment.amount.toPaise() },
+      after: {
+        status: result.payment.status,
+        invoices: result.invoices.map((i) => ({ id: i.id, status: i.status })),
+      },
+    });
     return result;
   }
 

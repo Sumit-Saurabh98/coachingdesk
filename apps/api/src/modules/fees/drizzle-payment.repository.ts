@@ -288,7 +288,7 @@ function toColumns(payment: Payment) {
   return {
     id: payment.id,
     instituteId: payment.instituteId,
-    guardianPhone: payment.guardianPhone.toE164(),
+    guardianPhone: payment.guardianPhone?.toE164() ?? null,
     amountPaise: payment.amount.toPaise(),
     method: payment.method,
     idempotencyKey: payment.idempotencyKey,
@@ -306,7 +306,7 @@ function toPayment(row: PaymentRow): Payment {
   return Payment.restore({
     id: row.id,
     instituteId: row.instituteId,
-    guardianPhone: PhoneNumber.parse(row.guardianPhone),
+    guardianPhone: row.guardianPhone ? PhoneNumber.parse(row.guardianPhone) : null,
     amount: Money.ofPaise(row.amountPaise),
     method: oneOf(PAYMENT_METHODS, row.method) as PaymentMethod,
     status: oneOf(PAYMENT_STATUSES, row.status) as PaymentStatus,

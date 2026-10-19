@@ -7,6 +7,8 @@ import { createTenancyGuard, type MembershipLookup } from './http/tenancy-guard'
 import type { JwtAccessTokens } from './modules/auth/access-tokens';
 import type { AttendanceController } from './modules/attendance/attendance.controller';
 import { registerAttendanceRoutes } from './modules/attendance/attendance.routes';
+import type { AuditController } from './modules/audit/audit.controller';
+import { registerAuditRoutes } from './modules/audit/audit.routes';
 import type { AuthController } from './modules/auth/auth.controller';
 import { registerAuthRoutes } from './modules/auth/auth.routes';
 import type { BatchesController } from './modules/batches/batches.controller';
@@ -44,6 +46,7 @@ export interface AppDependencies {
   remindersController: RemindersController;
   messagesController: MessagesController;
   subscriptionsController: SubscriptionsController;
+  auditController: AuditController;
   invoicesController: InvoicesController;
   paymentsController: PaymentsController;
   accessTokens: JwtAccessTokens;
@@ -107,6 +110,7 @@ export function buildApp(deps: AppDependencies, options: AppOptions = {}): Fasti
       requireMember,
     },
   );
+  registerAuditRoutes(app, deps.auditController, { requireAuth, requireMember });
   registerSubscriptionRoutes(app, deps.subscriptionsController, { requireAuth, requireMember });
   registerFeeRoutes(app, deps.invoicesController, deps.paymentsController, {
     requireAuth,

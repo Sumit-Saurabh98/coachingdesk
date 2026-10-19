@@ -1,5 +1,6 @@
 import { AddMemberBody } from '@coachingdesk/shared';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import { currentUserId } from '../../http/auth-guard';
 import { uuidParam } from '../../http/route-params';
 import { currentTenant } from '../../http/tenancy-guard';
 import type { InstituteService, MemberView } from './institute.service';
@@ -24,7 +25,11 @@ export class MembersController {
   /** POST { phone, name, role } -> 201 { member } */
   async add(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     const body = AddMemberBody.parse(request.body);
-    const member = await this.institutes.addMember(currentTenant(request).instituteId, body);
+    const member = await this.institutes.addMember(
+      currentTenant(request).instituteId,
+      body,
+      currentUserId(request),
+    );
     await reply.status(201).send({ member: memberJSON(member) });
   }
 
@@ -33,6 +38,7 @@ export class MembersController {
     await this.institutes.removeMember(
       currentTenant(request).instituteId,
       uuidParam(request, 'userId', 'Member not found'),
+      currentUserId(request),
     );
     await reply.status(204).send();
   }
