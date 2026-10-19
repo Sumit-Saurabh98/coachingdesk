@@ -300,9 +300,11 @@ data_exports (
 notices (id, institute_id, batch_ids uuid[], body text, sent_by, recipients int, created_at)
 
 audit_log (
-  id bigserial pk, institute_id, actor_user_id, action text, entity_type text,
-  entity_id uuid, before jsonb, after jsonb, created_at
+  id uuid pk,                             -- UUIDv7: time-ordered, so the log pages by id
+  institute_id uuid fk, actor_user_id uuid fk users on delete set null, action text, entity_type text,
+  entity_id uuid, before jsonb, after jsonb, created_at   -- statuses/amounts/ids only, NO personal data
 )
+index (institute_id, id)
 ```
 
 ## 3. State machines
@@ -688,7 +690,7 @@ anything else → auto-reply once per phone per 24 h:
 
 - **Institute export** (`POST /institutes/{id}/exports`, owner): job builds a ZIP of CSVs (students, enrollments, invoices, payments, attendance, scores) to S3; `GET /exports/{id}` returns a signed URL valid 24 h. Max one running export per institute.
 - **Institute deletion** (`POST /institutes/{id}/delete`, owner, requires a fresh OTP): sets `deletion_requested_at`, stops all messaging and billing immediately; owner can cancel within 30 days. After 30 days a job hard-deletes all tenant rows for the institute — the only case where money/attendance rows are hard-deleted. Our own subscription billing records (GST invoices to the institute) are kept as legally required.
-- **Student erasure** (`POST /students/{id}/erase`, owner, on a guardian's request): clears student name, guardian name/phone, notes, and their `guardian_contacts`/`public_tokens`; keeps invoice and payment amounts so the institute's totals stay correct. Irreversible; audited.
+- **Student erasure** (`POST /students/{id}/erase`, owner, on a guardian's request; `ErasureService` in `modules/privacy`): clears student name, guardian name/phone, notes; marks the student left; blanks the params of absence alerts about them (cancelling queued ones). If no other student at the institute has the guardian's phone: `payments.guardian_phone` → NULL, `guardian_contacts` row deleted, outbox rows to that phone deleted (`public_tokens` when they exist). Keeps invoice and payment amounts. Irreversible; audited; each step idempotent.
 - **User account deletion** (`DELETE /me`, also on the web at `/delete-account` via OTP login — Google Play requires both): refused with `409 OWNER_OF_INSTITUTES` while the user is the sole owner of an institute that isn't deleted. Otherwise removes memberships, revokes refresh tokens, and deletes the user row. Each step is idempotent, so a retry after a crash finishes the job. **Later:** rows that record *who did something* (e.g. `attendance_sessions.taken_by`) must not block deletion — use `ON DELETE SET NULL` on those FKs when they are added.
 
 ## 7. Queues (BullMQ)

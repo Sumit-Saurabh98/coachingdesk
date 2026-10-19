@@ -148,7 +148,7 @@ Batch object:
 | GET | `/institutes/{id}/students/{studentId}` | `200 { student, enrollments }` (past and present, by start date). Fee summary and attendance % are added as those modules land |
 | PATCH | `/institutes/{id}/students/{studentId}` | Owner, staff. `{ name?, guardianName?, guardianPhone?, joinedOn?, notes? }` → `200 { student }`. `409` if erased |
 | POST | `/institutes/{id}/students/{studentId}/leave` | Owner, staff. `{ leftOn? }` (default: today at the institute) → `200 { student }`. Stops invoices/reminders; frees a plan slot. Idempotent: a retry keeps the first date |
-| POST | `/institutes/{id}/students/{studentId}/erase` | Owner. Irreversibly erases the student's and guardian's personal data (on guardian request); amounts are kept |
+| POST | `/institutes/{id}/students/{studentId}/erase` | Owner. `{ confirm: true }` → `200 { student }`. Irreversibly erases the student's personal data (on guardian request): name → "Erased student", guardian name/phone and notes cleared, marked left (billing stops); absence alerts about them lose their text. The guardian's phone is also removed from payments, consent and the message log **unless a sibling here still has it**. Invoice and payment amounts are kept. Audited; repeating it is harmless |
 | POST | `/institutes/{id}/enrollments` | Owner, staff. `{ studentId, batchId, feePaise?, discountPaise?, feeCycle?, startDate?, billNow? }` → `201 { enrollment, invoice }`. `feePaise`/`feeCycle` default to the batch's, `startDate` to today at the institute. `one_time` is invoiced immediately; `billNow: true` bills the current period of a periodic enrollment now (`422` if the enrollment starts after this period); otherwise `invoice` is `null` and the billing run bills it. `404` student/batch not in this institute; `409` student left, batch archived, or already enrolled then |
 | PATCH | `/institutes/{id}/enrollments/{enrollmentId}` | Owner, staff. `{ feePaise?, discountPaise?, feeCycle?, endDate? }` → `200 { enrollment }`. Fee changes apply from the next period; `endDate` = last day attending (can be corrected, not before `startDate`) |
 
@@ -297,6 +297,12 @@ Only guardians with consent (`opted_in`) are ever messaged; the check happens at
 **Fee reminders** (automatic, worker): on the institute's `reminderOffsets` (setting; default `[3, 0, -3, -7]` = 3 days before the due date, on it, 3 and 7 days after; `[]` = off), at most one per guardian per day, siblings combined (`fee_reminder` for one child, `fee_reminder_multi` for several, chosen at send time from what is due THEN; skipped if nothing is due). Students who left get none. Plan needs automatic messages. The "Pay now" button's link token arrives with the pay page.
 
 **Limits** (checked right before sending; over → message `skipped`, `skip_reason = over_quota`): the plan's monthly quota; during the trial 100/day and 200 in total; any institute's first 7 days 100/day. A failed send doesn't count. Consent is also recorded by `guardianConsent: true` on `POST /students` and `POST /students/bulk` (the "Guardian agreed to receive updates on WhatsApp" checkbox).
+
+## 11a. Audit log
+
+| Method | Path |
+|---|---|
+| GET | `/institutes/{id}/audit-log?limit&cursor` — owner → `{ entries: [{ id, action, actorUserId, entityType, entityId, before, after, createdAt }], nextCursor }`, newest first. Actions: `payment.void`, `invoice.waive`, `invoice.cancel`, `member.add`, `member.remove`, `institute.settings`, `student.erase`. Entries hold statuses, amounts and ids only — never names or phones |
 
 ## 12. Subscription
 
