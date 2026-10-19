@@ -60,6 +60,7 @@ import { StudentsController } from '../modules/students/students.controller';
 import { InMemorySubscriptionRepository } from '../modules/subscriptions/subscription.repository';
 import { SubscriptionService } from '../modules/subscriptions/subscription.service';
 import { ErasureService } from '../modules/privacy/erasure.service';
+import { DeletionService } from '../modules/privacy/deletion.service';
 import { PrivacyController } from '../modules/privacy/privacy.controller';
 import { SubscriptionsController } from '../modules/subscriptions/subscriptions.controller';
 import { MeController } from '../modules/users/me.controller';
@@ -236,7 +237,10 @@ export function buildTestApp() {
     meController: new MeController(userService, instituteService, sessionService),
     institutesController: new InstitutesController(instituteService, entitlements),
     auditController: new AuditController(auditLog),
-    privacyController: new PrivacyController(erasureService),
+    privacyController: new PrivacyController(
+      erasureService,
+      new DeletionService({ institutes: instituteService, users: userService, otp: otpService }),
+    ),
     subscriptionsController: new SubscriptionsController(subscriptionService, {
       entitlements,
       students: studentService,

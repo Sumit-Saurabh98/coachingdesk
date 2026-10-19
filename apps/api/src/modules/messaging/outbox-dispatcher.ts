@@ -18,7 +18,7 @@ export interface Revalidator {
 }
 
 export interface DispatcherInstituteLookup {
-  get(instituteId: string): Promise<{ timezone: string }>;
+  get(instituteId: string): Promise<{ timezone: string; isPendingDeletion: boolean }>;
 }
 
 /** MessageQuota fits: the plan quota and daily/trial caps (FR-5.6, FR-5.9). */
@@ -52,6 +52,11 @@ export const DEFAULT_DISPATCHER_OPTIONS: DispatcherOptions = {
   stuckAfterMs: 5 * 60_000,
   quietHours: DEFAULT_QUIET_HOURS,
 };
+
+interface InstituteInfo {
+  timezone: string;
+  isPendingDeletion: boolean;
+}
 
 export interface DispatchSummary {
   released: number;
@@ -91,11 +96,11 @@ export class OutboxDispatcher {
     };
     const messages = await this.deps.outbox.claimDue(now, this.options.batchSize);
     summary.claimed = messages.length;
-    const timezones = new Map<string, string>(); // one institute lookup per run, not per message
+    const institutes = new Map<string, InstituteInfo>(); // one lookup per institute per run
 
     for (const message of messages) {
       try {
-        const result = await this.dispatch(message, now, timezones);
+        const result = await this.dispatch(message, now, institutes);
         summary[result] += 1;
       } catch (error) {
         // A bug or outage while handling ONE message must not stop the others: retry it later.
@@ -108,12 +113,17 @@ export class OutboxDispatcher {
   private async dispatch(
     message: OutboxMessage,
     now: Date,
-    timezones: Map<string, string>,
+    institutes: Map<string, InstituteInfo>,
   ): Promise<'sent' | 'skipped' | 'rescheduled' | 'failed'> {
     const { outbox, consents } = this.deps;
 
     if (message.expiresAt && now >= message.expiresAt) {
       await outbox.markSkipped(message.id, 'expired');
+      return 'skipped';
+    }
+    // FR-7.7: a deletion request stops all messaging at once (even what was already queued).
+    if ((await this.instituteOf(message.instituteId, institutes)).isPendingDeletion) {
+      await outbox.markSkipped(message.id, 'institute_paused');
       return 'skipped';
     }
     // Global STOP covers every institute; receipts are the one exception (FR-5.7).
@@ -127,7 +137,7 @@ export class OutboxDispatcher {
       return 'skipped';
     }
 
-    const timezone = await this.timezoneOf(message.instituteId, timezones);
+    const { timezone } = await this.instituteOf(message.instituteId, institutes);
     const quietUntil = quietHoursEnd(this.deps.clock, timezone, this.options.quietHours);
     if (quietUntil) {
       await outbox.reschedule(message.id, quietUntil, { kind: 'quiet_hours' });
@@ -186,13 +196,17 @@ export class OutboxDispatcher {
     return 'rescheduled';
   }
 
-  private async timezoneOf(instituteId: string, cache: Map<string, string>): Promise<string> {
+  private async instituteOf(
+    instituteId: string,
+    cache: Map<string, InstituteInfo>,
+  ): Promise<InstituteInfo> {
     const cached = cache.get(instituteId);
     if (cached) {
       return cached;
     }
-    const { timezone } = await this.deps.institutes.get(instituteId);
-    cache.set(instituteId, timezone);
-    return timezone;
+    const { timezone, isPendingDeletion } = await this.deps.institutes.get(instituteId);
+    const info = { timezone, isPendingDeletion };
+    cache.set(instituteId, info);
+    return info;
   }
 }

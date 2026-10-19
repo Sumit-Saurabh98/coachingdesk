@@ -13,11 +13,20 @@ declare module 'fastify' {
   interface FastifyRequest {
     tenant: TenantContext | null;
   }
+  interface FastifyContextConfig {
+    /** A write the owner may still make while the institute is pending deletion (cancel, export). */
+    allowWhilePendingDeletion?: boolean;
+  }
 }
+
+const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 /** What the guard needs: one question, "is this user a member, and with which role?" (ISP). */
 export interface MembershipLookup {
-  findMembership(instituteId: string, userId: string): Promise<{ role: MemberRole } | null>;
+  findMembership(
+    instituteId: string,
+    userId: string,
+  ): Promise<{ role: MemberRole; pendingDeletion: boolean } | null>;
 }
 
 /**
@@ -38,6 +47,22 @@ export function createTenancyGuard(memberships: MembershipLookup) {
     const membership = await memberships.findMembership(instituteId.toLowerCase(), userId);
     if (!membership) {
       throw instituteNotFound();
+    }
+    if (membership.pendingDeletion) {
+      // FR-7.7: the institute is on its way out. Teachers and staff have lost access already;
+      // the owner may look, export and cancel, but nothing changes while it waits for the purge.
+      if (membership.role !== 'owner') {
+        throw instituteNotFound();
+      }
+      if (
+        !READ_METHODS.has(request.method) &&
+        request.routeOptions.config.allowWhilePendingDeletion !== true
+      ) {
+        throw new AppError(
+          'INSTITUTE_PENDING_DELETION',
+          'This institute is scheduled for deletion. Cancel the deletion to make changes.',
+        );
+      }
     }
     request.tenant = { instituteId: instituteId.toLowerCase(), role: membership.role };
   };

@@ -29,6 +29,7 @@ import { TestsController } from './modules/tests/tests.controller';
 import { NoticesController } from './modules/messaging/notices.controller';
 import { RemindersController } from './modules/messaging/reminders.controller';
 import { StudentsController } from './modules/students/students.controller';
+import { DeletionService } from './modules/privacy/deletion.service';
 import { PrivacyController } from './modules/privacy/privacy.controller';
 import { SubscriptionsController } from './modules/subscriptions/subscriptions.controller';
 import { MeController } from './modules/users/me.controller';
@@ -96,7 +97,14 @@ export function createContainer(config: Config): Container {
       services.entitlements,
     ),
     auditController: new AuditController(services.auditLog),
-    privacyController: new PrivacyController(services.erasureService),
+    privacyController: new PrivacyController(
+      services.erasureService,
+      new DeletionService({
+        institutes: services.instituteService,
+        users: services.userService,
+        otp: otpService,
+      }),
+    ),
     subscriptionsController: new SubscriptionsController(services.subscriptionService, {
       entitlements: services.entitlements,
       students: services.studentService,

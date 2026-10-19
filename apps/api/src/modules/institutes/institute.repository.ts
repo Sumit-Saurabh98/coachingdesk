@@ -10,6 +10,11 @@ export interface Membership {
   role: MemberRole;
 }
 
+/** What the tenancy guard learns per request: the role, and whether deletion is pending. */
+export interface MemberAccess extends Membership {
+  pendingDeletion: boolean;
+}
+
 export type AddMemberResult = 'added' | 'already_member' | 'limit_reached';
 
 /** The trial every new institute starts with (KNOWLEDGE_BASE §3: 30 days of Pro). */
@@ -29,8 +34,11 @@ export interface InstituteRepository {
   findById(id: string): Promise<Institute | null>;
   /** Saves editable fields (name, city, billing settings). Throws if the institute doesn't exist. */
   update(institute: Institute): Promise<void>;
-  findMembership(instituteId: string, userId: string): Promise<Membership | null>;
-  /** Every non-archived institute the user belongs to, with their role, oldest first. */
+  findMembership(instituteId: string, userId: string): Promise<MemberAccess | null>;
+  /**
+   * Every non-archived institute the user belongs to, with their role, oldest first. An
+   * institute pending deletion is listed for its OWNER only (the others have lost access).
+   */
   listForUser(userId: string): Promise<Array<{ institute: Institute; role: MemberRole }>>;
   /**
    * Adds a teacher/staff member if the institute has room: members besides the owner must stay
@@ -41,8 +49,12 @@ export interface InstituteRepository {
   listMembers(instituteId: string): Promise<Membership[]>;
   /** Removes a NON-owner member. Returns false if there was no such member. */
   removeMember(instituteId: string, userId: string): Promise<boolean>;
-  /** Every non-archived institute (the billing scheduler walks these). */
+  /** Every non-archived institute NOT pending deletion (the billing and reminder schedulers). */
   listActive(): Promise<Institute[]>;
+  /** Sets deletion_requested_at if not already set (atomic). false = already pending / gone. */
+  requestDeletion(instituteId: string, at: Date): Promise<boolean>;
+  /** Clears a pending deletion (atomic). false = nothing was pending. */
+  cancelDeletion(instituteId: string): Promise<boolean>;
   /** Is the user the owner of any institute? (Account deletion is refused while they are.) */
   ownsAnyInstitute(userId: string): Promise<boolean>;
   /** Removes the user from every institute where they are NOT the owner. */
@@ -93,11 +105,12 @@ export class InMemoryInstituteRepository implements InstituteRepository {
     this.institutes.set(institute.id, institute);
   }
 
-  async findMembership(instituteId: string, userId: string): Promise<Membership | null> {
+  async findMembership(instituteId: string, userId: string): Promise<MemberAccess | null> {
     const found = this.memberships.find(
       (m) => m.instituteId === instituteId && m.userId === userId,
     );
-    return found ? { ...found } : null;
+    const institute = this.institutes.get(instituteId);
+    return found && institute ? { ...found, pendingDeletion: institute.isPendingDeletion } : null;
   }
 
   async listForUser(userId: string): Promise<Array<{ institute: Institute; role: MemberRole }>> {
@@ -105,7 +118,11 @@ export class InMemoryInstituteRepository implements InstituteRepository {
       .filter((m) => m.userId === userId)
       .map((m) => ({ institute: this.institutes.get(m.instituteId), role: m.role }))
       .filter((r): r is { institute: Institute; role: MemberRole } => {
-        return r.institute !== undefined && r.institute.archivedAt === null;
+        return (
+          r.institute !== undefined &&
+          r.institute.archivedAt === null &&
+          (!r.institute.isPendingDeletion || r.role === 'owner')
+        );
       });
   }
 
@@ -141,7 +158,33 @@ export class InMemoryInstituteRepository implements InstituteRepository {
   }
 
   async listActive(): Promise<Institute[]> {
-    return [...this.institutes.values()].filter((i) => i.archivedAt === null);
+    return [...this.institutes.values()].filter(
+      (i) => i.archivedAt === null && !i.isPendingDeletion,
+    );
+  }
+
+  async requestDeletion(instituteId: string, at: Date): Promise<boolean> {
+    const institute = this.institutes.get(instituteId);
+    if (!institute || institute.isPendingDeletion || institute.archivedAt !== null) {
+      return false;
+    }
+    this.institutes.set(
+      instituteId,
+      Institute.restore({ ...institute.toProps(), deletionRequestedAt: at }),
+    );
+    return true;
+  }
+
+  async cancelDeletion(instituteId: string): Promise<boolean> {
+    const institute = this.institutes.get(instituteId);
+    if (!institute?.isPendingDeletion || institute.archivedAt !== null) {
+      return false;
+    }
+    this.institutes.set(
+      instituteId,
+      Institute.restore({ ...institute.toProps(), deletionRequestedAt: null }),
+    );
+    return true;
   }
 
   async ownsAnyInstitute(userId: string): Promise<boolean> {

@@ -23,6 +23,7 @@ describe('Institute.create', () => {
       billingDay: 1,
       dueAfterDays: 6,
       settings: { absenceAlerts: true, messageLanguage: 'en', reminderOffsets: [3, 0, -3, -7] },
+      deletion: null,
     });
     expect(create().createdBy).toBe('owner-1');
   });

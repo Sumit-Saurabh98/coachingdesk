@@ -1,12 +1,13 @@
 import type { Db } from '@coachingdesk/db';
 import { institutes, memberships, subscriptions } from '@coachingdesk/db/schema';
-import { and, asc, eq, isNull, ne, sql } from 'drizzle-orm';
+import { and, asc, eq, isNotNull, isNull, ne, or, sql } from 'drizzle-orm';
 import { Institute, INSTITUTE_TYPES, type InstituteType, parseSettings } from './institute';
 import {
   type AddMemberResult,
   MEMBER_ROLES,
   type InstituteRepository,
   type MemberRole,
+  type MemberAccess,
   type Membership,
   type TrialSubscription,
 } from './institute.repository';
@@ -69,13 +70,25 @@ export class DrizzleInstituteRepository implements InstituteRepository {
     }
   }
 
-  async findMembership(instituteId: string, userId: string): Promise<Membership | null> {
+  async findMembership(instituteId: string, userId: string): Promise<MemberAccess | null> {
+    // Runs on EVERY tenant request: one indexed lookup + the institute's primary key.
     const [row] = await this.db
-      .select()
+      .select({
+        instituteId: memberships.instituteId,
+        userId: memberships.userId,
+        role: memberships.role,
+        deletionRequestedAt: institutes.deletionRequestedAt,
+      })
       .from(memberships)
+      .innerJoin(institutes, eq(institutes.id, memberships.instituteId))
       .where(and(eq(memberships.instituteId, instituteId), eq(memberships.userId, userId)));
     return row
-      ? { instituteId: row.instituteId, userId: row.userId, role: toRole(row.role) }
+      ? {
+          instituteId: row.instituteId,
+          userId: row.userId,
+          role: toRole(row.role),
+          pendingDeletion: row.deletionRequestedAt !== null,
+        }
       : null;
   }
 
@@ -85,7 +98,14 @@ export class DrizzleInstituteRepository implements InstituteRepository {
       .select({ institute: institutes, role: memberships.role })
       .from(memberships)
       .innerJoin(institutes, eq(institutes.id, memberships.instituteId))
-      .where(and(eq(memberships.userId, userId), isNull(institutes.archivedAt)))
+      .where(
+        and(
+          eq(memberships.userId, userId),
+          isNull(institutes.archivedAt),
+          // Pending deletion: only the owner still sees it (to cancel, or export first).
+          or(isNull(institutes.deletionRequestedAt), eq(memberships.role, 'owner')),
+        ),
+      )
       .orderBy(asc(memberships.createdAt), asc(institutes.id));
     return rows.map((row) => ({ institute: toInstitute(row.institute), role: toRole(row.role) }));
   }
@@ -164,9 +184,41 @@ export class DrizzleInstituteRepository implements InstituteRepository {
     const rows = await this.db
       .select()
       .from(institutes)
-      .where(isNull(institutes.archivedAt))
+      .where(and(isNull(institutes.archivedAt), isNull(institutes.deletionRequestedAt)))
       .orderBy(asc(institutes.createdAt), asc(institutes.id));
     return rows.map(toInstitute);
+  }
+
+  async requestDeletion(instituteId: string, at: Date): Promise<boolean> {
+    // "Set if empty" in one statement: two taps can't both start the 30 days.
+    const updated = await this.db
+      .update(institutes)
+      .set({ deletionRequestedAt: at, updatedAt: sql`now()` })
+      .where(
+        and(
+          eq(institutes.id, instituteId),
+          isNull(institutes.deletionRequestedAt),
+          isNull(institutes.archivedAt),
+        ),
+      )
+      .returning({ id: institutes.id });
+    return updated.length > 0;
+  }
+
+  async cancelDeletion(instituteId: string): Promise<boolean> {
+    // archived_at is set by the purge in the same transaction: a purged institute can't come back.
+    const updated = await this.db
+      .update(institutes)
+      .set({ deletionRequestedAt: null, updatedAt: sql`now()` })
+      .where(
+        and(
+          eq(institutes.id, instituteId),
+          isNotNull(institutes.deletionRequestedAt),
+          isNull(institutes.archivedAt),
+        ),
+      )
+      .returning({ id: institutes.id });
+    return updated.length > 0;
   }
 
   async ownsAnyInstitute(userId: string): Promise<boolean> {

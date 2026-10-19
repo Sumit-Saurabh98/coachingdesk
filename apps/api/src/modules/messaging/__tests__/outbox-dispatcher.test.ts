@@ -13,7 +13,13 @@ const guardian = PhoneNumber.parse('9812345678');
 const DAYTIME = '2026-10-19T12:00:00Z';
 
 async function setup(
-  options: { now?: string; consent?: boolean; status?: string; quota?: number } = {},
+  options: {
+    now?: string;
+    consent?: boolean;
+    status?: string;
+    quota?: number;
+    pendingDeletion?: boolean;
+  } = {},
 ) {
   const clock = new FixedClock(new Date(options.now ?? DAYTIME));
   const outbox = new InMemoryOutboxRepository(() => clock.now());
@@ -30,7 +36,12 @@ async function setup(
       outbox,
       consents,
       sender,
-      institutes: { get: async () => ({ timezone: 'Asia/Kolkata' }) },
+      institutes: {
+        get: async () => ({
+          timezone: 'Asia/Kolkata',
+          isPendingDeletion: options.pendingDeletion ?? false,
+        }),
+      },
       revalidators: {
         absence: new AbsenceRevalidator({
           statusOf: async (_instituteId, _sessionId, studentId) => {
@@ -93,6 +104,22 @@ async function setup(
 }
 
 describe('OutboxDispatcher.runOnce', () => {
+  it('institute pending deletion: every message is skipped (institute_paused), nothing sent', async () => {
+    const { dispatcher, sender, enqueue, statusOf, quotaLeft } = await setup({
+      pendingDeletion: true,
+    });
+    const message = await enqueue();
+
+    expect(await dispatcher.runOnce()).toMatchObject({ claimed: 1, skipped: 1, sent: 0 });
+
+    expect(sender.sent).toEqual([]);
+    expect(await statusOf(message)).toMatchObject({
+      status: 'skipped',
+      skipReason: 'institute_paused',
+    });
+    expect(quotaLeft()).toBe(1000);
+  });
+
   it('sends a due, consented, still-true message', async () => {
     const { dispatcher, sender, enqueue, statusOf } = await setup();
     const message = await enqueue();

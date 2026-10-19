@@ -14,7 +14,7 @@ import {
   type InstituteSettings,
   type NewInstituteInput,
 } from './institute';
-import type { InstituteRepository, MemberRole, Membership } from './institute.repository';
+import type { InstituteRepository, MemberAccess, MemberRole } from './institute.repository';
 import { type AuditRecorder, NO_AUDIT } from '../audit/audit-log';
 import type { User } from '../users/user';
 
@@ -86,7 +86,7 @@ export class InstituteService {
     }));
   }
 
-  async findMembership(instituteId: string, userId: string): Promise<Membership | null> {
+  async findMembership(instituteId: string, userId: string): Promise<MemberAccess | null> {
     return this.deps.institutes.findMembership(instituteId, userId);
   }
 
@@ -210,6 +210,39 @@ export class InstituteService {
       throw new AppError('CONFLICT', 'The owner cannot be removed from the institute');
     }
     throw new AppError('NOT_FOUND', 'Member not found');
+  }
+
+  /**
+   * POST /institutes/:id/delete (owner; the fresh OTP is checked by the caller). Messaging and
+   * billing stop at once; the purge job deletes everything 30 days later (FR-7.7).
+   */
+  async requestDeletion(instituteId: string, actorUserId: string | null): Promise<Institute> {
+    if (!(await this.deps.institutes.requestDeletion(instituteId, this.deps.clock.now()))) {
+      throw new AppError('CONFLICT', 'This institute is already scheduled for deletion');
+    }
+    await this.audit.record({
+      instituteId,
+      actorUserId,
+      action: 'institute.delete_requested',
+      entityType: 'institute',
+      entityId: instituteId,
+    });
+    return this.get(instituteId);
+  }
+
+  /** POST /institutes/:id/delete/cancel (owner): back to normal within the 30 days. */
+  async cancelDeletion(instituteId: string, actorUserId: string | null): Promise<Institute> {
+    if (!(await this.deps.institutes.cancelDeletion(instituteId))) {
+      throw new AppError('CONFLICT', 'This institute is not scheduled for deletion');
+    }
+    await this.audit.record({
+      instituteId,
+      actorUserId,
+      action: 'institute.delete_cancelled',
+      entityType: 'institute',
+      entityId: instituteId,
+    });
+    return this.get(instituteId);
   }
 
   /** Every non-archived institute (used by the billing scheduler). */

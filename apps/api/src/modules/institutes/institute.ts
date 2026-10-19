@@ -227,6 +227,14 @@ export class Institute {
       billingDay: this.billingDay,
       dueAfterDays: this.dueAfterDays,
       settings: this.settings,
+      // The app shows "Scheduled for deletion on …  [Cancel]" when this is set.
+      deletion:
+        this.deletionRequestedAt === null
+          ? null
+          : {
+              requestedAt: this.deletionRequestedAt.toISOString(),
+              purgeAfter: this.purgeAfter?.toISOString() ?? null,
+            },
     };
   }
 

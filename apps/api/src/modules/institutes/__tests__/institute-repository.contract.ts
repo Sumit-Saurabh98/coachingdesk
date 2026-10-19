@@ -35,6 +35,7 @@ export function describeInstituteRepositoryContract(
         instituteId: instituteId(1),
         userId: CONTRACT_OWNER_ID,
         role: 'owner',
+        pendingDeletion: false,
       });
     });
 
@@ -164,6 +165,46 @@ export function describeInstituteRepositoryContract(
         expect(await repo.removeMember(instituteId(1), CONTRACT_OTHER_USER_ID)).toBe(false);
         expect(await repo.removeMember(instituteId(1), CONTRACT_OWNER_ID)).toBe(false);
         expect(await repo.findMembership(instituteId(1), CONTRACT_OWNER_ID)).not.toBeNull();
+      });
+    });
+
+    describe('deletion', () => {
+      const at = new Date('2026-10-20T10:00:00Z');
+
+      it('request: once (atomic set-if-empty), then cancel: once', async () => {
+        const repo = create();
+        await repo.createWithOwner(newInstitute(1), trial);
+
+        expect(await repo.requestDeletion(instituteId(1), at)).toBe(true);
+        expect(await repo.requestDeletion(instituteId(1), new Date())).toBe(false);
+        expect((await repo.findById(instituteId(1)))?.deletionRequestedAt).toEqual(at);
+
+        expect(await repo.cancelDeletion(instituteId(1))).toBe(true);
+        expect(await repo.cancelDeletion(instituteId(1))).toBe(false);
+        expect((await repo.findById(instituteId(1)))?.deletionRequestedAt).toBeNull();
+        expect(await repo.requestDeletion(instituteId(9), at)).toBe(false); // unknown
+      });
+
+      it('pending: the guard sees it; schedulers skip it; only the owner still lists it', async () => {
+        const repo = create();
+        await repo.createWithOwner(newInstitute(1, 'Going'), trial);
+        await repo.createWithOwner(newInstitute(2, 'Staying'), trial);
+        await repo.addMemberWithinLimit(
+          { instituteId: instituteId(1), userId: CONTRACT_OTHER_USER_ID, role: 'teacher' },
+          null,
+        );
+        await repo.requestDeletion(instituteId(1), at);
+
+        expect(await repo.findMembership(instituteId(1), CONTRACT_OTHER_USER_ID)).toMatchObject({
+          role: 'teacher',
+          pendingDeletion: true,
+        });
+        expect((await repo.listActive()).map((i) => i.name)).toEqual(['Staying']);
+        expect((await repo.listForUser(CONTRACT_OWNER_ID)).map((m) => m.institute.name)).toEqual([
+          'Going',
+          'Staying',
+        ]);
+        expect(await repo.listForUser(CONTRACT_OTHER_USER_ID)).toEqual([]);
       });
     });
   });
