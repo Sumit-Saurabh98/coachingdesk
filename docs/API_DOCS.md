@@ -72,7 +72,7 @@ Roles are institute-wide in MVP (`memberships.batch_scope` stays null). Fixed pe
 |---|---|---|
 | GET | `/me` | Profile + institutes with role |
 | PATCH | `/me` | `{ name?, locale? }` |
-| DELETE | `/me` | Delete own account → `204`. `409 OWNER_OF_INSTITUTES` while sole owner of a non-deleted institute. Same flow on the web at `/delete-account` (OTP login), as Google Play requires |
+| DELETE | `/me` | Delete own account → `204`: all sessions end (refresh tokens deleted), the user leaves every institute, the user row is deleted; the phone can sign up again as a new user. `409 OWNER_OF_INSTITUTES` while owner of an institute. Same flow on the web at `/delete-account` (OTP login), as Google Play requires |
 
 ## 4. Institutes & members
 
@@ -81,9 +81,9 @@ Roles are institute-wide in MVP (`memberships.batch_scope` stays null). Fixed pe
 | POST | `/institutes` | `{ name, type: "tuition"\|"academy"\|"home_tutor", city? }` → creates owner membership + 30-day Pro trial |
 | GET | `/institutes/{id}` | Details + settings + entitlements summary |
 | PATCH | `/institutes/{id}` | `{ name?, city?, billingDay?, dueAfterDays?, settings? }` |
-| GET | `/institutes/{id}/members` | List |
-| POST | `/institutes/{id}/members` | `{ phone, name, role: "teacher"\|"staff" }` — adds by phone. Creates the `users` row if the phone is new; they get access on first OTP login. Member count (excluding owner) checked against plan → `PLAN_LIMIT_REACHED` |
-| DELETE | `/institutes/{id}/members/{userId}` | Remove |
+| GET | `/institutes/{id}/members` | Owner. `200 { members: [{ userId, name, phone, role }] }`, owner first |
+| POST | `/institutes/{id}/members` | Owner. `{ phone, name, role: "teacher"\|"staff" }` → `201 { member }` — adds by phone. Creates the `users` row if the phone is new; they get access on first OTP login. `name` is used only if the person hasn't set their own. `409` already a member; member count (excluding owner) checked against plan atomically → `402 PLAN_LIMIT_REACHED` |
+| DELETE | `/institutes/{id}/members/{userId}` | Owner. Remove → `204`; they lose access immediately. `409` for the owner, `404` not a member |
 | GET | `/institutes/{id}/payouts` | `{ status: "not_started"\|"pending"\|"active"\|"rejected", upiVpa, providerMessage? }` |
 | POST | `/institutes/{id}/payouts/onboarding` | Starts provider linked-account KYC → `{ onboardingUrl }`. Status updates arrive via provider webhook |
 | PUT | `/institutes/{id}/payouts/upi` | `{ upiVpa }` — institute's own UPI ID, shown on the pay page until payouts are active (validated format `name@bank`) |

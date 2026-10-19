@@ -12,8 +12,8 @@ Solo developer, ~12 weeks to a paid MVP. Each milestone ends with something demo
 - [ ] Decide product proposals P-1…P-7 (KNOWLEDGE_BASE §8): ask about UPI fees/KYC in the calls (P-1), ask Razorpay Route vs Partner (P-2), choose Android-only (P-3), scope cut (P-4), UI library (P-6)
 
 ## Phase 1 — Core data (Weeks 2–3)
-- [ ] Auth: OTP request/verify, refresh rotation
-- [ ] Institutes, memberships, tenancy plugin, role checks
+- [x] Auth: OTP request/verify, refresh rotation
+- [x] Institutes, memberships, tenancy plugin, role checks  _(members API ✅, `DELETE /me` ✅)_
 - [ ] Batches, students, enrollments, bulk import  _(API ✅: batches, students, bulk import, enrollments)_
 - [ ] Mobile: login, onboarding wizard, batches & students screens, EN/HI
 - **Demo:** sign up and add 20 students in under 5 minutes
