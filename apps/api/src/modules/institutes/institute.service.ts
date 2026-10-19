@@ -1,4 +1,4 @@
-import { AppError, type Clock, type IdGenerator } from '@coachingdesk/shared';
+import { AppError, type Clock, type IdGenerator, TRIAL_DAYS } from '@coachingdesk/shared';
 import type { UserService } from '../users/user.service';
 import {
   type BillingSettingsChanges,
@@ -8,7 +8,6 @@ import {
 } from './institute';
 import type { InstituteRepository, MemberRole, Membership } from './institute.repository';
 
-const TRIAL_DAYS = 30; // KNOWLEDGE_BASE §3: 30 days of Pro on signup
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export interface InstituteServiceDeps {

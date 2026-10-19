@@ -1,3 +1,4 @@
+import type { InMemorySubscriptionRepository } from '../subscriptions/subscription.repository';
 import { Institute } from './institute';
 
 export const MEMBER_ROLES = ['owner', 'teacher', 'staff'] as const;
@@ -37,6 +38,13 @@ export class InMemoryInstituteRepository implements InstituteRepository {
   private readonly memberships: Membership[] = [];
   readonly trials = new Map<string, TrialSubscription>();
 
+  /**
+   * In Postgres, institutes and subscriptions live in ONE database, written in one transaction.
+   * Passing the subscriptions fake here gives tests the same picture: create an institute,
+   * and the subscriptions module can read its trial.
+   */
+  constructor(private readonly subscriptions?: InMemorySubscriptionRepository) {}
+
   async createWithOwner(institute: Institute, trial: TrialSubscription): Promise<void> {
     if (this.institutes.has(institute.id)) {
       throw new Error(`InMemoryInstituteRepository: institute ${institute.id} already exists`);
@@ -48,6 +56,13 @@ export class InMemoryInstituteRepository implements InstituteRepository {
       role: 'owner',
     });
     this.trials.set(institute.id, { ...trial });
+    this.subscriptions?.put({
+      instituteId: institute.id,
+      plan: trial.plan,
+      status: 'trialing',
+      currentPeriodEnd: trial.endsAt,
+      graceUntil: null,
+    });
   }
 
   async findById(id: string): Promise<Institute | null> {
