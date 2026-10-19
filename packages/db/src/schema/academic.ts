@@ -3,11 +3,14 @@ import {
   bigint,
   check,
   date,
+  foreignKey,
   index,
   jsonb,
   pgTable,
   text,
   timestamp,
+  unique,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 import { timestamps } from './columns';
@@ -20,9 +23,14 @@ export interface BatchScheduleJson {
   end: string;
 }
 
+// The fee cycles, in SQL. One list for batches and enrollments (decision #27).
+const FEE_CYCLE_SQL = sql.raw(
+  `('monthly', 'quarterly', 'half_yearly', 'yearly', 'one_time', 'none')`,
+);
+
 /**
  * A group taught together at fixed days/time (docs/LLD.md §2.1).
- * The default fee and cycle are COPIED into each new enrollment (Step 12). Changing them
+ * The default fee and cycle are COPIED into each new enrollment. Changing them
  * later does not change existing enrollments; the enrollment's own value is what gets billed.
  */
 export const batches = pgTable(
@@ -50,10 +58,9 @@ export const batches = pgTable(
     index('batches_institute_id_active_idx')
       .on(t.instituteId)
       .where(sql`${t.archivedAt} is null`),
-    check(
-      'batches_default_fee_cycle_check',
-      sql`${t.defaultFeeCycle} in ('monthly', 'quarterly', 'half_yearly', 'yearly', 'one_time', 'none')`,
-    ),
+    // The target for enrollments' composite foreign key (see enrollments below).
+    unique('batches_institute_id_id_unique').on(t.instituteId, t.id),
+    check('batches_default_fee_cycle_check', sql`${t.defaultFeeCycle} in ${FEE_CYCLE_SQL}`),
     // Last line of defence: even buggy code can't store a negative fee.
     check('batches_default_fee_paise_check', sql`${t.defaultFeePaise} >= 0`),
   ],
@@ -97,6 +104,8 @@ export const students = pgTable(
       sql`(lower(${t.name}) collate "C")`,
       t.id,
     ),
+    // The target for enrollments' composite foreign key (see enrollments below).
+    unique('students_institute_id_id_unique').on(t.instituteId, t.id),
     check('students_status_check', sql`${t.status} in ('active', 'left')`),
     check(
       'students_guardian_phone_check',
@@ -107,6 +116,67 @@ export const students = pgTable(
     check(
       'students_left_after_joined_check',
       sql`${t.leftOn} is null or ${t.leftOn} >= ${t.joinedOn}`,
+    ),
+  ],
+);
+
+/**
+ * Student <-> batch, with THIS student's fee (docs/LLD.md §2.1). Billing (Phase 3) reads
+ * enrollments, never batches: fee_paise / fee_cycle start as copies of the batch defaults
+ * and can be changed per student (sibling discount, quarterly payer in a monthly batch).
+ */
+export const enrollments = pgTable(
+  'enrollments',
+  {
+    id: uuid().primaryKey(),
+    instituteId: uuid()
+      .notNull()
+      .references(() => institutes.id),
+    studentId: uuid().notNull(),
+    batchId: uuid().notNull(),
+    feePaise: bigint({ mode: 'number' }).notNull(),
+    discountPaise: bigint({ mode: 'number' }).notNull().default(0),
+    feeCycle: text().notNull(),
+    // period_start of the first billed cycle; multi-month cycles repeat from here.
+    // null until billing (Phase 3) creates the first invoice.
+    cycleAnchor: date({ mode: 'string' }),
+    startDate: date({ mode: 'string' }).notNull(),
+    endDate: date({ mode: 'string' }), // null = still enrolled
+    ...timestamps,
+  },
+  (t) => [
+    // COMPOSITE foreign keys: the (institute, student) PAIR must exist in students, and the
+    // (institute, batch) pair in batches. So student and batch are guaranteed to belong to the
+    // SAME institute as the enrollment: the database refuses a cross-tenant link, whatever
+    // the code does. (A plain FK on student_id alone would accept institute B's student.)
+    foreignKey({
+      name: 'enrollments_student_same_institute_fk',
+      columns: [t.instituteId, t.studentId],
+      foreignColumns: [students.instituteId, students.id],
+    }),
+    foreignKey({
+      name: 'enrollments_batch_same_institute_fk',
+      columns: [t.instituteId, t.batchId],
+      foreignColumns: [batches.instituteId, batches.id],
+    }),
+    unique('enrollments_student_batch_start_unique').on(t.studentId, t.batchId, t.startDate),
+    // At most ONE open enrollment per student per batch. Rejoining after an end date is fine.
+    // A unique index, not app code, so two simultaneous "enroll" taps can't both succeed.
+    uniqueIndex('enrollments_one_open_per_student_batch')
+      .on(t.studentId, t.batchId)
+      .where(sql`${t.endDate} is null`),
+    index('enrollments_institute_batch_idx').on(t.instituteId, t.batchId),
+    index('enrollments_institute_student_idx').on(t.instituteId, t.studentId),
+    check('enrollments_fee_cycle_check', sql`${t.feeCycle} in ${FEE_CYCLE_SQL}`),
+    check('enrollments_fee_paise_check', sql`${t.feePaise} >= 0`),
+    // A discount bigger than the fee would mean a negative invoice.
+    check(
+      'enrollments_discount_paise_check',
+      sql`${t.discountPaise} >= 0 and ${t.discountPaise} <= ${t.feePaise}`,
+    ),
+    check(
+      'enrollments_end_after_start_check',
+      sql`${t.endDate} is null or ${t.endDate} >= ${t.startDate}`,
     ),
   ],
 );

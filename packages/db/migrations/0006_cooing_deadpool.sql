@@ -1,0 +1,2 @@
+ALTER TABLE "batches" ADD CONSTRAINT "batches_institute_id_id_unique" UNIQUE("institute_id","id");--> statement-breakpoint
+ALTER TABLE "students" ADD CONSTRAINT "students_institute_id_id_unique" UNIQUE("institute_id","id");

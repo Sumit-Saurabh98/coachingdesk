@@ -43,6 +43,20 @@
       "when": 1792389192918,
       "tag": "0005_talented_the_anarchist",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792394136226,
+      "tag": "0006_cooing_deadpool",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792394144449,
+      "tag": "0007_new_nekra",
+      "breakpoints": true
     }
   ]
 }
