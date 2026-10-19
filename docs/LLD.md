@@ -121,20 +121,26 @@ index (institute_id, batch_id), index (institute_id, student_id)
 -- students and batches each carry unique (institute_id, id) as the target of those foreign keys
 
 attendance_sessions (
-  id uuid pk, institute_id uuid fk, batch_id uuid fk, date date not null,
-  taken_by uuid fk users, submitted_at timestamptz,
+  id uuid pk, institute_id uuid fk, batch_id uuid, date date not null,
+  taken_by uuid fk users on delete set null,   -- first phone's user; deleting the account keeps the session
+  submitted_at timestamptz not null,           -- SERVER time of the last sync
   alerts_enqueued_at timestamptz,         -- guards "alert only once"
-  client_id uuid unique,                  -- offline idempotency
+  client_id uuid not null unique,         -- first phone's offline id: retries find the same row
   created_at, updated_at,
-  unique (batch_id, date)
+  unique (batch_id, date), unique (institute_id, id),
+  foreign key (institute_id, batch_id) references batches (institute_id, id)
 )
+index (institute_id, date)
 
 attendance_records (
-  session_id uuid fk, student_id uuid fk, institute_id uuid,
+  session_id uuid, student_id uuid, institute_id uuid,
   status text check (status in ('present','absent','late','leave')),
-  updated_by uuid, updated_at,
-  primary key (session_id, student_id)
+  updated_by uuid fk users on delete set null, updated_at timestamptz not null,   -- server time
+  primary key (session_id, student_id),
+  foreign key (institute_id, session_id) references attendance_sessions (institute_id, id) on delete cascade,
+  foreign key (institute_id, student_id) references students (institute_id, id)
 )
+index (institute_id, student_id)
 
 tests (id uuid pk, institute_id, batch_id, name, date, max_marks numeric(6,2), created_at)
 test_scores (test_id fk, student_id fk, institute_id, marks numeric(6,2), is_absent bool,
@@ -584,8 +590,9 @@ enqueue payment-links.reconcile for each touched invoice
 ### 6.5 Offline attendance sync
 
 - Client creates session with `client_id` (UUID) and full record list.
-- `PUT /attendance-sessions/{clientId}` upserts by `(batch_id, date)`; records replaced in a single txn.
-- If the server already has a session for `(batch_id, date)` from another device: merge per student, and the **record from the sync the server received last wins**. `updated_at` is set by the server, never taken from the device — cheap phones often have wrong clocks. The device's own `markedAt` is stored in the audit log only. Response returns final state.
+- `PUT /attendance-sessions/{clientId}` upserts the session by `(batch_id, date)` (`INSERT … ON CONFLICT DO UPDATE`) and each sent record by `(session_id, student_id)`, in a single txn. Records not sent are kept. A `client_id` already used for another batch/date → `409`.
+- Only students enrolled in the batch **on that date** can be marked (`422` otherwise).
+- If the server already has a session for `(batch_id, date)` from another device: merge per student, and the **record from the sync the server received last wins**. `updated_at` is set by the server, never taken from the device — cheap phones often have wrong clocks. The device's own times are not accepted (no audit log yet). Response returns final state.
 - Rejected with `422`: `date` in the future (beyond tomorrow, to tolerate time zones) or older than the edit window (7 days).
 - Absence alerts enqueued only when `alerts_enqueued_at IS NULL` (set atomically).
 - **Late syncs:** absence alerts are queued with `expires_at = 10:00 local on the day after the session date`. A session synced later than that gets no alerts; the app shows "Absence alerts not sent — attendance synced late". A session submitted during quiet hours (e.g. a late evening batch) gets its alerts at 08:00 the next morning, which is still before expiry.

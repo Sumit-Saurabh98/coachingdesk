@@ -162,6 +162,7 @@ Each needs Hindi version. Template approval takes time — submit early.
 | 29 | 2026-10 | Bulk student import: rows validated one by one (bad rows reported, good rows created), but the plan limit is all-or-nothing for the good rows | Owners fix a typo and resend; a half-imported list is harder to reason about than a clear "you can add 5 more" |
 | 30 | 2026-10 | Tenant-owned link tables use composite foreign keys `(institute_id, x_id) → x(institute_id, id)` (first: enrollments → students, batches) | The database itself refuses a cross-institute link, whatever the code does — defence in depth for AGENTS rule 1 |
 | 31 | 2026-10 | Teachers never receive fee fields: responses go through `canSeeFees(role)` (`apps/api/src/http/fee-visibility.ts`), with a teacher test per endpoint that carries money | FR-1.4 "no access to fees" must hold for every response, not just the fee endpoints |
+| 32 | 2026-10 | Attendance sync merges per student (`ON CONFLICT` upserts in one transaction); students not sent keep their mark; only students enrolled on that date can be marked; `taken_by`/`updated_by` use `ON DELETE SET NULL` | Two phones can take the same batch offline; deleting a teacher's account must not delete or block history |
 
 ## 7. Open questions
 

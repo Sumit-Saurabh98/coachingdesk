@@ -198,26 +198,32 @@ Errors: `402 PLAN_LIMIT_REACHED` (`details.limit`) when the new **active** stude
 
 ## 7. Attendance
 
+Every member (owner, teacher, staff) can read and take attendance.
+
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/institutes/{id}/batches/{batchId}/attendance?date=2026-10-18` | Session + records (or empty template with enrolled students) |
-| PUT | `/institutes/{id}/attendance-sessions/{clientId}` | Idempotent upsert (offline sync) |
-| GET | `/institutes/{id}/students/{studentId}/attendance?from&to` | History + percentage |
-| GET | `/institutes/{id}/attendance/summary?date=` | All batches today: taken/not taken, absent count |
+| GET | `/institutes/{id}/batches/{batchId}/attendance?date=2026-10-18` | The register → `200 { batchId, date, session \| null, students: [{ studentId, name, status, marked }] }`. Everyone enrolled that day plus anyone already marked; unmarked students show `status: "present"`, `marked: false` (FR-3.1) |
+| PUT | `/institutes/{id}/attendance-sessions/{clientId}` | Idempotent upsert (offline sync), see below |
+| GET | `/institutes/{id}/students/{studentId}/attendance?from&to` | `200 { from, to, records: [{ date, batchId, status }], summary: { present, absent, late, leave, percentage } }`. Range ≤ 1 year. `percentage` = (present + late) ÷ (all except leave), whole number, `null` if nothing counts |
+| GET | `/institutes/{id}/attendance/summary?date=` | Default: today at the institute → `200 { date, batches: [{ batchId, name, start, end, taken, counts \| null }] }` — active batches that meet that weekday (or already have attendance), by start time |
 
-PUT body:
+PUT body (`clientId` = a UUID the phone generated offline; a retry with the same id is harmless):
 ```json
 {
   "batchId": "0192...",
   "date": "2026-10-18",
-  "submittedAt": "2026-10-18T11:32:00Z",
   "records": [
     { "studentId": "0192...a", "status": "present" },
     { "studentId": "0192...b", "status": "absent" }
   ]
 }
 ```
-→ `200` with final merged session and `alertsQueued: 1`.
+→ `200 { session: { id, batchId, date, clientId, takenBy, submittedAt }, records: [{ studentId, status }], alerts: { status, queued } }`
+
+- Statuses: `present`, `absent`, `late`, `leave`. 1–500 records, each student once.
+- **Merge:** another phone's sync for the same batch and date lands on the same session. Each sent mark replaces that student's mark; students not sent keep theirs. The sync the **server receives last** wins; `submittedAt` and record times are server time, never the phone's clock. The first phone's `clientId` and `takenBy` are kept.
+- `422`: `date` after tomorrow or more than 7 days back (`details.field = "date"`); a student not enrolled in the batch on that date (`details: { field: "records", studentIds }`); `clientId` not a UUID. `404` batch not in this institute; `409` archived batch, or `clientId` already used for another batch/date.
+- `alerts.status`: `queued`, `none_absent`, `already_sent`, `too_late`, `not_enabled`. Until the outbox ships (Phase 2) it is always `not_enabled` with `queued: 0`.
 
 ## 8. Fees
 

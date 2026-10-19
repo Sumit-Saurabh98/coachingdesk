@@ -19,7 +19,7 @@ Solo developer, ~12 weeks to a paid MVP. Each milestone ends with something demo
 - **Demo:** sign up and add 20 students in under 5 minutes
 
 ## Phase 2 — Attendance (Week 4)
-- [ ] Attendance API + offline sync
+- [x] Attendance API + offline sync
 - [ ] Mobile: Today screen, one-tap attendance, offline queue
 - [ ] Outbox + send worker + WhatsApp provider; absence alerts (with late-sync expiry)
 - [ ] WhatsApp inbound: STOP/START, auto-reply, "Parent replies"; daily caps + quality guard
