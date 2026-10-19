@@ -1,18 +1,17 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import type { FastifyInstance, InjectOptions } from 'fastify';
-import type { MemberRole } from '../../institutes/institute.repository';
+import type { FastifyInstance } from 'fastify';
+import { OTHER_PHONE, tenantHttp } from '../../../test/tenant-http';
 import { buildTestApp, loginOverHttp } from '../../../test/test-app';
 
 let app: FastifyInstance;
 let testApp: ReturnType<typeof buildTestApp>;
+let call: ReturnType<typeof tenantHttp>['call'];
+let ownerWithInstitute: ReturnType<typeof tenantHttp>['ownerWithInstitute'];
+let memberWithRole: ReturnType<typeof tenantHttp>['memberWithRole'];
 
 afterEach(async () => {
   await app.close();
 });
-
-const OWNER_PHONE = '9876543210';
-const OTHER_PHONE = '9123456789';
-const MEMBER_PHONE = '9988776655';
 
 const validBatch = {
   name: 'Class 10 Maths',
@@ -22,49 +21,15 @@ const validBatch = {
   defaultFeeCycle: 'monthly',
 };
 
-/** One request; `token: undefined` sends no Authorization header. */
-const call = (
-  token: string | undefined,
-  method: InjectOptions['method'],
-  url: string,
-  payload?: unknown,
-) =>
-  app.inject({
-    method,
-    url,
-    headers: token ? { authorization: `Bearer ${token}` } : {},
-    ...(payload === undefined ? {} : { payload: payload as Record<string, unknown> }),
-  });
-
-/** Logs in and creates an institute over HTTP; the caller is its owner. */
-async function ownerWithInstitute(phone = OWNER_PHONE) {
-  const login = await loginOverHttp(app, phone);
-  const created = await call(login.accessToken, 'POST', '/v1/institutes', {
-    name: 'Sharma Classes',
-    type: 'tuition',
-  });
-  const instituteId: string = created.json().institute.id;
-  return {
-    token: login.accessToken,
-    instituteId,
-    batchesUrl: `/v1/institutes/${instituteId}/batches`,
-  };
-}
-
-/** Adds a teacher/staff member (no members API yet, so straight into the in-memory repo). */
-async function memberWithRole(instituteId: string, role: MemberRole, phone = MEMBER_PHONE) {
-  const login = await loginOverHttp(app, phone);
-  testApp.instituteRepository.addMember({ instituteId, userId: login.user.id, role });
-  return login.accessToken;
-}
-
 async function setup() {
   testApp = buildTestApp();
   app = testApp.app;
+  ({ call, ownerWithInstitute, memberWithRole } = tenantHttp(testApp));
   const owner = await ownerWithInstitute();
+  const batchesUrl = `${owner.url}/batches`;
   const createBatch = async (payload: unknown = validBatch) =>
-    (await call(owner.token, 'POST', owner.batchesUrl, payload)).json().batch;
-  return { ...owner, createBatch };
+    (await call(owner.token, 'POST', batchesUrl, payload)).json().batch;
+  return { ...owner, batchesUrl, createBatch };
 }
 
 describe('POST /v1/institutes/:instituteId/batches', () => {
@@ -155,7 +120,7 @@ describe('GET /v1/institutes/:instituteId/batches', () => {
     await createBatch();
     const other = await ownerWithInstitute(OTHER_PHONE);
 
-    const response = await call(other.token, 'GET', other.batchesUrl);
+    const response = await call(other.token, 'GET', `${other.url}/batches`);
 
     expect(response.json().batches).toEqual([]);
   });
@@ -198,7 +163,7 @@ describe('GET /v1/institutes/:instituteId/batches/:batchId', () => {
     const ravi = await ownerWithInstitute(OTHER_PHONE);
 
     // ...but the batch id belongs to Neha's institute: the repository's WHERE stops it.
-    const response = await call(ravi.token, 'GET', `${ravi.batchesUrl}/${nehasBatch.id}`);
+    const response = await call(ravi.token, 'GET', `${ravi.url}/batches/${nehasBatch.id}`);
 
     expect(response.statusCode).toBe(404);
     expect(response.json().error.message).toBe('Batch not found');
@@ -253,7 +218,7 @@ describe('PATCH /v1/institutes/:instituteId/batches/:batchId', () => {
     const { createBatch } = await setup();
     const nehasBatch = await createBatch();
     const ravi = await ownerWithInstitute(OTHER_PHONE);
-    const response = await call(ravi.token, 'PATCH', `${ravi.batchesUrl}/${nehasBatch.id}`, {
+    const response = await call(ravi.token, 'PATCH', `${ravi.url}/batches/${nehasBatch.id}`, {
       name: 'Hijacked',
     });
     expect(response.statusCode).toBe(404);

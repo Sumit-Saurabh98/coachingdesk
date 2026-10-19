@@ -15,9 +15,15 @@ import { SessionService } from '../modules/auth/session.service';
 import { InMemoryBatchRepository } from '../modules/batches/batch.repository';
 import { BatchService } from '../modules/batches/batch.service';
 import { BatchesController } from '../modules/batches/batches.controller';
+import { EntitlementsService } from '../modules/entitlements/entitlements.service';
 import { InMemoryInstituteRepository } from '../modules/institutes/institute.repository';
 import { InstituteService } from '../modules/institutes/institute.service';
 import { InstitutesController } from '../modules/institutes/institutes.controller';
+import { InMemoryStudentRepository } from '../modules/students/student.repository';
+import { StudentService } from '../modules/students/student.service';
+import { StudentsController } from '../modules/students/students.controller';
+import { InMemorySubscriptionRepository } from '../modules/subscriptions/subscription.repository';
+import { SubscriptionService } from '../modules/subscriptions/subscription.service';
 import { MeController } from '../modules/users/me.controller';
 import { InMemoryUserRepository } from '../modules/users/user.repository';
 import { UserService } from '../modules/users/user.service';
@@ -51,7 +57,9 @@ export function buildTestApp() {
     clock,
   });
   const userService = new UserService(new InMemoryUserRepository(), ids);
-  const instituteRepository = new InMemoryInstituteRepository();
+  const subscriptionRepository = new InMemorySubscriptionRepository();
+  // Shared like one database: creating an institute writes its trial where subscriptions reads it.
+  const instituteRepository = new InMemoryInstituteRepository(subscriptionRepository);
   const instituteService = new InstituteService({
     institutes: instituteRepository,
     users: userService,
@@ -59,6 +67,13 @@ export function buildTestApp() {
     clock,
   });
   const batchService = new BatchService({ batches: new InMemoryBatchRepository(), ids, clock });
+  const studentService = new StudentService({
+    students: new InMemoryStudentRepository(),
+    entitlements: new EntitlementsService(new SubscriptionService(subscriptionRepository, clock)),
+    institutes: instituteService,
+    ids,
+    clock,
+  });
   const authService = new AuthService({
     otp: otpService,
     users: userService,
@@ -70,12 +85,13 @@ export function buildTestApp() {
     meController: new MeController(userService, instituteService),
     institutesController: new InstitutesController(instituteService),
     batchesController: new BatchesController(batchService),
+    studentsController: new StudentsController(studentService),
     memberships: instituteService,
     accessTokens,
     isReady: async () => true,
   });
 
-  return { app, clock, sms, accessTokens, instituteRepository };
+  return { app, clock, sms, accessTokens, instituteRepository, subscriptionRepository };
 }
 
 /** Logs in through the real HTTP endpoints and returns the response body (tokens + user). */

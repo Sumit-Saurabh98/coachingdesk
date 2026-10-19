@@ -18,9 +18,15 @@ import { SessionService } from './modules/auth/session.service';
 import { BatchService } from './modules/batches/batch.service';
 import { BatchesController } from './modules/batches/batches.controller';
 import { DrizzleBatchRepository } from './modules/batches/drizzle-batch.repository';
+import { EntitlementsService } from './modules/entitlements/entitlements.service';
 import { DrizzleInstituteRepository } from './modules/institutes/drizzle-institute.repository';
 import { InstituteService } from './modules/institutes/institute.service';
 import { InstitutesController } from './modules/institutes/institutes.controller';
+import { DrizzleStudentRepository } from './modules/students/drizzle-student.repository';
+import { StudentService } from './modules/students/student.service';
+import { StudentsController } from './modules/students/students.controller';
+import { DrizzleSubscriptionRepository } from './modules/subscriptions/drizzle-subscription.repository';
+import { SubscriptionService } from './modules/subscriptions/subscription.service';
 import { DrizzleUserRepository } from './modules/users/drizzle-user.repository';
 import { MeController } from './modules/users/me.controller';
 import { UserService } from './modules/users/user.service';
@@ -84,6 +90,16 @@ export function createContainer(config: Config): Container {
     ids,
     clock,
   });
+  const entitlements = new EntitlementsService(
+    new SubscriptionService(new DrizzleSubscriptionRepository(database.db), clock),
+  );
+  const studentService = new StudentService({
+    students: new DrizzleStudentRepository(database.db),
+    entitlements,
+    institutes: instituteService,
+    ids,
+    clock,
+  });
   const authService = new AuthService({
     otp: otpService,
     users: userService,
@@ -95,6 +111,7 @@ export function createContainer(config: Config): Container {
     meController: new MeController(userService, instituteService),
     institutesController: new InstitutesController(instituteService),
     batchesController: new BatchesController(batchService),
+    studentsController: new StudentsController(studentService),
     memberships: instituteService,
     accessTokens,
     // Ready = BOTH Redis and Postgres answer. Otherwise the load balancer sends traffic elsewhere.
