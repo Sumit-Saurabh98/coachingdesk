@@ -29,7 +29,7 @@ describe('CreateEnrollmentBody', () => {
   it.each([
     ['a non-UUID student id', { studentId: 'abc', batchId: BATCH }],
     ['a decimal fee', { studentId: STUDENT, batchId: BATCH, feePaise: 10.5 }],
-    ['billNow (arrives with billing)', { studentId: STUDENT, batchId: BATCH, billNow: true }],
+    ['billNow that is not a boolean', { studentId: STUDENT, batchId: BATCH, billNow: 'yes' }],
   ])('rejects %s', (_label, body) => {
     expect(CreateEnrollmentBody.safeParse(body).success).toBe(false);
   });
@@ -59,5 +59,29 @@ describe('students + batches', () => {
   it('ListStudentsQuery takes an optional batchId', () => {
     expect(ListStudentsQuery.parse({ batchId: BATCH }).batchId).toBe(BATCH);
     expect(ListStudentsQuery.safeParse({ batchId: 'x' }).success).toBe(false);
+  });
+});
+
+describe('fee schemas', () => {
+  it('ListInvoicesQuery splits the status list and reads the flags', async () => {
+    const { ListInvoicesQuery } = await import('../index');
+    expect(ListInvoicesQuery.parse({ status: 'due, partially_paid', overdue: 'true' })).toEqual({
+      status: ['due', 'partially_paid'],
+      overdue: true,
+      limit: 100,
+    });
+    expect(ListInvoicesQuery.safeParse({ status: 'due,overdue' }).success).toBe(false);
+  });
+
+  it('CreateManualInvoiceBody: discount defaults to 0; paise must be whole', async () => {
+    const { CreateManualInvoiceBody } = await import('../index');
+    const body = {
+      studentId: STUDENT,
+      amountPaise: 50000,
+      dueDate: '2026-10-15',
+      description: 'Exam fee',
+    };
+    expect(CreateManualInvoiceBody.parse(body).discountPaise).toBe(0);
+    expect(CreateManualInvoiceBody.safeParse({ ...body, amountPaise: 1.5 }).success).toBe(false);
   });
 });

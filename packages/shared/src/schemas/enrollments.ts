@@ -5,8 +5,8 @@ import { zLocalDate, zMoneyPaise } from './common';
 /**
  * POST /v1/institutes/:instituteId/enrollments (owner, staff)
  * feePaise / feeCycle default to the batch's; startDate defaults to today at the institute.
- * `billNow` arrives with billing (Phase 3): until then it's an unknown field -> 422,
- * so no client believes a bill was created.
+ * one_time fees are invoiced immediately. billNow: also bill the CURRENT period of a
+ * monthly/quarterly/... enrollment now (otherwise the first bill comes on the billing day).
  */
 export const CreateEnrollmentBody = z
   .object({
@@ -16,6 +16,7 @@ export const CreateEnrollmentBody = z
     discountPaise: zMoneyPaise.optional(),
     feeCycle: z.enum(FEE_CYCLES).optional(),
     startDate: zLocalDate.optional(),
+    billNow: z.boolean().optional(),
   })
   .strict();
 

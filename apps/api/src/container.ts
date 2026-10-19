@@ -18,6 +18,7 @@ import { RedisOtpStore } from './modules/auth/redis-otp-store';
 import { SessionService } from './modules/auth/session.service';
 import { BatchesController } from './modules/batches/batches.controller';
 import { EnrollmentsController } from './modules/enrollments/enrollments.controller';
+import { InvoicesController } from './modules/fees/invoices.controller';
 import { InstitutesController } from './modules/institutes/institutes.controller';
 import { MembersController } from './modules/institutes/members.controller';
 import { ConsentController } from './modules/messaging/consent.controller';
@@ -89,9 +90,14 @@ export function createContainer(config: Config): Container {
       services.studentService,
       services.enrollmentService,
       services.consentService,
+      services.invoiceService,
     ),
+    invoicesController: new InvoicesController(services.invoiceService),
     consentController: new ConsentController(services.consentService),
-    enrollmentsController: new EnrollmentsController(services.enrollmentService),
+    enrollmentsController: new EnrollmentsController(
+      services.enrollmentService,
+      services.invoiceService,
+    ),
     attendanceController: new AttendanceController(services.attendanceService),
     memberships: services.instituteService,
     accessTokens,

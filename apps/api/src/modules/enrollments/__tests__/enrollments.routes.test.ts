@@ -107,7 +107,7 @@ describe('POST /v1/institutes/:instituteId/enrollments', () => {
   });
 
   it.each([
-    ['billNow (arrives with billing)', { billNow: true }],
+    ['billNow that is not a boolean', { billNow: 'yes' }],
     ['a discount above the fee (entity rule)', { discountPaise: 150001 }],
     ['a non-UUID student id', { studentId: 'abc' }],
   ])('422 for %s', async (_label, payload) => {

@@ -8,6 +8,9 @@ import { DrizzleBatchRepository } from './modules/batches/drizzle-batch.reposito
 import { DrizzleEnrollmentRepository } from './modules/enrollments/drizzle-enrollment.repository';
 import { EnrollmentService } from './modules/enrollments/enrollment.service';
 import { EntitlementsService } from './modules/entitlements/entitlements.service';
+import { DrizzleInvoiceRepository } from './modules/fees/drizzle-invoice.repository';
+import { InvoiceGenerator } from './modules/fees/invoice-generator';
+import { InvoiceService } from './modules/fees/invoice.service';
 import { DrizzleInstituteRepository } from './modules/institutes/drizzle-institute.repository';
 import { InstituteService } from './modules/institutes/institute.service';
 import { ConsentService } from './modules/messaging/consent.service';
@@ -82,7 +85,30 @@ export function createDomainServices(db: Db, clock: Clock, ids: IdGenerator) {
     clock,
   });
 
+  // Fees use the institute, enrollment, student and batch SERVICES (rule 12).
+  const invoiceRepository = new DrizzleInvoiceRepository(db);
+  const invoiceGenerator = new InvoiceGenerator({
+    invoices: invoiceRepository,
+    institutes: instituteService,
+    enrollments: enrollmentService,
+    students: studentService,
+    batches: batchService,
+    ids,
+    clock,
+  });
+  const invoiceService = new InvoiceService({
+    invoices: invoiceRepository,
+    generator: invoiceGenerator,
+    institutes: instituteService,
+    students: studentService,
+    batches: batchService,
+    ids,
+    clock,
+  });
+
   return {
+    invoiceGenerator,
+    invoiceService,
     userService,
     entitlements,
     instituteService,

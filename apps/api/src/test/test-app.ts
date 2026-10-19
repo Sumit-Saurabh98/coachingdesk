@@ -27,6 +27,10 @@ import { BatchesController } from '../modules/batches/batches.controller';
 import { InMemoryEnrollmentRepository } from '../modules/enrollments/enrollment.repository';
 import { EnrollmentService } from '../modules/enrollments/enrollment.service';
 import { EnrollmentsController } from '../modules/enrollments/enrollments.controller';
+import { InvoiceGenerator } from '../modules/fees/invoice-generator';
+import { InMemoryInvoiceRepository } from '../modules/fees/invoice.repository';
+import { InvoiceService } from '../modules/fees/invoice.service';
+import { InvoicesController } from '../modules/fees/invoices.controller';
 import { EntitlementsService } from '../modules/entitlements/entitlements.service';
 import { InMemoryInstituteRepository } from '../modules/institutes/institute.repository';
 import { InstituteService } from '../modules/institutes/institute.service';
@@ -122,6 +126,25 @@ export function buildTestApp() {
     ids,
     clock,
   });
+  const invoiceRepository = new InMemoryInvoiceRepository();
+  const invoiceGenerator = new InvoiceGenerator({
+    invoices: invoiceRepository,
+    institutes: instituteService,
+    enrollments: enrollmentService,
+    students: studentService,
+    batches: batchService,
+    ids,
+    clock,
+  });
+  const invoiceService = new InvoiceService({
+    invoices: invoiceRepository,
+    generator: invoiceGenerator,
+    institutes: instituteService,
+    students: studentService,
+    batches: batchService,
+    ids,
+    clock,
+  });
   const authService = new AuthService({
     otp: otpService,
     users: userService,
@@ -134,9 +157,15 @@ export function buildTestApp() {
     institutesController: new InstitutesController(instituteService),
     membersController: new MembersController(instituteService),
     batchesController: new BatchesController(batchService, enrollmentService),
-    studentsController: new StudentsController(studentService, enrollmentService, consentService),
+    studentsController: new StudentsController(
+      studentService,
+      enrollmentService,
+      consentService,
+      invoiceService,
+    ),
+    invoicesController: new InvoicesController(invoiceService),
     consentController: new ConsentController(consentService),
-    enrollmentsController: new EnrollmentsController(enrollmentService),
+    enrollmentsController: new EnrollmentsController(enrollmentService, invoiceService),
     attendanceController: new AttendanceController(attendanceService),
     memberships: instituteService,
     accessTokens,
@@ -152,6 +181,8 @@ export function buildTestApp() {
     subscriptionRepository,
     consentRepository,
     outboxRepository,
+    invoiceRepository,
+    invoiceGenerator,
   };
 }
 

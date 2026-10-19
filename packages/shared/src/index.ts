@@ -40,6 +40,12 @@ export {
 export { CreateEnrollmentBody, UpdateEnrollmentBody } from './schemas/enrollments';
 export { GuardianConsentBody } from './schemas/messaging';
 export {
+  CloseInvoiceBody,
+  CreateManualInvoiceBody,
+  INVOICE_STATUS_VALUES,
+  ListInvoicesQuery,
+} from './schemas/fees';
+export {
   ATTENDANCE_STATUSES,
   type AttendanceStatus,
   AttendanceSummaryQuery,

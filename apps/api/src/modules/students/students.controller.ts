@@ -5,7 +5,7 @@ import {
   ListStudentsQuery,
   UpdateStudentBody,
 } from '@coachingdesk/shared';
-import type { LocalDate, PhoneNumber } from '@coachingdesk/shared';
+import type { FeeCycle, LocalDate, Money, PhoneNumber } from '@coachingdesk/shared';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { canSeeFees, withoutFees } from '../../http/fee-visibility';
 import { uuidParam } from '../../http/route-params';
@@ -27,6 +27,26 @@ interface EnrollmentView {
  * (dependency inversion, like UserInstitutesLookup in Step 9): students never imports
  * enrollments, so the modules can't form an import cycle.
  */
+/** What billing needs to know about a just-created enrollment (Enrollment fits). */
+interface NewEnrollment extends EnrollmentView {
+  id: string;
+  studentId: string;
+  batchId: string;
+  fee: Money;
+  discount: Money;
+  feeCycle: FeeCycle;
+  startDate: LocalDate;
+}
+
+/** Billing for enrollments made with the student (one_time fees). InvoiceService fits. */
+export interface StudentBilling {
+  billAtEnrollment(
+    instituteId: string,
+    enrollment: NewEnrollment,
+    billNow: boolean,
+  ): Promise<{ toPublicJSON(): object } | null>;
+}
+
 export interface StudentEnrollments {
   listForStudent(instituteId: string, studentId: string): Promise<EnrollmentView[]>;
   /** 404 unknown / 409 archived batch, without writing anything. */
@@ -36,7 +56,7 @@ export interface StudentEnrollments {
     studentId: string,
     batchIds: string[],
     startDate: LocalDate,
-  ): Promise<EnrollmentView[]>;
+  ): Promise<NewEnrollment[]>;
   studentIdsInBatchToday(instituteId: string, batchId: string): Promise<string[]>;
 }
 
@@ -54,6 +74,7 @@ export class StudentsController {
     private readonly students: StudentService,
     private readonly enrollments: StudentEnrollments,
     private readonly consent: GuardianConsentRecorder,
+    private readonly billing: StudentBilling,
   ) {}
 
   /** GET .../students?q=&status=&limit=&cursor= (any member) -> 200 { students, nextCursor } */
@@ -95,9 +116,18 @@ export class StudentsController {
     if (guardianConsent) {
       await this.consent.optInAll(instituteId, [body.guardianPhone]);
     }
+    // one_time batch fees are invoiced at enrollment; periodic ones wait for the billing day.
+    const invoices = [];
+    for (const enrollment of enrollments) {
+      const invoice = await this.billing.billAtEnrollment(instituteId, enrollment, false);
+      if (invoice) {
+        invoices.push(invoice.toPublicJSON());
+      }
+    }
     await reply.status(201).send({
       student: student.toPublicJSON(),
       enrollments: enrollments.map((e) => e.toPublicJSON()),
+      invoices,
     });
   }
 
