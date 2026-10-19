@@ -28,6 +28,7 @@ export class InMemoryConsentRepository implements ConsentRepository {
     instituteId: string,
     phone: PhoneNumber,
     status: Exclude<ConsentStatus, 'unknown'>,
+    _source: ConsentSource,
   ): Promise<void> {
     this.consents.set(`${instituteId}|${phone.toE164()}`, status);
   }
@@ -40,7 +41,11 @@ export class InMemoryConsentRepository implements ConsentRepository {
     return this.optOuts.has(phone.toE164());
   }
 
-  async optOutGlobally(phone: PhoneNumber): Promise<void> {
+  async optOutGlobally(
+    phone: PhoneNumber,
+    _source: 'stop_reply' | 'support',
+    _at: Date,
+  ): Promise<void> {
     this.optOuts.add(phone.toE164());
   }
 }
