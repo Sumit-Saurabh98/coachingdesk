@@ -22,7 +22,18 @@ const poller = new Poller(
   (error) => log('error', 'outbox run failed', { error: String(error) }),
 );
 
-// Graceful shutdown, like server.ts: finish the current run, close the database, exit.
+const billingPoller = new Poller(
+  async () => {
+    const summary = await container.billing.runOnce();
+    if (summary.billed > 0 || summary.failed.length > 0) {
+      log(summary.failed.length > 0 ? 'error' : 'info', 'billing run', { ...summary });
+    }
+  },
+  config.INVOICE_POLL_MS,
+  (error) => log('error', 'billing run failed', { error: String(error) }),
+);
+
+// Graceful shutdown, like server.ts: finish the current runs, close the database, exit.
 let shuttingDown = false;
 async function shutdown(signal: string): Promise<void> {
   if (shuttingDown) {
@@ -30,7 +41,7 @@ async function shutdown(signal: string): Promise<void> {
   }
   shuttingDown = true;
   log('info', 'worker shutting down', { signal });
-  await poller.stop();
+  await Promise.all([poller.stop(), billingPoller.stop()]);
   await container.close();
   process.exit(0);
 }
@@ -38,7 +49,9 @@ process.on('SIGTERM', () => void shutdown('SIGTERM'));
 process.on('SIGINT', () => void shutdown('SIGINT'));
 
 log('info', 'worker started', {
-  pollMs: config.OUTBOX_POLL_MS,
+  outboxPollMs: config.OUTBOX_POLL_MS,
+  invoicePollMs: config.INVOICE_POLL_MS,
   provider: config.WHATSAPP_PROVIDER,
 });
 poller.start();
+billingPoller.start();

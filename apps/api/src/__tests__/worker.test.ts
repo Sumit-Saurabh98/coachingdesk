@@ -12,6 +12,7 @@ describe('loadWorkerConfig', () => {
       DATABASE_URL: base.DATABASE_URL,
       WHATSAPP_PROVIDER: 'console',
       OUTBOX_POLL_MS: 5000,
+      INVOICE_POLL_MS: 900_000,
     });
   });
 

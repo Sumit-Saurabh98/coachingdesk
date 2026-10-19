@@ -10,6 +10,13 @@ const WorkerConfigSchema = z.object({
   // How often the worker looks for due messages. LLD §7: "outbox poller (every 30 s)" in
   // production; shorter locally so you see messages quickly.
   OUTBOX_POLL_MS: z.coerce.number().int().min(500).default(5000),
+  // How often the billing job checks "has every institute's current period been billed?".
+  // Cheap when there is nothing to do; catches up after any outage (LLD §6.1).
+  INVOICE_POLL_MS: z.coerce
+    .number()
+    .int()
+    .min(1000)
+    .default(15 * 60_000),
 });
 
 export type WorkerConfig = z.infer<typeof WorkerConfigSchema>;

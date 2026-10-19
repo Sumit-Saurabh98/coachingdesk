@@ -1,6 +1,7 @@
 import { createDb } from '@coachingdesk/db';
 import { ConsoleWhatsAppSender, type WhatsAppSender } from '@coachingdesk/providers';
 import { SystemClock, UuidV7Generator } from '@coachingdesk/shared';
+import { BillingScheduler } from './modules/fees/billing-scheduler';
 import { AbsenceRevalidator } from './modules/messaging/absence-revalidator';
 import { OutboxDispatcher } from './modules/messaging/outbox-dispatcher';
 import { createDomainServices } from './services';
@@ -8,6 +9,7 @@ import type { WorkerConfig } from './worker-config';
 
 export interface WorkerContainer {
   dispatcher: OutboxDispatcher;
+  billing: BillingScheduler;
   close: () => Promise<void>;
 }
 
@@ -30,7 +32,9 @@ export function createWorkerContainer(config: WorkerConfig): WorkerContainer {
     clock,
   });
 
-  return { dispatcher, close: () => database.close() };
+  const billing = new BillingScheduler(services.instituteService, services.invoiceGenerator);
+
+  return { dispatcher, billing, close: () => database.close() };
 }
 
 function createWhatsAppSender(config: WorkerConfig): WhatsAppSender {
