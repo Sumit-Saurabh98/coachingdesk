@@ -37,3 +37,4 @@ export {
   type StudentStatus,
   UpdateStudentBody,
 } from './schemas/students';
+export { CreateEnrollmentBody, UpdateEnrollmentBody } from './schemas/enrollments';

@@ -17,6 +17,8 @@ export const CreateStudentBody = z
     // Missing = today in the institute's time zone (the service decides "today", not the phone).
     joinedOn: zLocalDate.optional(),
     notes: z.string().max(1000).nullish(),
+    // Enroll in these batches right away, with each batch's default fee (max 20: a sanity cap).
+    batchIds: z.array(z.uuid()).max(20).optional(),
   })
   .strict();
 
@@ -36,13 +38,14 @@ export const UpdateStudentBody = z
 export const LeaveStudentBody = z.object({ leftOn: zLocalDate.optional() }).strict();
 
 /**
- * GET /v1/institutes/:instituteId/students?q=&status=&limit=&cursor=
+ * GET /v1/institutes/:instituteId/students?q=&status=&batchId=&limit=&cursor=
  * Query strings are text: z.coerce.number() turns "20" into 20 (and "abc" into a 422).
  */
 export const ListStudentsQuery = z
   .object({
     q: z.string().trim().max(100).optional(), // matches student name, guardian name or phone
     status: z.enum([...STUDENT_STATUSES, 'all']).default('active'),
+    batchId: z.uuid().optional(), // only students currently enrolled in this batch
     limit: z.coerce.number().int().min(1).max(100).default(50),
     cursor: z.string().max(500).optional(), // opaque: copy nextCursor from the previous page
   })
