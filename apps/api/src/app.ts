@@ -1,12 +1,18 @@
 import { randomUUID } from 'node:crypto';
 import Fastify, { type FastifyInstance } from 'fastify';
+import { createAuthGuard } from './http/auth-guard';
 import { registerErrorHandler } from './http/error-handler';
+import type { JwtAccessTokens } from './modules/auth/access-tokens';
 import type { AuthController } from './modules/auth/auth.controller';
 import { registerAuthRoutes } from './modules/auth/auth.routes';
+import type { MeController } from './modules/users/me.controller';
+import { registerUserRoutes } from './modules/users/users.routes';
 
 // What the app needs from outside. Tests pass fakes; server.ts passes the real container.
 export interface AppDependencies {
   authController: AuthController;
+  meController: MeController;
+  accessTokens: JwtAccessTokens;
   isReady: () => Promise<boolean>;
 }
 
@@ -24,9 +30,14 @@ export function buildApp(deps: AppDependencies, options: AppOptions = {}): Fasti
     genReqId: () => randomUUID(),
   });
 
+  // Every request starts with auth = null; the guard fills it in on protected routes (9a).
+  app.decorateRequest('auth', null);
   registerErrorHandler(app);
 
-  // /health = "is the process alive?"; /ready = "can it serve traffic?" (Redis reachable).
+  // ONE guard instance, created here and handed to every module that has protected routes.
+  const requireAuth = createAuthGuard(deps.accessTokens);
+
+  // /health = "is the process alive?"; /ready = "can it serve traffic?" (Redis + Postgres reachable).
   // A load balancer stops sending traffic to an instance whose /ready returns 503.
   app.get('/health', async () => ({ status: 'ok' }));
   app.get('/ready', async (_request, reply) =>
@@ -34,6 +45,7 @@ export function buildApp(deps: AppDependencies, options: AppOptions = {}): Fasti
   );
 
   registerAuthRoutes(app, deps.authController);
+  registerUserRoutes(app, deps.meController, requireAuth);
 
   return app;
 }

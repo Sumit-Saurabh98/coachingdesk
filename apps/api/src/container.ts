@@ -16,6 +16,7 @@ import { DEFAULT_OTP_POLICY, OtpService } from './modules/auth/otp.service';
 import { RedisOtpStore } from './modules/auth/redis-otp-store';
 import { SessionService } from './modules/auth/session.service';
 import { DrizzleUserRepository } from './modules/users/drizzle-user.repository';
+import { MeController } from './modules/users/me.controller';
 import { UserService } from './modules/users/user.service';
 
 export interface Container extends AppDependencies {
@@ -57,9 +58,11 @@ export function createContainer(config: Config): Container {
     { ...DEFAULT_OTP_POLICY, dailySmsBudget: config.OTP_DAILY_BUDGET, reviewLogin },
   );
 
+  // One instance shared by SessionService (issues tokens) and the auth guard (checks them).
+  const accessTokens = new JwtAccessTokens(config.JWT_SECRET, clock);
   const sessionService = new SessionService({
     refreshTokens: new DrizzleRefreshTokenRepository(database.db),
-    accessTokens: new JwtAccessTokens(config.JWT_SECRET, clock),
+    accessTokens,
     ids,
     clock,
   });
@@ -72,6 +75,8 @@ export function createContainer(config: Config): Container {
 
   return {
     authController: new AuthController({ otpService, authService, sessionService }),
+    meController: new MeController(userService),
+    accessTokens,
     // Ready = BOTH Redis and Postgres answer. Otherwise the load balancer sends traffic elsewhere.
     isReady: async () => {
       try {

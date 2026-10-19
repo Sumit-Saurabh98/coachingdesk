@@ -1,52 +1,14 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { FixedClock, PhoneNumber, SequentialIdGenerator } from '@coachingdesk/shared';
-import { FakeSmsProvider } from '@coachingdesk/providers';
+import { PhoneNumber } from '@coachingdesk/shared';
 import type { FastifyInstance } from 'fastify';
-import { buildApp } from '../../../app';
-import { InMemoryRateLimiter } from '../../../lib/rate-limiter';
-import { JwtAccessTokens } from '../access-tokens';
-import { AuthController } from '../auth.controller';
-import { AuthService } from '../auth.service';
-import { FixedOtpCodeGenerator } from '../otp-code-generator';
-import { OtpHasher } from '../otp-hasher';
-import { InMemoryOtpStore } from '../otp-store';
-import { OtpService } from '../otp.service';
-import { InMemoryRefreshTokenRepository } from '../refresh-token.repository';
-import { SessionService } from '../session.service';
-import { InMemoryUserRepository } from '../../users/user.repository';
-import { UserService } from '../../users/user.service';
+import { buildTestApp } from '../../../test/test-app';
 
 let app: FastifyInstance;
 
 function setup() {
-  const clock = new FixedClock(new Date('2026-10-19T10:00:00Z'));
-  const sms = new FakeSmsProvider();
-  const otpService = new OtpService({
-    store: new InMemoryOtpStore(),
-    rateLimiter: new InMemoryRateLimiter(clock),
-    sms,
-    codeGenerator: new FixedOtpCodeGenerator('482913'),
-    hasher: new OtpHasher('test-secret-that-is-at-least-32-chars-long'),
-    clock,
-  });
-  const ids = new SequentialIdGenerator();
-  const accessTokens = new JwtAccessTokens('jwt-test-secret-that-is-at-least-32-chars', clock);
-  const sessionService = new SessionService({
-    refreshTokens: new InMemoryRefreshTokenRepository(),
-    accessTokens,
-    ids,
-    clock,
-  });
-  const authService = new AuthService({
-    otp: otpService,
-    users: new UserService(new InMemoryUserRepository(), ids),
-    sessions: sessionService,
-  });
-  app = buildApp({
-    authController: new AuthController({ otpService, authService, sessionService }),
-    isReady: async () => true,
-  });
-  return { app, sms, accessTokens };
+  const testApp = buildTestApp();
+  app = testApp.app;
+  return testApp;
 }
 
 afterEach(async () => {
