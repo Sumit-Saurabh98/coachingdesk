@@ -6,15 +6,7 @@ import { Redis } from 'ioredis';
 import type { AppDependencies } from './app';
 import type { Config } from './config';
 import { RedisRateLimiter } from './lib/redis-rate-limiter';
-import { DrizzleAttendanceRepository } from './modules/attendance/drizzle-attendance.repository';
-import { AttendanceWindow } from './modules/attendance/attendance-window';
-import { AttendanceService } from './modules/attendance/attendance.service';
 import { AttendanceController } from './modules/attendance/attendance.controller';
-import { DrizzleConsentRepository } from './modules/messaging/drizzle-consent.repository';
-import { ConsentController } from './modules/messaging/consent.controller';
-import { ConsentService } from './modules/messaging/consent.service';
-import { DrizzleOutboxRepository } from './modules/messaging/drizzle-outbox.repository';
-import { OutboxAbsenceAlerts } from './modules/messaging/outbox-absence-alerts';
 import { JwtAccessTokens } from './modules/auth/access-tokens';
 import { AuthController } from './modules/auth/auth.controller';
 import { AuthService } from './modules/auth/auth.service';
@@ -24,32 +16,21 @@ import { OtpHasher } from './modules/auth/otp-hasher';
 import { DEFAULT_OTP_POLICY, OtpService } from './modules/auth/otp.service';
 import { RedisOtpStore } from './modules/auth/redis-otp-store';
 import { SessionService } from './modules/auth/session.service';
-import { BatchService } from './modules/batches/batch.service';
 import { BatchesController } from './modules/batches/batches.controller';
-import { DrizzleBatchRepository } from './modules/batches/drizzle-batch.repository';
-import { DrizzleEnrollmentRepository } from './modules/enrollments/drizzle-enrollment.repository';
-import { EnrollmentService } from './modules/enrollments/enrollment.service';
 import { EnrollmentsController } from './modules/enrollments/enrollments.controller';
-import { EntitlementsService } from './modules/entitlements/entitlements.service';
-import { DrizzleInstituteRepository } from './modules/institutes/drizzle-institute.repository';
-import { InstituteService } from './modules/institutes/institute.service';
 import { InstitutesController } from './modules/institutes/institutes.controller';
 import { MembersController } from './modules/institutes/members.controller';
-import { DrizzleStudentRepository } from './modules/students/drizzle-student.repository';
-import { StudentService } from './modules/students/student.service';
+import { ConsentController } from './modules/messaging/consent.controller';
 import { StudentsController } from './modules/students/students.controller';
-import { DrizzleSubscriptionRepository } from './modules/subscriptions/drizzle-subscription.repository';
-import { SubscriptionService } from './modules/subscriptions/subscription.service';
-import { DrizzleUserRepository } from './modules/users/drizzle-user.repository';
 import { MeController } from './modules/users/me.controller';
-import { UserService } from './modules/users/user.service';
+import { createDomainServices } from './services';
 
 export interface Container extends AppDependencies {
   close: () => Promise<void>;
 }
 
 /**
- * THE place where real implementations are chosen and wired together.
+ * THE place where the API's real implementations are chosen and wired together.
  * Notice: no InMemory* or Fake* class is even imported in this file.
  */
 export function createContainer(config: Config): Container {
@@ -91,77 +72,28 @@ export function createContainer(config: Config): Container {
     ids,
     clock,
   });
-  const userService = new UserService(new DrizzleUserRepository(database.db), ids);
-  const entitlements = new EntitlementsService(
-    new SubscriptionService(new DrizzleSubscriptionRepository(database.db), clock),
-  );
-  const instituteService = new InstituteService({
-    institutes: new DrizzleInstituteRepository(database.db),
-    users: userService,
-    entitlements,
-    ids,
-    clock,
-  });
-  const batchService = new BatchService({
-    batches: new DrizzleBatchRepository(database.db),
-    ids,
-    clock,
-  });
-  const consentService = new ConsentService(new DrizzleConsentRepository(database.db));
-  const studentService = new StudentService({
-    students: new DrizzleStudentRepository(database.db),
-    entitlements,
-    institutes: instituteService,
-    ids,
-    clock,
-  });
-  // Enrollments uses the student, batch and institute SERVICES (rule 12). Built after them,
-  // and handed to the batches/students controllers through their own small interfaces.
-  const enrollmentService = new EnrollmentService({
-    enrollments: new DrizzleEnrollmentRepository(database.db),
-    students: studentService,
-    batches: batchService,
-    institutes: instituteService,
-    ids,
-    clock,
-  });
-  const attendanceService = new AttendanceService({
-    attendance: new DrizzleAttendanceRepository(database.db),
-    batches: batchService,
-    enrollments: enrollmentService,
-    students: studentService,
-    institutes: instituteService,
-    // Absence alerts are QUEUED in the outbox; the worker sends them (AGENTS rule 4).
-    alerts: new OutboxAbsenceAlerts({
-      outbox: new DrizzleOutboxRepository(database.db),
-      institutes: instituteService,
-      entitlements,
-      batches: batchService,
-      students: studentService,
-      ids,
-      clock,
-    }),
-    window: new AttendanceWindow(7),
-    ids,
-    clock,
-  });
+  const services = createDomainServices(database.db, clock, ids);
   const authService = new AuthService({
     otp: otpService,
-    users: userService,
+    users: services.userService,
     sessions: sessionService,
   });
 
   return {
     authController: new AuthController({ otpService, authService, sessionService }),
-    meController: new MeController(userService, instituteService, sessionService),
-    institutesController: new InstitutesController(instituteService),
-    membersController: new MembersController(instituteService),
-    batchesController: new BatchesController(batchService, enrollmentService),
-    studentsController: new StudentsController(studentService, enrollmentService, consentService),
-    consentController: new ConsentController(consentService),
-    enrollmentsController: new EnrollmentsController(enrollmentService),
-    attendanceController: new AttendanceController(attendanceService),
-    memberships: instituteService,
+    meController: new MeController(services.userService, services.instituteService, sessionService),
+    institutesController: new InstitutesController(services.instituteService),
+    membersController: new MembersController(services.instituteService),
+    batchesController: new BatchesController(services.batchService, services.enrollmentService),
+    studentsController: new StudentsController(
+      services.studentService,
+      services.enrollmentService,
+      services.consentService,
+    ),
+    consentController: new ConsentController(services.consentService),
+    enrollmentsController: new EnrollmentsController(services.enrollmentService),
+    attendanceController: new AttendanceController(services.attendanceService),
+    memberships: services.instituteService,
     accessTokens,
     // Ready = BOTH Redis and Postgres answer. Otherwise the load balancer sends traffic elsewhere.
     isReady: async () => {
