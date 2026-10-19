@@ -191,6 +191,23 @@ export class Invoice {
     return this.close('cancelled', reason);
   }
 
+  /**
+   * The invoice after its paid total changed (a payment recorded or voided): the status follows
+   * the money (LLD §3.1): 0 -> due, part -> partially_paid, all -> paid. waived/cancelled are
+   * terminal and stay as they are; only `paid` changes.
+   */
+  withPaid(paid: Money): Invoice {
+    const status: InvoiceStatus =
+      this.status === 'waived' || this.status === 'cancelled'
+        ? this.status
+        : paid.isZero()
+          ? 'due'
+          : this.net.isGreaterThan(paid)
+            ? 'partially_paid'
+            : 'paid';
+    return new Invoice({ ...this.toProps(), paid, status });
+  }
+
   toPublicJSON() {
     return {
       id: this.id,
