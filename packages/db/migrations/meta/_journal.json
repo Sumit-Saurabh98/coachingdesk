@@ -64,6 +64,13 @@
       "when": 1792396271199,
       "tag": "0008_crazy_marvex",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792396941808,
+      "tag": "0009_lyrical_wild_pack",
+      "breakpoints": true
     }
   ]
 }
