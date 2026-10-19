@@ -17,7 +17,9 @@ export async function startTestDb(): Promise<{
   return {
     db,
     reset: async () => {
-      await db.execute(sql`TRUNCATE users, refresh_tokens, institutes, memberships CASCADE`);
+      await db.execute(
+        sql`TRUNCATE users, refresh_tokens, institutes, memberships, subscriptions CASCADE`,
+      );
     },
     stop: async () => {
       await close();
