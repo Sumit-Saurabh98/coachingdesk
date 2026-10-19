@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PhoneNumber } from '@coachingdesk/shared';
+import { User } from '../user';
 import type { UserRepository } from '../user.repository';
 
 export function describeUserRepositoryContract(name: string, create: () => UserRepository): void {
@@ -39,6 +40,26 @@ export function describeUserRepositoryContract(name: string, create: () => UserR
       await users.findOrCreateByPhone(phone, id1);
       expect((await users.findById(id1))?.phone.equals(phone)).toBe(true);
       expect(await users.findById(id2)).toBeNull();
+    });
+
+    // NEW in 9d
+    it('saves profile changes', async () => {
+      const users = create();
+      const { user } = await users.findOrCreateByPhone(phone, id1);
+
+      await users.updateProfile(user.withProfile({ name: 'Neha Sharma', locale: 'hi' }));
+
+      // Read it back with findById: proves it was really STORED, not just changed in memory.
+      const saved = await users.findById(id1);
+      expect(saved?.toPublicJSON()).toEqual({ id: id1, name: 'Neha Sharma', locale: 'hi' });
+      expect(saved?.phone.equals(phone)).toBe(true);
+    });
+
+    // NEW in 9d
+    it('refuses to update a user that does not exist', async () => {
+      // Built directly with `new User`, never saved: it doesn't exist in the repository.
+      const ghost = new User(id2, phone, 'Ghost', 'en');
+      await expect(create().updateProfile(ghost)).rejects.toThrow();
     });
   });
 }

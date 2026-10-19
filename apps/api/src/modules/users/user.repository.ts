@@ -8,6 +8,8 @@ export interface UserRepository {
    */
   findOrCreateByPhone(phone: PhoneNumber, newId: string): Promise<{ user: User; created: boolean }>;
   findById(id: string): Promise<User | null>;
+  /** Saves the user's profile fields (name, locale). The phone never changes here. */
+  updateProfile(user: User): Promise<void>;
 }
 
 /** Tests and local dev only. */
@@ -30,5 +32,15 @@ export class InMemoryUserRepository implements UserRepository {
 
   async findById(id: string): Promise<User | null> {
     return this.byId.get(id) ?? null;
+  }
+
+  async updateProfile(user: User): Promise<void> {
+    const existing = this.byId.get(user.id);
+    if (!existing) {
+      throw new Error(`InMemoryUserRepository: no user ${user.id}`);
+    }
+    // Keep the STORED phone, take only the profile fields, exactly like the SQL version does.
+    // If the fake behaved differently from Postgres here, the contract test would catch it.
+    this.byId.set(user.id, new User(existing.id, existing.phone, user.name, user.locale));
   }
 }

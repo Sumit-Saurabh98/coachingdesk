@@ -7,7 +7,7 @@ import type { UserRepository } from './user.repository';
 
 type UserRow = typeof users.$inferSelect;
 
-/** Production UserRepository. The only auth class that knows about Drizzle and SQL. */
+/** Production UserRepository. The only class in the users module that knows about Drizzle and SQL. */
 export class DrizzleUserRepository implements UserRepository {
   constructor(private readonly db: Db) {}
 
@@ -38,6 +38,20 @@ export class DrizzleUserRepository implements UserRepository {
   async findById(id: string): Promise<User | null> {
     const [row] = await this.db.select().from(users).where(eq(users.id, id));
     return row ? toUser(row) : null;
+  }
+
+  async updateProfile(user: User): Promise<void> {
+    // Only name and locale are written: even a buggy caller can't change a phone number here.
+    // updated_at is set automatically by the $onUpdateFn from Step 5 (columns.ts).
+    const updated = await this.db
+      .update(users)
+      .set({ name: user.name, locale: user.locale })
+      .where(eq(users.id, user.id))
+      .returning({ id: users.id });
+    // UPDATE on a missing id "succeeds" with 0 rows. Don't let that pass silently.
+    if (updated.length === 0) {
+      throw new Error(`DrizzleUserRepository: no user ${user.id}`);
+    }
   }
 }
 
