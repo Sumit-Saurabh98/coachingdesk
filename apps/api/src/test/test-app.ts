@@ -14,6 +14,7 @@ import { InMemoryOutboxRepository } from '../modules/messaging/outbox.repository
 import { FeeReminders } from '../modules/messaging/fee-reminders';
 import { MessageQuota } from '../modules/messaging/message-quota';
 import { InMemoryMessageUsageRepository } from '../modules/messaging/message-usage.repository';
+import { MessagesController } from '../modules/messaging/messages.controller';
 import { RemindersController } from '../modules/messaging/reminders.controller';
 import { OutboxAbsenceAlerts } from '../modules/messaging/outbox-absence-alerts';
 import { JwtAccessTokens } from '../modules/auth/access-tokens';
@@ -199,6 +200,7 @@ export function buildTestApp() {
     invoicesController: new InvoicesController(invoiceService, paymentService),
     paymentsController: new PaymentsController(paymentService),
     consentController: new ConsentController(consentService),
+    messagesController: new MessagesController(outboxRepository),
     remindersController: new RemindersController(feeReminders, messageQuota, instituteService),
     enrollmentsController: new EnrollmentsController(enrollmentService, invoiceService),
     attendanceController: new AttendanceController(attendanceService),

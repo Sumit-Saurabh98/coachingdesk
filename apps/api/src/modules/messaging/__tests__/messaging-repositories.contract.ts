@@ -96,6 +96,28 @@ export function describeOutboxRepositoryContract(
       });
     });
 
+    it('the message log: newest first, filtered, paged by id; only this institute', async () => {
+      const repo = create();
+      const [a, b, c] = [message(), message({ category: 'fee_reminder' }), message()];
+      await repo.enqueueAll([a, b, c]);
+      await repo.enqueueAll([message({ instituteId: CONTRACT.instituteB })]);
+      const ids = (list: { id: string }[]) => list.map((m) => m.id);
+
+      expect(ids(await repo.listForInstitute(CONTRACT.instituteA, { limit: 10 }))).toEqual([
+        c.id,
+        b.id,
+        a.id,
+      ]);
+      expect(
+        ids(
+          await repo.listForInstitute(CONTRACT.instituteA, { category: 'fee_reminder', limit: 10 }),
+        ),
+      ).toEqual([b.id]);
+      expect(
+        ids(await repo.listForInstitute(CONTRACT.instituteA, { limit: 2, beforeId: c.id })),
+      ).toEqual([b.id, a.id]);
+    });
+
     it('reschedule: quiet hours keep attempts; a retry counts one more attempt', async () => {
       const repo = create();
       const [a, b] = [message(), message()];

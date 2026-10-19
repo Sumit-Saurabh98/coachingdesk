@@ -1,13 +1,14 @@
 import type { Db } from '@coachingdesk/db';
 import { messageOutbox } from '@coachingdesk/db/schema';
 import { PhoneNumber } from '@coachingdesk/shared';
-import { and, eq, inArray, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, lt, type SQL, sql } from 'drizzle-orm';
 import {
   MESSAGE_CATEGORIES,
   MESSAGE_STATUSES,
   type MessageCategory,
   type MessageStatus,
   type NewOutboxMessage,
+  type OutboxLogQuery,
   type OutboxMessage,
   type OutboxRepository,
   type SkipReason,
@@ -122,6 +123,20 @@ export class DrizzleOutboxRepository implements OutboxRepository {
     return row ? toMessage(row) : null;
   }
 
+  async listForInstitute(instituteId: string, query: OutboxLogQuery): Promise<OutboxMessage[]> {
+    const conditions: SQL[] = [eq(messageOutbox.instituteId, instituteId)];
+    if (query.status) conditions.push(eq(messageOutbox.status, query.status));
+    if (query.category) conditions.push(eq(messageOutbox.category, query.category));
+    if (query.beforeId) conditions.push(lt(messageOutbox.id, query.beforeId));
+    const rows = await this.db
+      .select()
+      .from(messageOutbox)
+      .where(and(...conditions))
+      .orderBy(desc(messageOutbox.id))
+      .limit(query.limit);
+    return rows.map(toMessage);
+  }
+
   private async set(
     id: string,
     changes: Partial<typeof messageOutbox.$inferInsert>,
@@ -179,6 +194,7 @@ function toMessage(row: OutboxRow): OutboxMessage {
     scheduledFor: row.scheduledFor,
     expiresAt: row.expiresAt,
     dedupeKey: row.dedupeKey,
+    createdAt: row.createdAt,
     related: row.relatedType && row.relatedId ? { type: row.relatedType, id: row.relatedId } : null,
     status: oneOf(MESSAGE_STATUSES, row.status) as MessageStatus,
     attempts: row.attempts,

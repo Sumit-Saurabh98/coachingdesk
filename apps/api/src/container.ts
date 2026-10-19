@@ -23,6 +23,7 @@ import { PaymentsController } from './modules/fees/payments.controller';
 import { InstitutesController } from './modules/institutes/institutes.controller';
 import { MembersController } from './modules/institutes/members.controller';
 import { ConsentController } from './modules/messaging/consent.controller';
+import { MessagesController } from './modules/messaging/messages.controller';
 import { RemindersController } from './modules/messaging/reminders.controller';
 import { StudentsController } from './modules/students/students.controller';
 import { SubscriptionsController } from './modules/subscriptions/subscriptions.controller';
@@ -108,6 +109,7 @@ export function createContainer(config: Config): Container {
     invoicesController: new InvoicesController(services.invoiceService, services.paymentService),
     paymentsController: new PaymentsController(services.paymentService),
     consentController: new ConsentController(services.consentService),
+    messagesController: new MessagesController(services.outboxRepository),
     remindersController: new RemindersController(
       services.feeReminders,
       services.messageQuota,

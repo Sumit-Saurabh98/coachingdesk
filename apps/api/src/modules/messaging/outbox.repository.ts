@@ -49,11 +49,23 @@ export interface NewOutboxMessage {
 }
 
 export interface OutboxMessage extends NewOutboxMessage {
+  createdAt: Date;
   status: MessageStatus;
   attempts: number;
   providerMessageId: string | null;
   skipReason: SkipReason | null;
   errorCode: string | null;
+}
+
+export interface OutboxLogQuery {
+  status?: MessageStatus;
+  category?: MessageCategory;
+  limit: number;
+  /**
+   * Keyset paging: messages with an id below this one. Ids are UUIDv7 (time-ordered), so
+   * "newest first" = id descending, exactly; no timestamp-precision games.
+   */
+  beforeId?: string;
 }
 
 export interface OutboxRepository {
@@ -76,6 +88,8 @@ export interface OutboxRepository {
   /** Crash recovery: 'sending' rows not touched since `before` go back to 'queued'. Returns how many. */
   releaseStuck(before: Date): Promise<number>;
   findByDedupeKey(dedupeKey: string): Promise<OutboxMessage | null>;
+  /** The institute's message log, newest first. */
+  listForInstitute(instituteId: string, query: OutboxLogQuery): Promise<OutboxMessage[]>;
 }
 
 /** Tests and local dev only. */
@@ -97,6 +111,7 @@ export class InMemoryOutboxRepository implements OutboxRepository {
         providerMessageId: null,
         skipReason: null,
         errorCode: null,
+        createdAt: this.now(),
         touchedAt: this.now(),
       });
       added += 1;
@@ -157,6 +172,17 @@ export class InMemoryOutboxRepository implements OutboxRepository {
   async findByDedupeKey(dedupeKey: string): Promise<OutboxMessage | null> {
     const row = [...this.rows.values()].find((r) => r.dedupeKey === dedupeKey);
     return row ? strip(row) : null;
+  }
+
+  async listForInstitute(instituteId: string, query: OutboxLogQuery): Promise<OutboxMessage[]> {
+    return [...this.rows.values()]
+      .filter((r) => r.instituteId === instituteId)
+      .filter((r) => !query.status || r.status === query.status)
+      .filter((r) => !query.category || r.category === query.category)
+      .filter((r) => !query.beforeId || r.id < query.beforeId)
+      .sort((a, b) => (a.id < b.id ? 1 : a.id > b.id ? -1 : 0))
+      .slice(0, query.limit)
+      .map(strip);
   }
 
   private get(id: string) {

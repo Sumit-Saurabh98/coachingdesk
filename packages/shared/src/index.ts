@@ -39,7 +39,7 @@ export {
   UpdateStudentBody,
 } from './schemas/students';
 export { CreateEnrollmentBody, UpdateEnrollmentBody } from './schemas/enrollments';
-export { GuardianConsentBody } from './schemas/messaging';
+export { GuardianConsentBody, ListMessagesQuery } from './schemas/messaging';
 export {
   CloseInvoiceBody,
   CreateManualInvoiceBody,
