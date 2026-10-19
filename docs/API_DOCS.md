@@ -148,13 +148,13 @@ Batch object:
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/institutes/{id}/students` | `?q=&status=active\|left\|all&limit=1–100 (50)&cursor=` → `200 { students, nextCursor }`, sorted by name (case-insensitive). `q` matches student/guardian name, or 3+ digits of the guardian phone. `?batchId=` = only students enrolled in that batch today (unknown batch → empty list) |
-| POST | `/institutes/{id}/students` | Owner, staff. Single student, optional `batchIds` (max 20) → `201 { student, enrollments }`. Batches are checked first: unknown → `404`, archived → `409`, and then no student is created. Each enrollment uses the batch's default fee/cycle and starts on `joinedOn` |
+| POST | `/institutes/{id}/students` | Owner, staff. Single student, optional `batchIds` (max 20) → `201 { student, enrollments, invoices }` (`invoices`: one_time batch fees, billed at once). Batches are checked first: unknown → `404`, archived → `409`, and then no student is created. Each enrollment uses the batch's default fee/cycle and starts on `joinedOn` |
 | POST | `/institutes/{id}/students/bulk` | Owner, staff. Up to 500 rows → `200 { created, students, failed }` |
 | GET | `/institutes/{id}/students/{studentId}` | `200 { student, enrollments }` (past and present, by start date). Fee summary and attendance % are added as those modules land |
 | PATCH | `/institutes/{id}/students/{studentId}` | Owner, staff. `{ name?, guardianName?, guardianPhone?, joinedOn?, notes? }` → `200 { student }`. `409` if erased |
 | POST | `/institutes/{id}/students/{studentId}/leave` | Owner, staff. `{ leftOn? }` (default: today at the institute) → `200 { student }`. Stops invoices/reminders; frees a plan slot. Idempotent: a retry keeps the first date |
 | POST | `/institutes/{id}/students/{studentId}/erase` | Owner. Irreversibly erases the student's and guardian's personal data (on guardian request); amounts are kept |
-| POST | `/institutes/{id}/enrollments` | Owner, staff. `{ studentId, batchId, feePaise?, discountPaise?, feeCycle?, startDate? }` → `201 { enrollment }`. `feePaise`/`feeCycle` default to the batch's, `startDate` to today at the institute. `404` student/batch not in this institute; `409` student left, batch archived, or already enrolled then. **Phase 3 adds** `billNow?: boolean` (bills the current period now) and immediate invoicing of `one_time`; until then `billNow` → `422` |
+| POST | `/institutes/{id}/enrollments` | Owner, staff. `{ studentId, batchId, feePaise?, discountPaise?, feeCycle?, startDate?, billNow? }` → `201 { enrollment, invoice }`. `feePaise`/`feeCycle` default to the batch's, `startDate` to today at the institute. `one_time` is invoiced immediately; `billNow: true` bills the current period of a periodic enrollment now (`422` if the enrollment starts after this period); otherwise `invoice` is `null` and the billing run bills it. `404` student/batch not in this institute; `409` student left, batch archived, or already enrolled then |
 | PATCH | `/institutes/{id}/enrollments/{enrollmentId}` | Owner, staff. `{ feePaise?, discountPaise?, feeCycle?, endDate? }` → `200 { enrollment }`. Fee changes apply from the next period; `endDate` = last day attending (can be corrected, not before `startDate`) |
 
 Create student:
@@ -231,16 +231,24 @@ PUT body (`clientId` = a UUID the phone generated offline; a retry with the same
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/institutes/{id}/fees/dashboard?month=2026-10` | Totals + top overdue |
-| GET | `/institutes/{id}/invoices` | `?status=due,partially_paid&studentId&batchId&overdue=true` |
-| GET | `/institutes/{id}/invoices/{invoiceId}` | With payments + messages sent |
-| POST | `/institutes/{id}/invoices` | Manual one-off invoice `{ studentId, amountPaise, discountPaise?, dueDate, description }` (`description` required) |
+| GET | `/institutes/{id}/invoices` | Owner, staff. `?status=due,partially_paid&studentId&batchId&overdue=true&limit=1–200 (100)` → `200 { invoices }`, oldest due date first. `overdue` = open and due before today (institute time) |
+| GET | `/institutes/{id}/invoices/{invoiceId}` | Owner, staff → `200 { invoice }`. Payments and messages sent are added with Steps 17–18 |
+| POST | `/institutes/{id}/invoices` | Owner. Manual one-off invoice `{ studentId, amountPaise, discountPaise?, dueDate, description }` (`description` required, 1–200 chars; discount < amount) → `201 { invoice }` |
 | POST | `/institutes/{id}/invoices/{invoiceId}/payments` | Record offline payment. Amount above the remaining due is kept as guardian credit |
 | POST | `/institutes/{id}/payments/{paymentId}/void` | `{ reason }` — owner only, offline payments only. Reopens the invoice(s); audited. `409 CONFLICT` if already voided or if `method = upi_link` (refund via provider instead) |
 | POST | `/institutes/{id}/invoices/{invoiceId}/remind` | `{ force?: boolean }` → `{ scheduledFor }`. Refused with `409 ALREADY_REMINDED_TODAY` if the guardian already got a fee reminder today; `force` (owner only) allows one extra per day. Quiet hours always apply (scheduled for 08:00) |
-| POST | `/institutes/{id}/invoices/{invoiceId}/waive` | `{ reason }` |
-| POST | `/institutes/{id}/invoices/{invoiceId}/cancel` | `{ reason }` |
+| POST | `/institutes/{id}/invoices/{invoiceId}/waive` | Owner. `{ reason }` → `200 { invoice }`. Only open invoices (`due`, `partially_paid`); otherwise `409` |
+| POST | `/institutes/{id}/invoices/{invoiceId}/cancel` | Owner. `{ reason }` → `200 { invoice }`. Only `due` invoices with nothing paid (part-paid: waive the rest instead); otherwise `409`. A concurrent change (e.g. a payment) → `409`, reload |
 | POST | `/institutes/{id}/invoices/{invoiceId}/share-link` | Mints a guardian pay-page token for this invoice's guardian → `{ url, whatsappText }` (Free plan manual share). POST because it creates a token |
 | GET | `/institutes/{id}/payments?from&to&method&status` | Collections list (`status=active` by default; voided/refunded shown when asked) |
+
+Invoice object:
+```json
+{ "id": "…", "number": "INV-000001", "studentId": "…", "enrollmentId": "…", "batchId": "…", "kind": "cycle", "description": "Class 9 Science · Oct 2026", "periodStart": "2026-10-05", "periodEnd": "2026-11-04", "amountPaise": 120000, "discountPaise": 0, "netPaise": 120000, "paidPaise": 0, "remainingPaise": 120000, "dueDate": "2026-10-11", "status": "due", "closeReason": null }
+```
+- `kind`: `cycle` (billing run), `one_time` (at enrollment), `manual`. Numbers are per institute and never reused or skipped.
+- Amounts are snapshots: later fee changes never rewrite an invoice. No invoice is ever created with a net of ₹0.
+- **Billing run** (worker, every 15 min): bills each institute's current period once (`invoice_runs`), catching up after an outage. Monthly, quarterly, half-yearly and yearly enrollments are billed in their due months; students who left and archived batches are skipped.
 
 Dashboard response:
 ```json

@@ -26,7 +26,7 @@ Solo developer, ~12 weeks to a paid MVP. Each milestone ends with something demo
 - **Demo:** take attendance in airplane mode, sync, parent gets WhatsApp
 
 ## Phase 3 — Fees (Weeks 5–7)
-- [ ] Invoice generation scheduler, manual invoices, offline payment recording
+- [ ] Invoice generation scheduler, manual invoices, offline payment recording  _(✅ invoices: billing job, at-enrollment billing, manual, waive, cancel; ⏳ offline payments in Step 17)_
 - [ ] Payment links + Razorpay webhook pipeline (idempotent)
 - [ ] Payout onboarding (KYC) flow + UPI-ID fallback on the pay page
 - [ ] Reminder planner (offsets, 1/day, quiet hours, sibling grouping)

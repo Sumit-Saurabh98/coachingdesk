@@ -106,7 +106,7 @@ enrollments (
   fee_cycle text not null check (fee_cycle in ('monthly','quarterly','half_yearly','yearly','one_time','none')),
                                           -- copied from batch.default_fee_cycle, overridable
                                           -- (e.g. a student paying quarterly in a monthly batch)
-  cycle_anchor date,                      -- period_start of the first billed cycle; multi-month
+  cycle_anchor date,                      -- UNUSED: the anchor is derived from invoices (KB #35). Was: period_start of the first billed cycle; multi-month
                                           -- cycles (quarterly 3, half_yearly 6, yearly 12 months)
                                           -- repeat from here. null until first bill
   start_date date not null, end_date date,   -- both inclusive; end_date null = still enrolled
@@ -162,7 +162,8 @@ invoices (
   enrollment_id uuid fk null,             -- null for manual invoices
   kind text not null check (kind in ('cycle','one_time','manual')),
   number text not null,                   -- per-institute sequence, e.g. INV-000123
-  description text,                       -- required for manual; shown on pay page and receipt
+  batch_id uuid null,                     -- snapshot (null for manual): ?batchId filter, reports
+  description text not null,              -- snapshot, e.g. "Class 9 Science · Oct 2026"; pay page + receipt
   period_start date null, period_end date null,   -- null for manual
   amount_paise bigint not null check (amount_paise > 0),
   discount_paise bigint not null default 0
@@ -170,7 +171,7 @@ invoices (
   paid_paise bigint not null default 0,   -- cache of sum(active allocations); recomputed in the same txn
   due_date date not null,
   status text not null check (status in ('due','partially_paid','paid','waived','cancelled')),
-  waive_reason text,
+  close_reason text,                      -- why waived or cancelled
   created_at, updated_at,
   unique (institute_id, number),
   check ((kind = 'manual') = (enrollment_id is null))
@@ -461,7 +462,7 @@ Each provider has `Fake*` implementations used in local dev and tests (records c
 
 Periods: a monthly period starts on the institute's `billing_day` and ends the day before the next one. `due_date = period_start + due_after_days`.
 
-**Daily scheduler (06:00 IST)** — catches up after outages instead of relying on "billing day is today":
+**Billing job (worker, every 15 min — `BillingScheduler` → `InvoiceGenerator.runDue`)** — catches up after outages instead of relying on "billing day is today":
 ```
 for institute in activeInstitutes():
   today = institute local date
@@ -478,8 +479,10 @@ for enrollment in activeEnrollments(instituteId, period):   // student active, s
                                                              // end_date null or >= period_start
   if enrollment.fee_cycle in ('none','one_time'): continue   // one_time is billed at enrollment only
   months = cycleMonths(enrollment.fee_cycle)                // monthly 1, quarterly 3, half_yearly 6, yearly 12
-  if months > 1 and enrollment.cycle_anchor is not null
-     and monthsBetween(enrollment.cycle_anchor, period) % months != 0: continue
+  anchor = period_start of the enrollment's FIRST cycle invoice (derived; KB #35)
+  if months > 1 and anchor is not null
+     and monthsBetween(anchor, period) % months != 0: continue
+  if student left or batch archived: continue
   net = enrollment.fee_paise - enrollment.discount_paise
   if net <= 0: continue                                      // never create ₹0 invoices
   BEGIN
@@ -488,7 +491,6 @@ for enrollment in activeEnrollments(instituteId, period):   // student active, s
     INSERT INTO invoices (kind='cycle', period_start, period_end = period_start + cycle length - 1, ...)
     ON CONFLICT (enrollment_id, period_start) WHERE kind IN ('cycle','one_time') DO NOTHING
     if nothing inserted: ROLLBACK      // don't burn an invoice number on a re-run
-    else: set enrollment.cycle_anchor = period if null
   COMMIT
 mark invoice_runs.completed_at = now()
 ```
