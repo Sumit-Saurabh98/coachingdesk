@@ -19,6 +19,8 @@ export const CreateStudentBody = z
     notes: z.string().max(1000).nullish(),
     // Enroll in these batches right away, with each batch's default fee (max 20: a sanity cap).
     batchIds: z.array(z.uuid()).max(20).optional(),
+    // The "Guardian agreed to receive updates on WhatsApp" checkbox (KB: consent at add time).
+    guardianConsent: z.boolean().optional(),
   })
   .strict();
 
@@ -74,6 +76,7 @@ export const BulkCreateStudentsBody = z
       .min(1)
       .max(BULK_STUDENTS_MAX),
     joinedOn: zLocalDate.optional(), // same join date for every row; missing = today
+    guardianConsent: z.boolean().optional(), // one checkbox for the whole list
   })
   .strict();
 

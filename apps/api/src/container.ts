@@ -11,6 +11,9 @@ import { AbsenceAlertsNotEnabled } from './modules/attendance/absence-alerts';
 import { AttendanceWindow } from './modules/attendance/attendance-window';
 import { AttendanceService } from './modules/attendance/attendance.service';
 import { AttendanceController } from './modules/attendance/attendance.controller';
+import { DrizzleConsentRepository } from './modules/messaging/drizzle-consent.repository';
+import { ConsentController } from './modules/messaging/consent.controller';
+import { ConsentService } from './modules/messaging/consent.service';
 import { JwtAccessTokens } from './modules/auth/access-tokens';
 import { AuthController } from './modules/auth/auth.controller';
 import { AuthService } from './modules/auth/auth.service';
@@ -103,6 +106,7 @@ export function createContainer(config: Config): Container {
     ids,
     clock,
   });
+  const consentService = new ConsentService(new DrizzleConsentRepository(database.db));
   const studentService = new StudentService({
     students: new DrizzleStudentRepository(database.db),
     entitlements,
@@ -144,7 +148,8 @@ export function createContainer(config: Config): Container {
     institutesController: new InstitutesController(instituteService),
     membersController: new MembersController(instituteService),
     batchesController: new BatchesController(batchService, enrollmentService),
-    studentsController: new StudentsController(studentService, enrollmentService),
+    studentsController: new StudentsController(studentService, enrollmentService, consentService),
+    consentController: new ConsentController(consentService),
     enrollmentsController: new EnrollmentsController(enrollmentService),
     attendanceController: new AttendanceController(attendanceService),
     memberships: instituteService,

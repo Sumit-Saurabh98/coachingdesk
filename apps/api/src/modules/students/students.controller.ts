@@ -5,7 +5,7 @@ import {
   ListStudentsQuery,
   UpdateStudentBody,
 } from '@coachingdesk/shared';
-import type { LocalDate } from '@coachingdesk/shared';
+import type { LocalDate, PhoneNumber } from '@coachingdesk/shared';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { canSeeFees, withoutFees } from '../../http/fee-visibility';
 import { uuidParam } from '../../http/route-params';
@@ -40,6 +40,11 @@ export interface StudentEnrollments {
   studentIdsInBatchToday(instituteId: string, batchId: string): Promise<string[]>;
 }
 
+/** The "guardian agreed" checkbox (ConsentService fits). Declared here: no import of messaging. */
+export interface GuardianConsentRecorder {
+  optInAll(instituteId: string, phones: PhoneNumber[]): Promise<void>;
+}
+
 const studentIdOf = (request: FastifyRequest) =>
   uuidParam(request, 'studentId', 'Student not found');
 
@@ -48,6 +53,7 @@ export class StudentsController {
   constructor(
     private readonly students: StudentService,
     private readonly enrollments: StudentEnrollments,
+    private readonly consent: GuardianConsentRecorder,
   ) {}
 
   /** GET .../students?q=&status=&limit=&cursor= (any member) -> 200 { students, nextCursor } */
@@ -71,7 +77,7 @@ export class StudentsController {
    * id must not leave a student behind), then the student is created, then enrolled.
    */
   async create(request: FastifyRequest, reply: FastifyReply): Promise<void> {
-    const { batchIds = [], ...body } = CreateStudentBody.parse(request.body);
+    const { batchIds = [], guardianConsent, ...body } = CreateStudentBody.parse(request.body);
     const { instituteId } = currentTenant(request);
     if (batchIds.length > 0) {
       await this.enrollments.assertBatchesOpen(instituteId, batchIds);
@@ -86,6 +92,9 @@ export class StudentsController {
             student.joinedOn,
           )
         : [];
+    if (guardianConsent) {
+      await this.consent.optInAll(instituteId, [body.guardianPhone]);
+    }
     await reply.status(201).send({
       student: student.toPublicJSON(),
       enrollments: enrollments.map((e) => e.toPublicJSON()),
@@ -99,11 +108,12 @@ export class StudentsController {
    */
   async bulkCreate(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     const body = BulkCreateStudentsBody.parse(request.body);
-    const result = await this.students.bulkCreate(
-      currentTenant(request).instituteId,
-      body.rows,
-      body.joinedOn,
-    );
+    const { instituteId } = currentTenant(request);
+    const result = await this.students.bulkCreate(instituteId, body.rows, body.joinedOn);
+    if (body.guardianConsent) {
+      const phones = result.created.flatMap((s) => (s.guardianPhone ? [s.guardianPhone] : []));
+      await this.consent.optInAll(instituteId, phones);
+    }
     await reply.status(200).send({
       created: result.created.length,
       students: result.created.map((s) => s.toPublicJSON()),

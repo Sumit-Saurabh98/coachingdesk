@@ -8,6 +8,9 @@ import { AbsenceAlertsNotEnabled } from '../modules/attendance/absence-alerts';
 import { AttendanceWindow } from '../modules/attendance/attendance-window';
 import { AttendanceService } from '../modules/attendance/attendance.service';
 import { AttendanceController } from '../modules/attendance/attendance.controller';
+import { InMemoryConsentRepository } from '../modules/messaging/consent.repository';
+import { ConsentController } from '../modules/messaging/consent.controller';
+import { ConsentService } from '../modules/messaging/consent.service';
 import { JwtAccessTokens } from '../modules/auth/access-tokens';
 import { AuthController } from '../modules/auth/auth.controller';
 import { AuthService } from '../modules/auth/auth.service';
@@ -80,6 +83,8 @@ export function buildTestApp() {
     clock,
   });
   const batchService = new BatchService({ batches: new InMemoryBatchRepository(), ids, clock });
+  const consentRepository = new InMemoryConsentRepository();
+  const consentService = new ConsentService(consentRepository);
   const studentService = new StudentService({
     students: new InMemoryStudentRepository(),
     entitlements,
@@ -119,7 +124,8 @@ export function buildTestApp() {
     institutesController: new InstitutesController(instituteService),
     membersController: new MembersController(instituteService),
     batchesController: new BatchesController(batchService, enrollmentService),
-    studentsController: new StudentsController(studentService, enrollmentService),
+    studentsController: new StudentsController(studentService, enrollmentService, consentService),
+    consentController: new ConsentController(consentService),
     enrollmentsController: new EnrollmentsController(enrollmentService),
     attendanceController: new AttendanceController(attendanceService),
     memberships: instituteService,
@@ -127,7 +133,15 @@ export function buildTestApp() {
     isReady: async () => true,
   });
 
-  return { app, clock, sms, accessTokens, instituteRepository, subscriptionRepository };
+  return {
+    app,
+    clock,
+    sms,
+    accessTokens,
+    instituteRepository,
+    subscriptionRepository,
+    consentRepository,
+  };
 }
 
 /** Logs in through the real HTTP endpoints and returns the response body (tokens + user). */

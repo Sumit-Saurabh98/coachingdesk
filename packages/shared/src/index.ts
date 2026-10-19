@@ -38,6 +38,7 @@ export {
   UpdateStudentBody,
 } from './schemas/students';
 export { CreateEnrollmentBody, UpdateEnrollmentBody } from './schemas/enrollments';
+export { GuardianConsentBody } from './schemas/messaging';
 export {
   ATTENDANCE_STATUSES,
   type AttendanceStatus,
