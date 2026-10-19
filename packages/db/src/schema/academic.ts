@@ -89,7 +89,14 @@ export const students = pgTable(
     // Siblings lookup / pay page: "all students of this guardian at this institute".
     index('students_institute_guardian_phone_idx').on(t.instituteId, t.guardianPhone),
     // The student list is sorted by name, case-insensitively, and paged by (name, id).
-    index('students_institute_name_idx').on(t.instituteId, sql`lower(${t.name})`, t.id),
+    // COLLATE "C" = plain character order, the same order JavaScript's < gives. The default
+    // language collation (en_US) treats spaces/punctuation differently, so the in-memory fake
+    // and Postgres would disagree on the order.
+    index('students_institute_name_c_idx').on(
+      t.instituteId,
+      sql`(lower(${t.name}) collate "C")`,
+      t.id,
+    ),
     check('students_status_check', sql`${t.status} in ('active', 'left')`),
     check(
       'students_guardian_phone_check',

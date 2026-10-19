@@ -36,6 +36,13 @@
       "when": 1792388932527,
       "tag": "0004_round_shinko_yamashiro",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792389192918,
+      "tag": "0005_talented_the_anarchist",
+      "breakpoints": true
     }
   ]
 }
