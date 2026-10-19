@@ -5,6 +5,7 @@ import {
   ListStudentsQuery,
   UpdateStudentBody,
 } from '@coachingdesk/shared';
+import type { LocalDate } from '@coachingdesk/shared';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { canSeeFees, withoutFees } from '../../http/fee-visibility';
 import { uuidParam } from '../../http/route-params';
@@ -28,6 +29,15 @@ interface EnrollmentView {
  */
 export interface StudentEnrollments {
   listForStudent(instituteId: string, studentId: string): Promise<EnrollmentView[]>;
+  /** 404 unknown / 409 archived batch, without writing anything. */
+  assertBatchesOpen(instituteId: string, batchIds: string[]): Promise<void>;
+  enrollNewStudent(
+    instituteId: string,
+    studentId: string,
+    batchIds: string[],
+    startDate: LocalDate,
+  ): Promise<EnrollmentView[]>;
+  studentIdsInBatchToday(instituteId: string, batchId: string): Promise<string[]>;
 }
 
 const studentIdOf = (request: FastifyRequest) =>
@@ -42,19 +52,44 @@ export class StudentsController {
 
   /** GET .../students?q=&status=&limit=&cursor= (any member) -> 200 { students, nextCursor } */
   async list(request: FastifyRequest, reply: FastifyReply): Promise<void> {
-    const query = ListStudentsQuery.parse(request.query);
-    const page = await this.students.list(currentTenant(request).instituteId, query);
+    const { batchId, ...query } = ListStudentsQuery.parse(request.query);
+    const { instituteId } = currentTenant(request);
+    // ?batchId=: ask enrollments WHO is in the batch today, then list just those students.
+    const ids = batchId
+      ? await this.enrollments.studentIdsInBatchToday(instituteId, batchId)
+      : undefined;
+    const page = await this.students.list(instituteId, { ...query, ids });
     await reply.status(200).send({
       students: page.students.map((s) => s.toPublicJSON()),
       nextCursor: page.nextCursor,
     });
   }
 
-  /** POST .../students (owner, staff) -> 201 { student } */
+  /**
+   * POST .../students { ..., batchIds? } (owner, staff) -> 201 { student, enrollments }
+   * Two modules, so this is where they're combined: batches are checked FIRST (a typo'd batch
+   * id must not leave a student behind), then the student is created, then enrolled.
+   */
   async create(request: FastifyRequest, reply: FastifyReply): Promise<void> {
-    const body = CreateStudentBody.parse(request.body);
-    const student = await this.students.create(currentTenant(request).instituteId, body);
-    await reply.status(201).send({ student: student.toPublicJSON() });
+    const { batchIds = [], ...body } = CreateStudentBody.parse(request.body);
+    const { instituteId } = currentTenant(request);
+    if (batchIds.length > 0) {
+      await this.enrollments.assertBatchesOpen(instituteId, batchIds);
+    }
+    const student = await this.students.create(instituteId, body);
+    const enrollments =
+      batchIds.length > 0
+        ? await this.enrollments.enrollNewStudent(
+            instituteId,
+            student.id,
+            batchIds,
+            student.joinedOn,
+          )
+        : [];
+    await reply.status(201).send({
+      student: student.toPublicJSON(),
+      enrollments: enrollments.map((e) => e.toPublicJSON()),
+    });
   }
 
   /**

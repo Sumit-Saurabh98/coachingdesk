@@ -157,6 +157,20 @@ export function describeStudentRepositoryContract(
         expect(names(page.students)).toEqual(expected);
       });
 
+      it('restricts to the given ids (e.g. the students of one batch); [] = nobody', async () => {
+        const repo = create();
+        await seed(repo, newStudent(1, 'Aarav'), newStudent(2, 'Bhavya'), newStudent(3, 'Chirag'));
+
+        const some = await repo.list(
+          CONTRACT_INSTITUTE_A,
+          query({ ids: [studentId(3), studentId(1)] }),
+        );
+        const none = await repo.list(CONTRACT_INSTITUTE_A, query({ ids: [] }));
+
+        expect(names(some.students)).toEqual(['Aarav', 'Chirag']);
+        expect(none.students).toEqual([]);
+      });
+
       it('pages through the list with the cursor, without gaps or repeats', async () => {
         const repo = create();
         // Two students with the SAME name: the id breaks the tie, so paging stays exact.

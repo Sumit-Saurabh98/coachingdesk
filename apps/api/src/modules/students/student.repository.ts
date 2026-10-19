@@ -13,6 +13,8 @@ export interface StudentListQuery {
   /** Part of the student's or guardian's name (any case), or 3+ digits of the guardian phone. */
   q?: string;
   status: 'active' | 'left' | 'all';
+  /** Only these students (e.g. the ones in a batch). Undefined = no restriction. */
+  ids?: readonly string[];
   limit: number;
   after?: StudentCursor;
 }
@@ -90,6 +92,7 @@ export class InMemoryStudentRepository implements StudentRepository {
     const matches = [...this.students.values()]
       .filter((s) => s.instituteId === instituteId)
       .filter((s) => query.status === 'all' || s.status === query.status)
+      .filter((s) => !query.ids || query.ids.includes(s.id))
       .filter((s) => !query.q || matchesSearch(s, query.q))
       .sort(compareByName)
       .filter((s) => !query.after || isAfter(s, query.after));

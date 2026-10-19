@@ -1,7 +1,7 @@
 import type { Db } from '@coachingdesk/db';
 import { institutes, students } from '@coachingdesk/db/schema';
 import { LocalDate, PhoneNumber, STUDENT_STATUSES, type StudentStatus } from '@coachingdesk/shared';
-import { and, asc, eq, or, type SQL, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, or, type SQL, sql } from 'drizzle-orm';
 import { Student } from './student';
 import {
   type CreateStudentsResult,
@@ -73,6 +73,12 @@ export class DrizzleStudentRepository implements StudentRepository {
     }
     if (query.q) {
       conditions.push(searchCondition(query.q));
+    }
+    if (query.ids) {
+      if (query.ids.length === 0) {
+        return { students: [], next: null }; // "only these: none" -> nothing to query
+      }
+      conditions.push(inArray(students.id, [...query.ids]));
     }
     if (query.after) {
       // Row comparison: (key, id) > (cursorKey, cursorId). Exactly "after the cursor" in sort order.

@@ -368,3 +368,90 @@ describe('POST /v1/institutes/:instituteId/students/bulk', () => {
     ).toBe(404);
   });
 });
+
+describe('students + batches (enrollments)', () => {
+  async function withBatches() {
+    const ctx = await setup();
+    const newBatch = async (name: string) =>
+      (
+        await http.call(ctx.token, 'POST', `${ctx.url}/batches`, {
+          name,
+          schedule: { days: [1], start: '17:00', end: '18:00' },
+          defaultFeePaise: 100000,
+        })
+      ).json().batch;
+    return { ...ctx, maths: await newBatch('Maths'), science: await newBatch('Science') };
+  }
+
+  it('POST with batchIds: 201 with the student AND an enrollment per batch', async () => {
+    const { token, studentsUrl, maths, science } = await withBatches();
+
+    const response = await http.call(token, 'POST', studentsUrl, {
+      ...validStudent,
+      batchIds: [maths.id, science.id],
+    });
+
+    expect(response.statusCode).toBe(201);
+    const { student, enrollments } = response.json();
+    expect(enrollments.map((e: { batchId: string }) => e.batchId)).toEqual([maths.id, science.id]);
+    expect(enrollments[0]).toMatchObject({
+      studentId: student.id,
+      feePaise: 100000,
+      startDate: '2026-10-18',
+    });
+  });
+
+  it('an unknown batch id: 404 and NO student is created', async () => {
+    const { token, studentsUrl, maths } = await withBatches();
+
+    const response = await http.call(token, 'POST', studentsUrl, {
+      ...validStudent,
+      batchIds: [maths.id, '00000000-0000-7000-8000-00000000ffff'],
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect((await http.call(token, 'GET', studentsUrl)).json().students).toEqual([]);
+  });
+
+  it('an archived batch: 409 and NO student is created', async () => {
+    const { token, url, studentsUrl, maths } = await withBatches();
+    await http.call(token, 'POST', `${url}/batches/${maths.id}/archive`);
+
+    const response = await http.call(token, 'POST', studentsUrl, {
+      ...validStudent,
+      batchIds: [maths.id],
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect((await http.call(token, 'GET', studentsUrl)).json().students).toEqual([]);
+  });
+
+  it('without batchIds: enrollments is an empty list', async () => {
+    const { token, studentsUrl } = await setup();
+    expect((await http.call(token, 'POST', studentsUrl, validStudent)).json().enrollments).toEqual(
+      [],
+    );
+  });
+
+  it('?batchId= lists only the students in that batch today', async () => {
+    const { token, studentsUrl, maths, science } = await withBatches();
+    const add = (name: string, batchIds: string[]) =>
+      http.call(token, 'POST', studentsUrl, {
+        ...validStudent,
+        name,
+        joinedOn: '2026-10-01',
+        batchIds,
+      });
+    await add('Aarav', [maths.id]);
+    await add('Bhavya', [science.id]);
+    await add('Chirag', [maths.id, science.id]);
+
+    const inMaths = (await http.call(token, 'GET', `${studentsUrl}?batchId=${maths.id}`)).json();
+    const unknown = (
+      await http.call(token, 'GET', `${studentsUrl}?batchId=00000000-0000-7000-8000-00000000ffff`)
+    ).json();
+
+    expect(inMaths.students.map((s: { name: string }) => s.name)).toEqual(['Aarav', 'Chirag']);
+    expect(unknown.students).toEqual([]);
+  });
+});
