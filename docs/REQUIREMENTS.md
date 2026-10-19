@@ -44,7 +44,7 @@ A mobile app for **small offline tuition centers, home tutors, and non-academic 
 | F-11 | Record offline payment | Mark cash/bank payments manually; partial payments supported. |
 | F-12 | Receipts | Auto-send receipt link to guardian on every payment. |
 | F-13 | Fee dashboard | Collected this month, pending, overdue list, who to call. |
-| F-14 | Tests & marks | Create test, enter marks, send result card to guardians. *(Proposal: move F-14/F-15 to v1.1 — KNOWLEDGE_BASE §8 P-4)* |
+| F-14 | Tests & marks | Create test, enter marks, send result card to guardians. *(Kept in the MVP — KNOWLEDGE_BASE decision #43, P-4 decided)* |
 | F-15 | Notices | Broadcast a notice to one/many batches via WhatsApp. |
 | F-16 | Subscription & plans | Free tier, paid plans, trial, plan limits enforced. |
 | F-17 | Language | English + Hindi UI from day one. |

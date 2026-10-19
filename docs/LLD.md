@@ -142,9 +142,31 @@ attendance_records (
 )
 index (institute_id, student_id)
 
-tests (id uuid pk, institute_id, batch_id, name, date, max_marks numeric(6,2), created_at)
-test_scores (test_id fk, student_id fk, institute_id, marks numeric(6,2), is_absent bool,
-             primary key (test_id, student_id))
+tests (
+  id uuid pk, institute_id uuid fk, batch_id uuid not null,
+  name text not null, date date not null,
+  max_marks numeric(6,2) not null check (max_marks > 0),   -- app: <= 1000, at most 2 decimals
+  created_by uuid null fk users on delete set null,
+  results_sent_at timestamptz null,       -- first "Send results"
+  created_at, updated_at,
+  unique (institute_id, id),
+  foreign key (institute_id, batch_id) references batches (institute_id, id)
+)
+index (institute_id, batch_id, date)
+
+test_scores (
+  test_id, student_id, institute_id,
+  marks numeric(6,2) null, is_absent bool not null default false,
+  updated_by uuid null fk users on delete set null, updated_at,
+  primary key (test_id, student_id),
+  check ((is_absent and marks is null) or (not is_absent and marks is not null and marks >= 0)),
+  foreign key (institute_id, test_id) references tests (institute_id, id) on delete cascade,
+  foreign key (institute_id, student_id) references students (institute_id, id)
+)
+index (institute_id, student_id)
+-- marks <= max_marks spans two tables: saving scores and changing max_marks both lock the
+-- tests row (SELECT ... FOR UPDATE) and check under the lock (TestRepository).
+-- Read as JS numbers (drizzle numeric mode 'number'): at most 2 decimals, so exact enough.
 
 -- fees
 invoice_counters (
@@ -563,10 +585,10 @@ for msg:
 | `fee_reminder` | Load open invoices (`due`, `partially_paid`) for `(institute, to_phone)`; recompute names, total remaining, and single vs multi template | No open dues (`nothing_due`) |
 | `receipt` | Payment still `active` | Voided / refunded (`stale`) |
 | `absence` | Record still `absent` | Edited to present/late/leave (`stale`) |
-| `result` | Score still exists | Test deleted (`stale`) |
+| `result` | Score still exists and has marks; re-render student/test/marks/max from current data | Test deleted, score gone or now absent (`stale`) |
 | `notice` | — | — |
 
-**Implemented so far** (`OutboxDispatcher`, `apps/api/src/modules/messaging`): release rows stuck in `sending` > 5 min, claim 50 with `SKIP LOCKED`, then per message: expired → global STOP (not receipts) → consent → **quiet hours 21:00–08:00 institute time → `scheduled` for 08:00** (not an attempt) → revalidate (absence: still `absent`) → send. Retryable errors back off 1, 2, 4 min; after 3 attempts or a permanent error → `failed`. An error while handling one message never stops the batch. Since Step 18 also: revalidation RENDERS the message (`Revalidation = send {template?, params?} | skip {reason}`: fee reminders pick `fee_reminder` / `fee_reminder_multi` and compute names/total/date from current dues, or skip `nothing_due`), then `MessageQuota.tryConsume` (monthly quota, trial/new-institute daily caps, trial total) right before sending — over → `skipped (over_quota)`; a failed send releases its unit. Not yet: `messaging_paused_at`, platform limit, `mintTokens`.
+**Implemented so far** (`OutboxDispatcher`, `apps/api/src/modules/messaging`): release rows stuck in `sending` > 5 min, claim 50 with `SKIP LOCKED`, then per message: expired → global STOP (not receipts) → consent → **quiet hours 21:00–08:00 institute time → `scheduled` for 08:00** (not an attempt) → revalidate (absence: still `absent`) → send. Retryable errors back off 1, 2, 4 min; after 3 attempts or a permanent error → `failed`. An error while handling one message never stops the batch. Since Step 18 also: revalidation RENDERS the message (`Revalidation = send {template?, params?} | skip {reason}`: fee reminders pick `fee_reminder` / `fee_reminder_multi` and compute names/total/date from current dues, or skip `nothing_due`; since Step 22 result cards re-render from the current marks via `ResultRevalidator`), then `MessageQuota.tryConsume` (monthly quota, trial/new-institute daily caps, trial total) right before sending — over → `skipped (over_quota)`; a failed send releases its unit. Not yet: `messaging_paused_at`, platform limit, `mintTokens`.
 
 `mintTokens`: for each `{ $mint: kind }` placeholder, generate a 128-bit random token, store only `sha256(token)` in `public_tokens` (with `message_id`), and put the raw token **only** into the outgoing provider request (the URL-button suffix). The raw token is never written to the outbox, logs, or DB. Pay tokens expire after 30 days; receipt/result tokens after 180 days.
 

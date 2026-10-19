@@ -268,11 +268,22 @@ Payment object: `{ id, guardianPhone, amountPaise, method, status, paidAt, note,
 
 ## 9. Tests & results
 
+Every member reads; **owner and teacher** write (staff `403`). Writing (create, edit, marks, send) needs the plan's `result_cards` feature (Pro, Academy, trial) → `402 FEATURE_NOT_IN_PLAN` otherwise. Reading and deleting work on any plan, so results stay visible after a downgrade.
+
 | Method | Path |
 |---|---|
-| GET/POST | `/institutes/{id}/batches/{batchId}/tests` |
-| PUT | `/institutes/{id}/tests/{testId}/scores` — `{ scores: [{ studentId, marks?, isAbsent? }] }` |
-| POST | `/institutes/{id}/tests/{testId}/send-results` → `{ queued: 28 }` |
+| GET | `/institutes/{id}/batches/{batchId}/tests?limit=1–100 (50)` → `{ tests: [{ ...test, scored, absent }] }`, newest test date first |
+| POST | `/institutes/{id}/batches/{batchId}/tests` — `{ name, date, maxMarks }` → `201 { test }`. Archived batch → `409` |
+| GET | `/institutes/{id}/tests/{testId}` — the marks sheet → `{ test, students: [{ studentId, name, marks, isAbsent, entered }], stats: { students, scored, absent, average, highest, lowest } }`. Students = enrolled in the batch **on the test date**, plus anyone already scored; sorted by name |
+| PATCH | `/institutes/{id}/tests/{testId}` — any of `{ name, date, maxMarks }` → `{ test }`. `maxMarks` below a mark already given → `409` (`details.highestMarks`) |
+| DELETE | `/institutes/{id}/tests/{testId}` → `204`. Deletes its marks; queued result cards are then skipped |
+| PUT | `/institutes/{id}/tests/{testId}/scores` — `{ scores: [{ studentId, marks } \| { studentId, isAbsent: true }] }` (1–500) → the marks sheet. Upsert: students not sent keep their marks. Marks 0..`maxMarks`, at most 2 decimals; otherwise `422` with `details.studentIds`; a student not in the batch on the test date → `422` |
+| POST | `/institutes/{id}/tests/{testId}/send-results` → `{ queued, alreadySent, skipped, resultsSentAt }` |
+| GET | `/institutes/{id}/students/{studentId}/tests?limit` → `{ results: [{ test, marks, isAbsent }] }`, newest first |
+
+Test object: `{ id, batchId, name, date, maxMarks, createdBy, resultsSentAt, createdAt }`. `name` 1–80 chars (spaces tidied); `maxMarks` > 0 and ≤ 1000, at most 2 decimals (half marks are fine: `17.5`).
+
+**Send results:** one `result_card` WhatsApp per student **with marks** to their guardian (absent, not yet marked, left, or erased students get none: `skipped`). A student's card is queued at most once per test, so a second tap sends only students marked since (`alreadySent` counts the rest). `409` if no marks are entered yet or the test date is in the future. Consent, quiet hours and quota are checked when the worker sends; the card shows the marks **as they are at send time** (a corrected typo goes out corrected); a deleted test or a mark changed to absent → skipped `stale`. Unsent cards expire after 3 days. The "View details" link arrives with the public result page.
 
 ## 10. Notices
 
