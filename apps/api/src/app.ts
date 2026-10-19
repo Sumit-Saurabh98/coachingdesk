@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { createAuthGuard } from './http/auth-guard';
 import { registerErrorHandler } from './http/error-handler';
+import { serializeRequest } from './http/log-redaction';
 import { createTenancyGuard, type MembershipLookup } from './http/tenancy-guard';
 import type { JwtAccessTokens } from './modules/auth/access-tokens';
 import type { AttendanceController } from './modules/attendance/attendance.controller';
@@ -47,7 +48,13 @@ export interface AppOptions {
 export function buildApp(deps: AppDependencies, options: AppOptions = {}): FastifyInstance {
   const app = Fastify({
     // redact: tokens in the Authorization header never reach the logs
-    logger: options.logger ? { redact: ['req.headers.authorization'] } : false,
+    logger: options.logger
+      ? {
+          redact: ['req.headers.authorization'],
+          // Phone numbers in URLs (e.g. /guardians/:phone/opt-in) are masked (AGENTS rule 9).
+          serializers: { req: serializeRequest },
+        }
+      : false,
     trustProxy: options.trustProxy ?? false,
     genReqId: () => randomUUID(),
   });
