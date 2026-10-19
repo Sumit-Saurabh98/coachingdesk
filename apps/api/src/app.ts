@@ -6,6 +6,8 @@ import { createTenancyGuard, type MembershipLookup } from './http/tenancy-guard'
 import type { JwtAccessTokens } from './modules/auth/access-tokens';
 import type { AuthController } from './modules/auth/auth.controller';
 import { registerAuthRoutes } from './modules/auth/auth.routes';
+import type { BatchesController } from './modules/batches/batches.controller';
+import { registerBatchRoutes } from './modules/batches/batches.routes';
 import type { InstitutesController } from './modules/institutes/institutes.controller';
 import { registerInstituteRoutes } from './modules/institutes/institutes.routes';
 import type { MeController } from './modules/users/me.controller';
@@ -16,6 +18,7 @@ export interface AppDependencies {
   authController: AuthController;
   meController: MeController;
   institutesController: InstitutesController;
+  batchesController: BatchesController;
   accessTokens: JwtAccessTokens;
   memberships: MembershipLookup;
   isReady: () => Promise<boolean>;
@@ -54,6 +57,7 @@ export function buildApp(deps: AppDependencies, options: AppOptions = {}): Fasti
   registerAuthRoutes(app, deps.authController);
   registerUserRoutes(app, deps.meController, requireAuth);
   registerInstituteRoutes(app, deps.institutesController, { requireAuth, requireMember });
+  registerBatchRoutes(app, deps.batchesController, { requireAuth, requireMember });
 
   return app;
 }

@@ -15,6 +15,9 @@ import { OtpHasher } from './modules/auth/otp-hasher';
 import { DEFAULT_OTP_POLICY, OtpService } from './modules/auth/otp.service';
 import { RedisOtpStore } from './modules/auth/redis-otp-store';
 import { SessionService } from './modules/auth/session.service';
+import { BatchService } from './modules/batches/batch.service';
+import { BatchesController } from './modules/batches/batches.controller';
+import { DrizzleBatchRepository } from './modules/batches/drizzle-batch.repository';
 import { DrizzleInstituteRepository } from './modules/institutes/drizzle-institute.repository';
 import { InstituteService } from './modules/institutes/institute.service';
 import { InstitutesController } from './modules/institutes/institutes.controller';
@@ -76,6 +79,11 @@ export function createContainer(config: Config): Container {
     ids,
     clock,
   });
+  const batchService = new BatchService({
+    batches: new DrizzleBatchRepository(database.db),
+    ids,
+    clock,
+  });
   const authService = new AuthService({
     otp: otpService,
     users: userService,
@@ -86,6 +94,7 @@ export function createContainer(config: Config): Container {
     authController: new AuthController({ otpService, authService, sessionService }),
     meController: new MeController(userService, instituteService),
     institutesController: new InstitutesController(instituteService),
+    batchesController: new BatchesController(batchService),
     memberships: instituteService,
     accessTokens,
     // Ready = BOTH Redis and Postgres answer. Otherwise the load balancer sends traffic elsewhere.

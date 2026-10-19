@@ -2,6 +2,7 @@ import { AppError } from '@coachingdesk/shared';
 import type { FastifyRequest } from 'fastify';
 import type { MemberRole } from '../modules/institutes/institute.repository';
 import { currentUserId } from './auth-guard';
+import { isUuid } from './route-params';
 
 export interface TenantContext {
   instituteId: string;
@@ -19,8 +20,6 @@ export interface MembershipLookup {
   findMembership(instituteId: string, userId: string): Promise<{ role: MemberRole } | null>;
 }
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 /**
  * Tenancy guard for every `/v1/institutes/:instituteId/...` route (AGENTS.md rule 1).
  * Must run AFTER requireAuth: [requireAuth, requireMember].
@@ -33,7 +32,7 @@ export function createTenancyGuard(memberships: MembershipLookup) {
     const userId = currentUserId(request);
     const { instituteId } = request.params as { instituteId?: string };
     // Check the shape first: Postgres would reject a non-UUID with an error (a 500, not a 404).
-    if (!instituteId || !UUID.test(instituteId)) {
+    if (!isUuid(instituteId)) {
       throw instituteNotFound();
     }
     const membership = await memberships.findMembership(instituteId.toLowerCase(), userId);

@@ -12,6 +12,9 @@ import { InMemoryOtpStore } from '../modules/auth/otp-store';
 import { OtpService } from '../modules/auth/otp.service';
 import { InMemoryRefreshTokenRepository } from '../modules/auth/refresh-token.repository';
 import { SessionService } from '../modules/auth/session.service';
+import { InMemoryBatchRepository } from '../modules/batches/batch.repository';
+import { BatchService } from '../modules/batches/batch.service';
+import { BatchesController } from '../modules/batches/batches.controller';
 import { InMemoryInstituteRepository } from '../modules/institutes/institute.repository';
 import { InstituteService } from '../modules/institutes/institute.service';
 import { InstitutesController } from '../modules/institutes/institutes.controller';
@@ -55,6 +58,7 @@ export function buildTestApp() {
     ids,
     clock,
   });
+  const batchService = new BatchService({ batches: new InMemoryBatchRepository(), ids, clock });
   const authService = new AuthService({
     otp: otpService,
     users: userService,
@@ -65,6 +69,7 @@ export function buildTestApp() {
     authController: new AuthController({ otpService, authService, sessionService }),
     meController: new MeController(userService, instituteService),
     institutesController: new InstitutesController(instituteService),
+    batchesController: new BatchesController(batchService),
     memberships: instituteService,
     accessTokens,
     isReady: async () => true,
