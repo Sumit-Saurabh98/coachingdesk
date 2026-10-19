@@ -4,13 +4,14 @@ import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../app';
 import { InMemoryRateLimiter } from '../lib/rate-limiter';
 import { InMemoryAttendanceRepository } from '../modules/attendance/attendance.repository';
-import { AbsenceAlertsNotEnabled } from '../modules/attendance/absence-alerts';
 import { AttendanceWindow } from '../modules/attendance/attendance-window';
 import { AttendanceService } from '../modules/attendance/attendance.service';
 import { AttendanceController } from '../modules/attendance/attendance.controller';
 import { InMemoryConsentRepository } from '../modules/messaging/consent.repository';
 import { ConsentController } from '../modules/messaging/consent.controller';
 import { ConsentService } from '../modules/messaging/consent.service';
+import { InMemoryOutboxRepository } from '../modules/messaging/outbox.repository';
+import { OutboxAbsenceAlerts } from '../modules/messaging/outbox-absence-alerts';
 import { JwtAccessTokens } from '../modules/auth/access-tokens';
 import { AuthController } from '../modules/auth/auth.controller';
 import { AuthService } from '../modules/auth/auth.service';
@@ -100,14 +101,23 @@ export function buildTestApp() {
     ids,
     clock,
   });
+  const outboxRepository = new InMemoryOutboxRepository(() => clock.now());
   const attendanceService = new AttendanceService({
     attendance: new InMemoryAttendanceRepository(),
     batches: batchService,
     enrollments: enrollmentService,
     students: studentService,
     institutes: instituteService,
-    // Absence alerts arrive with the outbox (Step 15); until then they are honestly "off".
-    alerts: new AbsenceAlertsNotEnabled(),
+    // Absence alerts are QUEUED in the outbox; the worker sends them (AGENTS rule 4).
+    alerts: new OutboxAbsenceAlerts({
+      outbox: outboxRepository,
+      institutes: instituteService,
+      entitlements,
+      batches: batchService,
+      students: studentService,
+      ids,
+      clock,
+    }),
     window: new AttendanceWindow(7),
     ids,
     clock,
@@ -141,6 +151,7 @@ export function buildTestApp() {
     instituteRepository,
     subscriptionRepository,
     consentRepository,
+    outboxRepository,
   };
 }
 

@@ -1,7 +1,7 @@
 import type { Db } from '@coachingdesk/db';
 import { attendanceRecords, attendanceSessions } from '@coachingdesk/db/schema';
 import { ATTENDANCE_STATUSES, type AttendanceStatus, LocalDate } from '@coachingdesk/shared';
-import { and, asc, between, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, between, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type {
   AttendanceRecord,
   AttendanceRepository,
@@ -145,6 +145,33 @@ export class DrizzleAttendanceRepository implements AttendanceRepository {
       );
     const records = await this.recordsOf(sessions.map((s) => s.id));
     return sessions.map((s) => ({ session: toSession(s), records: records.get(s.id) ?? [] }));
+  }
+
+  async markAlertsEnqueued(sessionId: string, at: Date): Promise<boolean> {
+    const updated = await this.db
+      .update(attendanceSessions)
+      .set({ alertsEnqueuedAt: at })
+      .where(and(eq(attendanceSessions.id, sessionId), isNull(attendanceSessions.alertsEnqueuedAt)))
+      .returning({ id: attendanceSessions.id });
+    return updated.length > 0;
+  }
+
+  async statusOf(
+    instituteId: string,
+    sessionId: string,
+    studentId: string,
+  ): Promise<AttendanceStatus | null> {
+    const [row] = await this.db
+      .select({ status: attendanceRecords.status })
+      .from(attendanceRecords)
+      .where(
+        and(
+          eq(attendanceRecords.instituteId, instituteId),
+          eq(attendanceRecords.sessionId, sessionId),
+          eq(attendanceRecords.studentId, studentId),
+        ),
+      );
+    return row ? toStatus(row.status) : null;
   }
 
   /** Records of several sessions in ONE query, grouped by session. */

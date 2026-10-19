@@ -146,6 +146,29 @@ export function describeAttendanceRepositoryContract(
       ).toEqual([]);
     });
 
+    it('markAlertsEnqueued: only the first call wins', async () => {
+      const repo = create();
+      const result = await repo.sync(sync());
+      if (result.outcome !== 'synced') throw new Error('expected synced');
+
+      expect(await repo.markAlertsEnqueued(result.session.id, t1)).toBe(true);
+      expect(await repo.markAlertsEnqueued(result.session.id, t2)).toBe(false);
+      expect(
+        (await repo.findSession(instituteA, b1, day('2026-10-19')))?.session.alertsEnqueuedAt,
+      ).toEqual(t1);
+    });
+
+    it("statusOf: a student's current mark; null if unmarked or another institute", async () => {
+      const repo = create();
+      const result = await repo.sync(sync());
+      if (result.outcome !== 'synced') throw new Error('expected synced');
+      const sessionId = result.session.id;
+
+      expect(await repo.statusOf(instituteA, sessionId, s2)).toBe('absent');
+      expect(await repo.statusOf(instituteA, sessionId, s3)).toBeNull();
+      expect(await repo.statusOf(instituteB, sessionId, s2)).toBeNull();
+    });
+
     it('lists every session of a date', async () => {
       const repo = create();
       await repo.sync(sync());

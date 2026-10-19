@@ -1,7 +1,7 @@
 import type { Db } from '@coachingdesk/db';
 import { institutes, memberships, subscriptions } from '@coachingdesk/db/schema';
 import { and, asc, eq, isNull, ne, sql } from 'drizzle-orm';
-import { Institute, INSTITUTE_TYPES, type InstituteType } from './institute';
+import { Institute, INSTITUTE_TYPES, type InstituteType, parseSettings } from './institute';
 import {
   type AddMemberResult,
   MEMBER_ROLES,
@@ -30,6 +30,7 @@ export class DrizzleInstituteRepository implements InstituteRepository {
         billingDay: p.billingDay,
         dueAfterDays: p.dueAfterDays,
         createdBy: p.createdBy,
+        settings: p.settings,
       });
       await tx
         .insert(memberships)
@@ -177,6 +178,7 @@ function toInstitute(row: InstituteRow): Institute {
     dueAfterDays: row.dueAfterDays,
     createdBy: row.createdBy,
     archivedAt: row.archivedAt,
+    settings: parseSettings(row.settings),
   });
 }
 

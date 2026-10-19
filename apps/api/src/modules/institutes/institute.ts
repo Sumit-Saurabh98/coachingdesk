@@ -20,6 +20,27 @@ export interface BillingSettingsChanges {
   dueAfterDays?: number;
 }
 
+/** Institute-wide preferences (institutes.settings jsonb; API_DOCS "settings shape"). */
+export interface InstituteSettings {
+  absenceAlerts: boolean; // FR-3.3: "if absence alerts are enabled"
+  messageLanguage: 'en' | 'hi';
+}
+
+const DEFAULT_SETTINGS: InstituteSettings = { absenceAlerts: true, messageLanguage: 'en' };
+
+/**
+ * Reads the stored JSON leniently: missing or unknown keys fall back to the defaults, so an
+ * older row (or a future key this code doesn't know) never breaks loading an institute.
+ */
+export function parseSettings(json: unknown): InstituteSettings {
+  const raw = typeof json === 'object' && json !== null ? (json as Record<string, unknown>) : {};
+  return {
+    absenceAlerts:
+      typeof raw.absenceAlerts === 'boolean' ? raw.absenceAlerts : DEFAULT_SETTINGS.absenceAlerts,
+    messageLanguage: raw.messageLanguage === 'hi' ? 'hi' : DEFAULT_SETTINGS.messageLanguage,
+  };
+}
+
 /** Every field of an institute, as stored. Used by restore() when loading from the database. */
 export interface InstituteProps {
   id: string;
@@ -31,6 +52,7 @@ export interface InstituteProps {
   dueAfterDays: number;
   createdBy: string;
   archivedAt: Date | null;
+  settings: InstituteSettings;
 }
 
 // Defaults from docs/LLD.md §2.1 and KNOWLEDGE_BASE §3: bill on the 1st, due 6 days later (the 7th).
@@ -54,6 +76,7 @@ export class Institute {
   readonly dueAfterDays: number;
   readonly createdBy: string;
   readonly archivedAt: Date | null;
+  readonly settings: InstituteSettings;
 
   // private: the only ways in are create() (new, validated) and restore() (from storage).
   // With 9 fields, a props OBJECT is safer than 9 positional parameters you could mix up.
@@ -67,6 +90,7 @@ export class Institute {
     this.dueAfterDays = props.dueAfterDays;
     this.createdBy = props.createdBy;
     this.archivedAt = props.archivedAt;
+    this.settings = props.settings;
   }
 
   /**
@@ -87,6 +111,7 @@ export class Institute {
       dueAfterDays: DEFAULT_DUE_AFTER_DAYS,
       createdBy,
       archivedAt: null,
+      settings: { ...DEFAULT_SETTINGS },
     });
   }
 
@@ -158,6 +183,7 @@ export class Institute {
       dueAfterDays: this.dueAfterDays,
       createdBy: this.createdBy,
       archivedAt: this.archivedAt,
+      settings: this.settings,
     };
   }
 }

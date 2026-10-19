@@ -22,10 +22,3 @@ export interface AbsenceAlerts {
     records: AttendanceRecord[];
   }): Promise<AbsenceAlertOutcome>;
 }
-
-/** Until the outbox exists (Step 15): alerts are simply off. Honest, and safe in production. */
-export class AbsenceAlertsNotEnabled implements AbsenceAlerts {
-  async afterSync(): Promise<AbsenceAlertOutcome> {
-    return { status: 'not_enabled', queued: 0 };
-  }
-}

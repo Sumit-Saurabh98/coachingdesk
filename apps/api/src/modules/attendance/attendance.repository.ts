@@ -64,6 +64,17 @@ export interface AttendanceRepository {
     instituteId: string,
     date: LocalDate,
   ): Promise<Array<{ session: AttendanceSession; records: AttendanceRecord[] }>>;
+  /**
+   * Sets alerts_enqueued_at only if it is still empty (one atomic UPDATE). True if THIS call set
+   * it; false if it was already set. "Alerts once per session" can't be broken by a race.
+   */
+  markAlertsEnqueued(sessionId: string, at: Date): Promise<boolean>;
+  /** One student's current mark in a session (null if none): "is she still absent?" */
+  statusOf(
+    instituteId: string,
+    sessionId: string,
+    studentId: string,
+  ): Promise<AttendanceStatus | null>;
 }
 
 /** Tests and local dev only. */
@@ -130,6 +141,27 @@ export class InMemoryAttendanceRepository implements AttendanceRepository {
     return [...this.sessions.values()]
       .filter((s) => s.instituteId === instituteId && s.date.equals(date))
       .map((session) => ({ session: { ...session }, records: this.recordsOf(session.id) }));
+  }
+
+  async markAlertsEnqueued(sessionId: string, at: Date): Promise<boolean> {
+    const session = this.sessions.get(sessionId);
+    if (!session || session.alertsEnqueuedAt !== null) {
+      return false;
+    }
+    this.sessions.set(sessionId, { ...session, alertsEnqueuedAt: at });
+    return true;
+  }
+
+  async statusOf(
+    instituteId: string,
+    sessionId: string,
+    studentId: string,
+  ): Promise<AttendanceStatus | null> {
+    const session = this.sessions.get(sessionId);
+    if (!session || session.instituteId !== instituteId) {
+      return null;
+    }
+    return this.records.get(sessionId)?.get(studentId)?.status ?? null;
   }
 
   private recordsOf(sessionId: string): AttendanceRecord[] {

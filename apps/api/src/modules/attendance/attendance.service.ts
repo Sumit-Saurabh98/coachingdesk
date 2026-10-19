@@ -119,11 +119,37 @@ export class AttendanceService {
         clientId,
       });
     }
-    const alerts = await this.deps.alerts.afterSync({
-      session: result.session,
-      records: result.records,
-    });
+    const alerts = await this.alertsFor(result.session, result.records);
     return { session: result.session, records: result.records, alerts };
+  }
+
+  /**
+   * Absence alerts go out ONCE per session (FR-3.3/3.4): after the first time, later edits
+   * don't resend. Attendance owns that rule (its column); the alerts module decides the rest.
+   */
+  private async alertsFor(
+    session: AttendanceSession,
+    records: AttendanceRecord[],
+  ): Promise<AbsenceAlertOutcome> {
+    if (session.alertsEnqueuedAt !== null) {
+      return { status: 'already_sent', queued: 0 };
+    }
+    const outcome = await this.deps.alerts.afterSync({ session, records });
+    if (outcome.status === 'queued') {
+      // Atomic "set if empty". If two syncs raced, the messages' dedupe keys already
+      // stopped duplicates; this just records that alerts are done.
+      await this.deps.attendance.markAlertsEnqueued(session.id, this.deps.clock.now());
+    }
+    return outcome;
+  }
+
+  /** The worker's re-check before sending an absence alert: is the student still absent? */
+  async statusOf(
+    instituteId: string,
+    sessionId: string,
+    studentId: string,
+  ): Promise<AttendanceStatus | null> {
+    return this.deps.attendance.statusOf(instituteId, sessionId, studentId);
   }
 
   /**

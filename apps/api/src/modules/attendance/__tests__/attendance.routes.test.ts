@@ -65,7 +65,7 @@ describe('PUT /v1/institutes/:instituteId/attendance-sessions/:clientId', () => 
       submittedAt: '2026-10-19T10:00:00.000Z', // server time, not the phone's
     });
     expect(body.records).toHaveLength(2);
-    expect(body.alerts).toEqual({ status: 'not_enabled', queued: 0 });
+    expect(body.alerts).toEqual({ status: 'queued', queued: 1 }); // Pro trial: automatic messages on
   });
 
   it('a retry of the same sync returns the same session (idempotent)', async () => {
@@ -207,5 +207,79 @@ describe('GET .../students/:studentId/attendance and GET .../attendance/summary'
       await http.call(teacher, 'GET', `${url}/attendance/summary?date=2026-10-20`)
     ).json();
     expect(tuesday.batches).toEqual([]);
+  });
+});
+
+describe('absence alerts through the outbox', () => {
+  it('queues an alert for the absent student, once per session', async () => {
+    const testApp = buildTestApp();
+    app = testApp.app;
+    http = tenantHttp(testApp);
+    const owner = await http.ownerWithInstitute();
+    const { batch } = (
+      await http.call(owner.token, 'POST', `${owner.url}/batches`, {
+        name: 'Maths',
+        schedule: { days: [1, 3], start: '17:00', end: '18:00' },
+      })
+    ).json();
+    const { student } = (
+      await http.call(owner.token, 'POST', `${owner.url}/students`, {
+        name: 'Aarav',
+        guardianPhone: '9812345678',
+        joinedOn: '2026-10-01',
+        batchIds: [batch.id],
+      })
+    ).json();
+    const sync = (clientId: string, status: string) =>
+      http.call(owner.token, 'PUT', `${owner.url}/attendance-sessions/${clientId}`, {
+        batchId: batch.id,
+        date: '2026-10-19',
+        records: [{ studentId: student.id, status }],
+      });
+
+    const first = (await sync(CLIENT_1, 'absent')).json();
+    const edit = (await sync(CLIENT_2, 'absent')).json();
+
+    expect(first.alerts).toEqual({ status: 'queued', queued: 1 });
+    expect(edit.alerts).toEqual({ status: 'already_sent', queued: 0 }); // FR-3.4: no resend
+    const queued = await testApp.outboxRepository.findByDedupeKey(
+      `absence:${first.session.id}:${student.id}`,
+    );
+    expect(queued).toMatchObject({
+      status: 'queued',
+      template: 'absence_alert',
+      params: { student: 'Aarav', batch: 'Maths', institute: 'Sharma Classes' },
+    });
+    expect(queued?.to.toE164()).toBe('+919812345678');
+  });
+
+  it('nobody absent -> nothing queued, and a later absence still alerts', async () => {
+    const testApp = buildTestApp();
+    app = testApp.app;
+    http = tenantHttp(testApp);
+    const owner = await http.ownerWithInstitute();
+    const { batch } = (
+      await http.call(owner.token, 'POST', `${owner.url}/batches`, {
+        name: 'Maths',
+        schedule: { days: [1], start: '17:00', end: '18:00' },
+      })
+    ).json();
+    const { student } = (
+      await http.call(owner.token, 'POST', `${owner.url}/students`, {
+        name: 'Aarav',
+        guardianPhone: '9812345678',
+        joinedOn: '2026-10-01',
+        batchIds: [batch.id],
+      })
+    ).json();
+    const sync = (status: string) =>
+      http.call(owner.token, 'PUT', `${owner.url}/attendance-sessions/${CLIENT_1}`, {
+        batchId: batch.id,
+        date: '2026-10-19',
+        records: [{ studentId: student.id, status }],
+      });
+
+    expect((await sync('present')).json().alerts.status).toBe('none_absent');
+    expect((await sync('absent')).json().alerts).toEqual({ status: 'queued', queued: 1 });
   });
 });

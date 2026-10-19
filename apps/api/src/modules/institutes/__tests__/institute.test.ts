@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { LocalDate } from '@coachingdesk/shared';
-import { Institute, type InstituteType } from '../institute';
+import { Institute, type InstituteType, parseSettings } from '../institute';
 
 const create = (input: { name?: string; type?: InstituteType; city?: string | null } = {}) =>
   Institute.create(
@@ -114,5 +114,26 @@ describe('Institute.withDetails', () => {
 
   it('rejects a bad name', () => {
     expect(() => create().withDetails({ name: 'A' })).toThrow(fieldError('name'));
+  });
+});
+
+describe('settings', () => {
+  it('a new institute has absence alerts on and English messages', () => {
+    expect(create().settings).toEqual({ absenceAlerts: true, messageLanguage: 'en' });
+  });
+
+  it.each([
+    [{}, { absenceAlerts: true, messageLanguage: 'en' }],
+    [
+      { absenceAlerts: false, messageLanguage: 'hi' },
+      { absenceAlerts: false, messageLanguage: 'hi' },
+    ],
+    [
+      { absenceAlerts: 'yes', messageLanguage: 'fr', quietHours: {} },
+      { absenceAlerts: true, messageLanguage: 'en' },
+    ],
+    [null, { absenceAlerts: true, messageLanguage: 'en' }],
+  ])('parseSettings(%j) -> %j (lenient, with defaults)', (json, expected) => {
+    expect(parseSettings(json)).toEqual(expected);
   });
 });
