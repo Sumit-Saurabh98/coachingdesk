@@ -88,6 +88,25 @@ export class DrizzleEnrollmentRepository implements EnrollmentRepository {
     return rows.map((row) => row.studentId);
   }
 
+  async listActiveBetween(
+    instituteId: string,
+    from: LocalDate,
+    to: LocalDate,
+  ): Promise<Enrollment[]> {
+    const rows = await this.db
+      .select()
+      .from(enrollments)
+      .where(
+        and(
+          eq(enrollments.instituteId, instituteId),
+          lte(enrollments.startDate, to.toString()),
+          or(isNull(enrollments.endDate), gte(enrollments.endDate, from.toString())),
+        ),
+      )
+      .orderBy(asc(enrollments.startDate), asc(enrollments.id));
+    return rows.map(toEnrollment);
+  }
+
   async update(enrollment: Enrollment): Promise<void> {
     const updated = await this.db
       .update(enrollments)

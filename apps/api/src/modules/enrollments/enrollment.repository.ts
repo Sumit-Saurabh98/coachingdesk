@@ -24,6 +24,8 @@ export interface EnrollmentRepository {
   countActiveInBatch(instituteId: string, batchId: string, on: LocalDate): Promise<number>;
   /** Ids of the students enrolled in the batch on that date. */
   studentIdsActiveInBatch(instituteId: string, batchId: string, on: LocalDate): Promise<string[]>;
+  /** Enrollments active at some point in [from, to] (start <= to, end null or >= from). Billing. */
+  listActiveBetween(instituteId: string, from: LocalDate, to: LocalDate): Promise<Enrollment[]>;
   /** Saves terms, end date and cycle anchor. Matches id AND instituteId; throws if none. */
   update(enrollment: Enrollment): Promise<void>;
 }
@@ -86,6 +88,16 @@ export class InMemoryEnrollmentRepository implements EnrollmentRepository {
     return this.inInstitute(instituteId)
       .filter((e) => e.batchId === batchId && e.isActiveOn(on))
       .map((e) => e.studentId);
+  }
+
+  async listActiveBetween(
+    instituteId: string,
+    from: LocalDate,
+    to: LocalDate,
+  ): Promise<Enrollment[]> {
+    return this.inInstitute(instituteId)
+      .filter((e) => !e.startDate.isAfter(to) && (e.endDate === null || !e.endDate.isBefore(from)))
+      .sort(byStart);
   }
 
   async update(enrollment: Enrollment): Promise<void> {

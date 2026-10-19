@@ -41,6 +41,8 @@ export interface InstituteRepository {
   listMembers(instituteId: string): Promise<Membership[]>;
   /** Removes a NON-owner member. Returns false if there was no such member. */
   removeMember(instituteId: string, userId: string): Promise<boolean>;
+  /** Every non-archived institute (the billing scheduler walks these). */
+  listActive(): Promise<Institute[]>;
   /** Is the user the owner of any institute? (Account deletion is refused while they are.) */
   ownsAnyInstitute(userId: string): Promise<boolean>;
   /** Removes the user from every institute where they are NOT the owner. */
@@ -136,6 +138,10 @@ export class InMemoryInstituteRepository implements InstituteRepository {
     }
     this.memberships.splice(index, 1);
     return true;
+  }
+
+  async listActive(): Promise<Institute[]> {
+    return [...this.institutes.values()].filter((i) => i.archivedAt === null);
   }
 
   async ownsAnyInstitute(userId: string): Promise<boolean> {

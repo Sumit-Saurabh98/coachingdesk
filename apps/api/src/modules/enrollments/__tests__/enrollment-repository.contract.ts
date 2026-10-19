@@ -130,6 +130,22 @@ export function describeEnrollmentRepositoryContract(
       expect(await repo.countActiveInBatch(instituteB, b1, today)).toBe(0); // tenancy
     });
 
+    it('lists enrollments active at some point in a date range', async () => {
+      const repo = create();
+      await seed(
+        repo,
+        enroll(1, s1, b1, { start: '2026-09-01', end: '2026-09-30' }), // ended before
+        enroll(2, s2, b1, { start: '2026-10-20' }), // starts inside
+        enroll(3, s1, b2, { start: '2026-11-01' }), // starts after
+        enroll(4, s2, b2, { start: '2026-01-01', end: '2026-10-01' }), // ends on the first day
+        enroll(5, s3, b3, { instituteId: instituteB }),
+      );
+
+      const active = await repo.listActiveBetween(instituteA, day('2026-10-01'), day('2026-10-31'));
+
+      expect(active.map((e) => e.id).sort()).toEqual([enrollmentId(2), enrollmentId(4)].sort());
+    });
+
     it('saves new terms and the end date', async () => {
       const repo = create();
       const enrollment = enroll(1);

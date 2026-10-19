@@ -152,6 +152,15 @@ export class DrizzleInstituteRepository implements InstituteRepository {
     return removed.length > 0;
   }
 
+  async listActive(): Promise<Institute[]> {
+    const rows = await this.db
+      .select()
+      .from(institutes)
+      .where(isNull(institutes.archivedAt))
+      .orderBy(asc(institutes.createdAt), asc(institutes.id));
+    return rows.map(toInstitute);
+  }
+
   async ownsAnyInstitute(userId: string): Promise<boolean> {
     const count = await this.db.$count(
       memberships,

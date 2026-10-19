@@ -75,6 +75,13 @@ export function describeInstituteRepositoryContract(
       await expect(create().update(newInstitute(9))).rejects.toThrow();
     });
 
+    it('lists active institutes', async () => {
+      const repo = create();
+      await repo.createWithOwner(newInstitute(1, 'First'), trial);
+      await repo.createWithOwner(newInstitute(2, 'Second'), trial);
+      expect((await repo.listActive()).map((i) => i.name)).toEqual(['First', 'Second']);
+    });
+
     it('returns null for an unknown institute', async () => {
       expect(await create().findById(instituteId(9))).toBeNull();
     });

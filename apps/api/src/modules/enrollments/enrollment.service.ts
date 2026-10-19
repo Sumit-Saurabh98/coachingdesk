@@ -144,6 +144,11 @@ export class EnrollmentService {
     );
   }
 
+  /** Enrollments active at some point in [from, to]: what a billing period has to look at. */
+  async activeBetween(instituteId: string, from: LocalDate, to: LocalDate): Promise<Enrollment[]> {
+    return this.deps.enrollments.listActiveBetween(instituteId, from, to);
+  }
+
   /** Ids of the students in the batch on a date (attendance: who can be marked that day). */
   async studentIdsInBatchOn(
     instituteId: string,

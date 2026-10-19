@@ -160,6 +160,11 @@ export class InstituteService {
     throw new AppError('NOT_FOUND', 'Member not found');
   }
 
+  /** Every non-archived institute (used by the billing scheduler). */
+  async listActive(): Promise<Institute[]> {
+    return this.deps.institutes.listActive();
+  }
+
   async ownsAnyInstitute(userId: string): Promise<boolean> {
     return this.deps.institutes.ownsAnyInstitute(userId);
   }
