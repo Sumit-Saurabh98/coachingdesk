@@ -37,7 +37,7 @@ Solo developer, ~12 weeks to a paid MVP. Each milestone ends with something demo
 ## Phase 4 — Plans & polish (Weeks 8–9)
 - [ ] Entitlements, plan limits, usage counters, trial, grace, downgrade
 - [ ] Subscription checkout (per billing decision)
-- [ ] Tests & result cards; notices
+- [ ] Tests & result cards; notices  _(✅ notices API)_
 - [ ] Sentry, logs, alerts, backups verified
 - [ ] Privacy policy, terms (incl. data-processing terms), consent checkbox
 - [ ] Data rights: export, institute deletion, student erasure, account deletion (app + web page)

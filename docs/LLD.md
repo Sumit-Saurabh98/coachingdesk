@@ -297,7 +297,10 @@ data_exports (
   s3_key text, expires_at timestamptz, created_at, updated_at
 )
 
-notices (id, institute_id, batch_ids uuid[], body text, sent_by, recipients int, created_at)
+notices (id uuid pk, institute_id fk, kind text check (kind in ('general','holiday','schedule_change')), batch_ids uuid[],
+         content jsonb,                  -- the template params guardians read
+         sent_by uuid fk users on delete set null, recipients int, day date, created_at)
+index (institute_id, day)               -- daily limit: count + insert under a per-institute advisory lock
 
 audit_log (
   id uuid pk,                             -- UUIDv7: time-ordered, so the log pages by id

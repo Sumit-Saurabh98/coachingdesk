@@ -172,6 +172,7 @@ Each needs Hindi version. Template approval takes time — submit early.
 | 39 | 2026-10 | One `message_usage` table (sent per institute per local day) replaces `usage_counters` + `daily_usage`; month and trial totals are sums. Check-and-increment runs under `pg_advisory_xact_lock` per institute; a failed send releases its unit | One table, one atomic rule for every cap. Without the lock 12 messages passed a cap of 5 in a 20-worker test |
 | 40 | 2026-10 | Fee reminders are planned without content and rendered at send time (one child -> `fee_reminder`, siblings -> `fee_reminder_multi`, nothing due -> skipped); guardian name from any sibling's record; queued reminders expire 21:00 the next day; "remind now" answers 202 with `scheduledFor`, and is 402 on Free | FR-5.4: a reminder must reflect payments made while it waited; Free has no messages from our number |
 | 41 | 2026-10 | Audit log stores no personal data (statuses, amounts, ids); written after the action succeeds. Erasure keeps the guardian's phone if a sibling at the institute still uses it | An audit trail that copies phones would undo erasure; a sibling's guardian is still an active parent of the institute |
+| 42 | 2026-10 | Notices: three kinds (general / holiday / schedule_change) mapped to the three KB templates; no links at all (no own domain yet); one message per guardian; daily limit 2 (trial) / 5 (paid) counted atomically; all members may send | Matches API_DOCS roles; structured kinds survive if Meta rejects free text; the limit protects the shared number |
 
 ## 7. Open questions
 

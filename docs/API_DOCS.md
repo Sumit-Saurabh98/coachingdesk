@@ -276,11 +276,23 @@ Payment object: `{ id, guardianPhone, amountPaise, method, status, paidAt, note,
 
 ## 10. Notices
 
+Every member may send (teachers too). The plan must include automatic messages (`402` on Free).
+
 | Method | Path |
 |---|---|
-| POST | `/institutes/{id}/notices/preview` — `{ batchIds, body }` → `{ recipients, messagesNeeded, quotaRemaining }` |
-| POST | `/institutes/{id}/notices` — sends. `body`: 1–500 chars, no links except the institute's own; newlines/tabs are converted to " · " (WhatsApp template parameters can't contain them). Max 2 notices/day (5 on paid plans) → `429 DAILY_LIMIT_REACHED` |
-| GET | `/institutes/{id}/notices` |
+| POST | `/institutes/{id}/notices/preview` — same body as sending → `{ recipients, messagesNeeded, quotaRemaining }`. Nothing is sent |
+| POST | `/institutes/{id}/notices` — sends → `201 { notice, queued }`. Max 2 notices/day during the trial, 5 on paid plans (institute day) → `429 DAILY_LIMIT_REACHED` (`details.limit`) |
+| GET | `/institutes/{id}/notices?limit` → `{ notices: [{ id, kind, batchIds, content, recipients, sentBy, day, createdAt }] }`, newest first |
+
+Body — one of three kinds (KB §4 templates; offer the structured ones first, Meta is likelier to reject free text):
+```json
+{ "kind": "general", "batchIds": ["…"], "text": "Exam on Monday. Bring pens." }
+{ "kind": "holiday", "batchIds": ["…"], "date": "2026-10-24", "resumeDate": "2026-10-27", "reason": "Diwali" }
+{ "kind": "schedule_change", "batchIds": ["…"], "date": "2026-10-21", "time": "18:30" }
+```
+- `general.text`: 1–500 chars after cleaning (newlines → " · ", runs of spaces/tabs → one space); **no links**. `reason`: 1–80 chars, no links.
+- Dates can't be in the past; `resumeDate` must be after `date`; `schedule_change` takes exactly one batch.
+- Recipients: guardians of active students enrolled in the batches today, **one message per guardian** (siblings in several batches get one). Consent, quiet hours and quota are checked when the worker sends; unsent notices expire 21:00 the next day.
 
 ## 11. Messaging
 
