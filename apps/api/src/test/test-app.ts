@@ -18,6 +18,9 @@ import { FeeReminders } from '../modules/messaging/fee-reminders';
 import { MessageQuota } from '../modules/messaging/message-quota';
 import { InMemoryMessageUsageRepository } from '../modules/messaging/message-usage.repository';
 import { MessagesController } from '../modules/messaging/messages.controller';
+import { InMemoryNoticeRepository } from '../modules/messaging/notice.repository';
+import { NoticeService } from '../modules/messaging/notice.service';
+import { NoticesController } from '../modules/messaging/notices.controller';
 import { RemindersController } from '../modules/messaging/reminders.controller';
 import { OutboxAbsenceAlerts } from '../modules/messaging/outbox-absence-alerts';
 import { JwtAccessTokens } from '../modules/auth/access-tokens';
@@ -189,6 +192,18 @@ export function buildTestApp() {
     messages: outboxRepository,
     audit: auditLog,
   });
+  const noticeService = new NoticeService({
+    notices: new InMemoryNoticeRepository(),
+    outbox: outboxRepository,
+    institutes: instituteService,
+    batches: batchService,
+    enrollments: enrollmentService,
+    students: studentService,
+    entitlements,
+    quota: messageQuota,
+    ids,
+    clock,
+  });
   const authService = new AuthService({
     otp: otpService,
     users: userService,
@@ -220,6 +235,7 @@ export function buildTestApp() {
     paymentsController: new PaymentsController(paymentService),
     consentController: new ConsentController(consentService),
     messagesController: new MessagesController(outboxRepository),
+    noticesController: new NoticesController(noticeService),
     remindersController: new RemindersController(feeReminders, messageQuota, instituteService),
     enrollmentsController: new EnrollmentsController(enrollmentService, invoiceService),
     attendanceController: new AttendanceController(attendanceService),

@@ -25,6 +25,7 @@ import { InstitutesController } from './modules/institutes/institutes.controller
 import { MembersController } from './modules/institutes/members.controller';
 import { ConsentController } from './modules/messaging/consent.controller';
 import { MessagesController } from './modules/messaging/messages.controller';
+import { NoticesController } from './modules/messaging/notices.controller';
 import { RemindersController } from './modules/messaging/reminders.controller';
 import { StudentsController } from './modules/students/students.controller';
 import { PrivacyController } from './modules/privacy/privacy.controller';
@@ -114,6 +115,7 @@ export function createContainer(config: Config): Container {
     paymentsController: new PaymentsController(services.paymentService),
     consentController: new ConsentController(services.consentService),
     messagesController: new MessagesController(services.outboxRepository),
+    noticesController: new NoticesController(services.noticeService),
     remindersController: new RemindersController(
       services.feeReminders,
       services.messageQuota,

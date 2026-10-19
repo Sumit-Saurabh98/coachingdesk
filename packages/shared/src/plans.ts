@@ -81,6 +81,8 @@ export const MESSAGE_CAPS = Object.freeze({
   trialDaily: 100,
   newInstituteDays: 7,
   newInstituteDaily: 100,
+  noticesPerDayTrial: 2,
+  noticesPerDayPaid: 5,
 });
 
 /** The plan every new institute trials (KB §3: 30 days of Pro). */

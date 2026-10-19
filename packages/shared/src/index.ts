@@ -59,3 +59,4 @@ export {
   SyncAttendanceBody,
 } from './schemas/attendance';
 export { zonedInstant } from './zoned-time';
+export { SendNoticeBody } from './schemas/notices';

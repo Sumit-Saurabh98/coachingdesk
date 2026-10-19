@@ -52,6 +52,8 @@ describe('PLANS', () => {
       trialDaily: 100,
       newInstituteDays: 7,
       newInstituteDaily: 100,
+      noticesPerDayTrial: 2,
+      noticesPerDayPaid: 5,
     });
   });
 

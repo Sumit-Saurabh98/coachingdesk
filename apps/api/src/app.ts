@@ -25,6 +25,7 @@ import type { StudentsController } from './modules/students/students.controller'
 import { registerStudentRoutes } from './modules/students/students.routes';
 import type { ConsentController } from './modules/messaging/consent.controller';
 import type { MessagesController } from './modules/messaging/messages.controller';
+import type { NoticesController } from './modules/messaging/notices.controller';
 import type { RemindersController } from './modules/messaging/reminders.controller';
 import { registerMessagingRoutes } from './modules/messaging/messaging.routes';
 import type { PrivacyController } from './modules/privacy/privacy.controller';
@@ -47,6 +48,7 @@ export interface AppDependencies {
   consentController: ConsentController;
   remindersController: RemindersController;
   messagesController: MessagesController;
+  noticesController: NoticesController;
   subscriptionsController: SubscriptionsController;
   auditController: AuditController;
   privacyController: PrivacyController;
@@ -108,6 +110,7 @@ export function buildApp(deps: AppDependencies, options: AppOptions = {}): Fasti
     deps.consentController,
     deps.remindersController,
     deps.messagesController,
+    deps.noticesController,
     {
       requireAuth,
       requireMember,

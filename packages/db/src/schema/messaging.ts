@@ -13,6 +13,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import { timestamps } from './columns';
+import { users } from './identity';
 import { institutes } from './institutes';
 
 /**
@@ -118,5 +119,32 @@ export const messageUsage = pgTable(
   (t) => [
     primaryKey({ columns: [t.instituteId, t.day] }),
     check('message_usage_sent_check', sql`${t.sent} >= 0`),
+  ],
+);
+
+/**
+ * A notice sent to guardians of one or more batches (F-15). The outbox holds the messages;
+ * this row is the institute's record of "what was announced, to which batches, by whom".
+ * Its count per day enforces the notice limit (2/day, 5 on paid plans).
+ */
+export const notices = pgTable(
+  'notices',
+  {
+    id: uuid().primaryKey(),
+    instituteId: uuid()
+      .notNull()
+      .references(() => institutes.id),
+    kind: text().notNull(), // general | holiday | schedule_change
+    batchIds: uuid().array().notNull(),
+    content: jsonb().$type<Record<string, string>>().notNull(), // what the guardians read
+    sentBy: uuid().references(() => users.id, { onDelete: 'set null' }),
+    recipients: integer().notNull(),
+    day: date({ mode: 'string' }).notNull(), // institute-local day (daily limit)
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('notices_institute_day_idx').on(t.instituteId, t.day),
+    check('notices_kind_check', sql`${t.kind} in ('general', 'holiday', 'schedule_change')`),
+    check('notices_recipients_check', sql`${t.recipients} >= 0`),
   ],
 );

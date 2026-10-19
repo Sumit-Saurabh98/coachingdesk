@@ -22,6 +22,8 @@ import { DrizzleConsentRepository } from './modules/messaging/drizzle-consent.re
 import { DrizzleMessageUsageRepository } from './modules/messaging/drizzle-message-usage.repository';
 import { DrizzleOutboxRepository } from './modules/messaging/drizzle-outbox.repository';
 import { FeeReminders } from './modules/messaging/fee-reminders';
+import { DrizzleNoticeRepository } from './modules/messaging/drizzle-notice.repository';
+import { NoticeService } from './modules/messaging/notice.service';
 import { MessageQuota } from './modules/messaging/message-quota';
 import { OutboxAbsenceAlerts } from './modules/messaging/outbox-absence-alerts';
 import { ErasureService } from './modules/privacy/erasure.service';
@@ -145,7 +147,21 @@ export function createDomainServices(db: Db, clock: Clock, ids: IdGenerator) {
     audit: auditLog,
   });
 
+  const noticeService = new NoticeService({
+    notices: new DrizzleNoticeRepository(db),
+    outbox: outboxRepository,
+    institutes: instituteService,
+    batches: batchService,
+    enrollments: enrollmentService,
+    students: studentService,
+    entitlements,
+    quota: messageQuota,
+    ids,
+    clock,
+  });
+
   return {
+    noticeService,
     erasureService,
     auditLog,
     subscriptionService,

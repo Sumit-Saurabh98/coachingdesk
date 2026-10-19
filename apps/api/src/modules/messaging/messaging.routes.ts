@@ -2,6 +2,7 @@ import type { FastifyInstance, preHandlerAsyncHookHandler } from 'fastify';
 import { requireRole } from '../../http/tenancy-guard';
 import type { ConsentController } from './consent.controller';
 import type { MessagesController } from './messages.controller';
+import type { NoticesController } from './notices.controller';
 import type { RemindersController } from './reminders.controller';
 
 export interface MessagingRouteGuards {
@@ -16,6 +17,7 @@ export function registerMessagingRoutes(
   consent: ConsentController,
   reminders: RemindersController,
   messages: MessagesController,
+  notices: NoticesController,
   { requireAuth, requireMember }: MessagingRouteGuards,
 ): void {
   // Consent is recorded by whoever manages students: owner and staff.
@@ -38,4 +40,13 @@ export function registerMessagingRoutes(
   app.get('/v1/institutes/:instituteId/messages', { preHandler: feesTeam }, (req, reply) =>
     messages.list(req, reply),
   );
+
+  // Notices: every member (teachers send class notices too).
+  const NOTICES = '/v1/institutes/:instituteId/notices';
+  const member = [requireAuth, requireMember];
+  app.post(`${NOTICES}/preview`, { preHandler: member }, (req, reply) =>
+    notices.preview(req, reply),
+  );
+  app.post(NOTICES, { preHandler: member }, (req, reply) => notices.send(req, reply));
+  app.get(NOTICES, { preHandler: member }, (req, reply) => notices.list(req, reply));
 }
