@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { LocalDate } from '../local-date';
 import { PhoneNumber } from '../phone-number';
 
 /**
@@ -30,3 +31,19 @@ export const zMoneyPaise = z
   .number()
   .refine(Number.isSafeInteger, { message: 'Amount must be a whole number of paise' })
   .refine((paise) => paise >= 0, { message: 'Amount cannot be negative' });
+
+/**
+ * Zod field for a calendar date "YYYY-MM-DD" (no time, no zone): gives you a LocalDate.
+ * Same pattern as zPhoneIN: LocalDate.parse holds the rules (real dates only, no 2026-02-30).
+ */
+export const zLocalDate = z.string().transform((value, ctx) => {
+  try {
+    return LocalDate.parse(value);
+  } catch (error) {
+    ctx.addIssue({
+      code: 'custom',
+      message: error instanceof Error ? error.message : 'Invalid date',
+    });
+    return z.NEVER;
+  }
+});

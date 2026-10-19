@@ -4,7 +4,7 @@ export { InvalidLocalDateError, LocalDate } from './local-date';
 export { type Clock, FixedClock, SystemClock } from './clock';
 export { InstituteClock } from './institute-clock';
 export { AppError, ErrorCode } from './errors';
-export { zMoneyPaise, zPhoneIN } from './schemas/common';
+export { zLocalDate, zMoneyPaise, zPhoneIN } from './schemas/common';
 export { DeviceInfoSchema, RefreshTokenBody, RequestOtpBody, VerifyOtpBody } from './schemas/auth';
 export { type IdGenerator, SequentialIdGenerator, UuidV7Generator } from './id-generator';
 export { UpdateMeBody } from './schemas/users';
@@ -27,3 +27,13 @@ export {
   TRIAL_DAYS,
   TRIAL_PLAN,
 } from './plans';
+export {
+  BULK_STUDENTS_MAX,
+  BulkCreateStudentsBody,
+  CreateStudentBody,
+  LeaveStudentBody,
+  ListStudentsQuery,
+  STUDENT_STATUSES,
+  type StudentStatus,
+  UpdateStudentBody,
+} from './schemas/students';
