@@ -79,8 +79,8 @@ Roles are institute-wide in MVP (`memberships.batch_scope` stays null). Fixed pe
 | Method | Path | Body / notes |
 |---|---|---|
 | POST | `/institutes` | `{ name, type: "tuition"\|"academy"\|"home_tutor", city? }` → creates owner membership + 30-day Pro trial |
-| GET | `/institutes/{id}` | Details + settings + entitlements summary |
-| PATCH | `/institutes/{id}` | `{ name?, city?, billingDay?, dueAfterDays?, settings? }` |
+| GET | `/institutes/{id}` | Any member → `200 { institute (incl. settings), role, entitlements: { plan, maxActiveStudents, maxMembers, monthlyMessages, features } }`. The app shows/hides features from `entitlements`, never from plan names |
+| PATCH | `/institutes/{id}` | Owner. `{ name?, city?, billingDay?, dueAfterDays?, settings? }`; `settings` is partial: `{ absenceAlerts?: boolean, messageLanguage?: "en"\|"hi", reminderOffsets?: number[] }` (≤ 6 different whole days, −30…30; `[]` = no automatic reminders) → `200 { institute }`. Unknown stored settings keys are kept |
 | GET | `/institutes/{id}/members` | Owner. `200 { members: [{ userId, name, phone, role }] }`, owner first |
 | POST | `/institutes/{id}/members` | Owner. `{ phone, name, role: "teacher"\|"staff" }` → `201 { member }` — adds by phone. Creates the `users` row if the phone is new; they get access on first OTP login. `name` is used only if the person hasn't set their own. `409` already a member; member count (excluding owner) checked against plan atomically → `402 PLAN_LIMIT_REACHED` |
 | DELETE | `/institutes/{id}/members/{userId}` | Owner. Remove → `204`; they lose access immediately. `409` for the owner, `404` not a member |
@@ -102,14 +102,9 @@ Roles are institute-wide in MVP (`memberships.batch_scope` stays null). Fixed pe
 ```
 `GET /me` → `{ "user": { "id", "name", "locale" }, "institutes": [{ "id", "name", "type", "role" }] }`
 
-`settings` shape:
+`settings` shape (defaults shown; quiet hours are fixed at 21:00–08:00 in MVP):
 ```json
-{
-  "absenceAlerts": true,
-  "reminderOffsets": [3, 0, -3, -7],
-  "quietHours": { "start": "21:00", "end": "08:00" },
-  "messageLanguage": "hi"
-}
+{ "absenceAlerts": true, "reminderOffsets": [3, 0, -3, -7], "messageLanguage": "en" }
 ```
 
 ## 5. Batches
@@ -291,7 +286,7 @@ Payment object: `{ id, guardianPhone, amountPaise, method, status, paidAt, note,
 
 | Method | Path |
 |---|---|
-| GET | `/institutes/{id}/messages?status&category&limit&cursor` — outbox log |
+| GET | `/institutes/{id}/messages?status&category&limit=1–100 (50)&cursor` — owner, staff. The outbox log, newest first → `{ messages: [{ id, category, template, to (masked), status, skipReason, errorCode, attempts, scheduledFor, createdAt }], nextCursor }` |
 | GET | `/institutes/{id}/messages/usage` — owner, staff → `{ month, used, limit, todayUsed, todayLimit, trialTotalLimit }`. `limit` = the plan's monthly quota (0 on Free); `todayLimit` is set during the trial and an institute's first 7 days (100), else `null`; `trialTotalLimit` = 200 during the trial |
 | GET | `/institutes/{id}/replies?limit&cursor` — guardians' WhatsApp replies routed to this institute ("Parent replies") |
 | POST | `/institutes/{id}/guardians/{phone}/opt-in` — owner, staff. Record consent `{ source: "verbal" \| "form" \| "whatsapp" }` → `204`. `phone`: any Indian format (`9812345678` or URL-encoded `%2B919812345678`); bad → `422` |
@@ -307,8 +302,8 @@ Only guardians with consent (`opted_in`) are ever messaged; the check happens at
 
 | Method | Path |
 |---|---|
-| GET | `/plans` — public plan catalog |
-| GET | `/institutes/{id}/subscription` — plan, status, period end, usage, limits |
+| GET | `/plans` — public (no login) → `{ plans: [{ id, maxActiveStudents, maxMembers, monthlyMessages, monthlyPricePaise, yearlyPricePaise, features }], trial: { plan, days, messageTotal } }` |
+| GET | `/institutes/{id}/subscription` — owner → `{ plan (applies now), status, currentPeriodEnd, graceUntil, limits: { maxActiveStudents, maxMembers, monthlyMessages, features }, usage: { activeStudents, members, messages } }` |
 | POST | `/institutes/{id}/subscription/checkout` — `{ plan, interval }` → `{ checkoutUrl }` or store-purchase params (depends on final billing decision) |
 | POST | `/institutes/{id}/subscription/cancel` — cancel at period end |
 
