@@ -85,3 +85,29 @@ describe('fee schemas', () => {
     expect(CreateManualInvoiceBody.safeParse({ ...body, amountPaise: 1.5 }).success).toBe(false);
   });
 });
+
+describe('payment schemas', () => {
+  it('RecordPaymentBody: offline methods only; paidAt with a zone becomes a Date', async () => {
+    const { RecordPaymentBody } = await import('../index');
+    const body = RecordPaymentBody.parse({
+      amountPaise: 150000,
+      method: 'cash',
+      paidAt: '2026-10-18T09:00:00+05:30',
+    });
+    expect(body.paidAt?.toISOString()).toBe('2026-10-18T03:30:00.000Z');
+    expect(RecordPaymentBody.safeParse({ amountPaise: 100, method: 'upi_link' }).success).toBe(
+      false,
+    );
+    expect(
+      RecordPaymentBody.safeParse({ amountPaise: 100, method: 'cash', paidAt: '2026-10-18' })
+        .success,
+    ).toBe(false);
+  });
+
+  it('FeeDashboardQuery: YYYY-MM only', async () => {
+    const { FeeDashboardQuery } = await import('../index');
+    expect(FeeDashboardQuery.parse({ month: '2026-09' }).month).toEqual({ year: 2026, month: 9 });
+    expect(FeeDashboardQuery.safeParse({ month: '2026-13' }).success).toBe(false);
+    expect(FeeDashboardQuery.safeParse({ month: 'Oct 2026' }).success).toBe(false);
+  });
+});

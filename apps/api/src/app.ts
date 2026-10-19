@@ -14,6 +14,7 @@ import { registerBatchRoutes } from './modules/batches/batches.routes';
 import type { EnrollmentsController } from './modules/enrollments/enrollments.controller';
 import { registerEnrollmentRoutes } from './modules/enrollments/enrollments.routes';
 import type { InvoicesController } from './modules/fees/invoices.controller';
+import type { PaymentsController } from './modules/fees/payments.controller';
 import { registerFeeRoutes } from './modules/fees/fees.routes';
 import type { InstitutesController } from './modules/institutes/institutes.controller';
 import type { MembersController } from './modules/institutes/members.controller';
@@ -37,6 +38,7 @@ export interface AppDependencies {
   attendanceController: AttendanceController;
   consentController: ConsentController;
   invoicesController: InvoicesController;
+  paymentsController: PaymentsController;
   accessTokens: JwtAccessTokens;
   memberships: MembershipLookup;
   isReady: () => Promise<boolean>;
@@ -89,7 +91,10 @@ export function buildApp(deps: AppDependencies, options: AppOptions = {}): Fasti
   registerEnrollmentRoutes(app, deps.enrollmentsController, { requireAuth, requireMember });
   registerAttendanceRoutes(app, deps.attendanceController, { requireAuth, requireMember });
   registerMessagingRoutes(app, deps.consentController, { requireAuth, requireMember });
-  registerFeeRoutes(app, deps.invoicesController, { requireAuth, requireMember });
+  registerFeeRoutes(app, deps.invoicesController, deps.paymentsController, {
+    requireAuth,
+    requireMember,
+  });
 
   return app;
 }

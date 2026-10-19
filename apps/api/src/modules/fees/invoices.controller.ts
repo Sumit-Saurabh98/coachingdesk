@@ -3,13 +3,17 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import { uuidParam } from '../../http/route-params';
 import { currentTenant } from '../../http/tenancy-guard';
 import type { InvoiceService } from './invoice.service';
+import type { PaymentService } from './payment.service';
 
 const invoiceIdOf = (request: FastifyRequest) =>
   uuidParam(request, 'invoiceId', 'Invoice not found');
 
 /** Fees: owner and staff only (teachers never see fees, FR-1.4). */
 export class InvoicesController {
-  constructor(private readonly invoices: InvoiceService) {}
+  constructor(
+    private readonly invoices: InvoiceService,
+    private readonly payments: PaymentService,
+  ) {}
 
   /** GET .../invoices?status&studentId&batchId&overdue&limit -> 200 { invoices } */
   async list(request: FastifyRequest, reply: FastifyReply): Promise<void> {
@@ -24,13 +28,18 @@ export class InvoicesController {
     await reply.status(200).send({ invoices: invoices.map((i) => i.toPublicJSON()) });
   }
 
-  /** GET .../invoices/:invoiceId -> 200 { invoice } */
+  /** GET .../invoices/:invoiceId -> 200 { invoice, payments } (allocatedPaise = paid here) */
   async get(request: FastifyRequest, reply: FastifyReply): Promise<void> {
-    const invoice = await this.invoices.get(
-      currentTenant(request).instituteId,
-      invoiceIdOf(request),
-    );
-    await reply.status(200).send({ invoice: invoice.toPublicJSON() });
+    const { instituteId } = currentTenant(request);
+    const invoice = await this.invoices.get(instituteId, invoiceIdOf(request));
+    const payments = await this.payments.forInvoice(instituteId, invoice.id);
+    await reply.status(200).send({
+      invoice: invoice.toPublicJSON(),
+      payments: payments.map(({ payment, amount }) => ({
+        ...payment.toPublicJSON(),
+        allocatedPaise: amount.toPaise(),
+      })),
+    });
   }
 
   /** POST .../invoices (owner) -> 201 { invoice } */

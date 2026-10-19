@@ -19,6 +19,7 @@ import { SessionService } from './modules/auth/session.service';
 import { BatchesController } from './modules/batches/batches.controller';
 import { EnrollmentsController } from './modules/enrollments/enrollments.controller';
 import { InvoicesController } from './modules/fees/invoices.controller';
+import { PaymentsController } from './modules/fees/payments.controller';
 import { InstitutesController } from './modules/institutes/institutes.controller';
 import { MembersController } from './modules/institutes/members.controller';
 import { ConsentController } from './modules/messaging/consent.controller';
@@ -92,7 +93,8 @@ export function createContainer(config: Config): Container {
       services.consentService,
       services.invoiceService,
     ),
-    invoicesController: new InvoicesController(services.invoiceService),
+    invoicesController: new InvoicesController(services.invoiceService, services.paymentService),
+    paymentsController: new PaymentsController(services.paymentService),
     consentController: new ConsentController(services.consentService),
     enrollmentsController: new EnrollmentsController(
       services.enrollmentService,

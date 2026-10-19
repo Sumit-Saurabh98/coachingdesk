@@ -1,6 +1,7 @@
 import type { FastifyInstance, preHandlerAsyncHookHandler } from 'fastify';
 import { requireRole } from '../../http/tenancy-guard';
 import type { InvoicesController } from './invoices.controller';
+import type { PaymentsController } from './payments.controller';
 
 export interface FeeRouteGuards {
   requireAuth: preHandlerAsyncHookHandler;
@@ -12,6 +13,7 @@ const INVOICES = '/v1/institutes/:instituteId/invoices';
 export function registerFeeRoutes(
   app: FastifyInstance,
   invoices: InvoicesController,
+  payments: PaymentsController,
   { requireAuth, requireMember }: FeeRouteGuards,
 ): void {
   // API_DOCS roles: owner + staff READ fees; creating manual invoices, waiving and cancelling
@@ -27,5 +29,19 @@ export function registerFeeRoutes(
   );
   app.post(`${INVOICES}/:invoiceId/cancel`, { preHandler: owner }, (req, reply) =>
     invoices.cancel(req, reply),
+  );
+
+  // Payments: staff records offline payments; voiding is owner only (API_DOCS roles).
+  const PAYMENTS = '/v1/institutes/:instituteId/payments';
+  app.post(`${INVOICES}/:invoiceId/payments`, { preHandler: read }, (req, reply) =>
+    payments.record(req, reply),
+  );
+  app.get(PAYMENTS, { preHandler: read }, (req, reply) => payments.list(req, reply));
+  app.get(`${PAYMENTS}/:paymentId`, { preHandler: read }, (req, reply) => payments.get(req, reply));
+  app.post(`${PAYMENTS}/:paymentId/void`, { preHandler: owner }, (req, reply) =>
+    payments.void(req, reply),
+  );
+  app.get('/v1/institutes/:instituteId/fees/dashboard', { preHandler: read }, (req, reply) =>
+    payments.dashboard(req, reply),
   );
 }

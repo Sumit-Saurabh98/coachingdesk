@@ -11,6 +11,8 @@ import { EntitlementsService } from './modules/entitlements/entitlements.service
 import { DrizzleInvoiceRepository } from './modules/fees/drizzle-invoice.repository';
 import { InvoiceGenerator } from './modules/fees/invoice-generator';
 import { InvoiceService } from './modules/fees/invoice.service';
+import { DrizzlePaymentRepository } from './modules/fees/drizzle-payment.repository';
+import { PaymentService } from './modules/fees/payment.service';
 import { DrizzleInstituteRepository } from './modules/institutes/drizzle-institute.repository';
 import { InstituteService } from './modules/institutes/institute.service';
 import { ConsentService } from './modules/messaging/consent.service';
@@ -106,7 +108,17 @@ export function createDomainServices(db: Db, clock: Clock, ids: IdGenerator) {
     clock,
   });
 
+  const paymentService = new PaymentService({
+    payments: new DrizzlePaymentRepository(db),
+    invoices: invoiceRepository,
+    students: studentService,
+    institutes: instituteService,
+    ids,
+    clock,
+  });
+
   return {
+    paymentService,
     invoiceGenerator,
     invoiceService,
     userService,

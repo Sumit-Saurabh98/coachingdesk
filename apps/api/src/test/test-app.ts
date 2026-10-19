@@ -31,6 +31,9 @@ import { InvoiceGenerator } from '../modules/fees/invoice-generator';
 import { InMemoryInvoiceRepository } from '../modules/fees/invoice.repository';
 import { InvoiceService } from '../modules/fees/invoice.service';
 import { InvoicesController } from '../modules/fees/invoices.controller';
+import { InMemoryPaymentRepository } from '../modules/fees/payment.repository';
+import { PaymentService } from '../modules/fees/payment.service';
+import { PaymentsController } from '../modules/fees/payments.controller';
 import { EntitlementsService } from '../modules/entitlements/entitlements.service';
 import { InMemoryInstituteRepository } from '../modules/institutes/institute.repository';
 import { InstituteService } from '../modules/institutes/institute.service';
@@ -145,6 +148,14 @@ export function buildTestApp() {
     ids,
     clock,
   });
+  const paymentService = new PaymentService({
+    payments: new InMemoryPaymentRepository(invoiceRepository),
+    invoices: invoiceRepository,
+    students: studentService,
+    institutes: instituteService,
+    ids,
+    clock,
+  });
   const authService = new AuthService({
     otp: otpService,
     users: userService,
@@ -163,7 +174,8 @@ export function buildTestApp() {
       consentService,
       invoiceService,
     ),
-    invoicesController: new InvoicesController(invoiceService),
+    invoicesController: new InvoicesController(invoiceService, paymentService),
+    paymentsController: new PaymentsController(paymentService),
     consentController: new ConsentController(consentService),
     enrollmentsController: new EnrollmentsController(enrollmentService, invoiceService),
     attendanceController: new AttendanceController(attendanceService),

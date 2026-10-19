@@ -42,8 +42,12 @@ export { GuardianConsentBody } from './schemas/messaging';
 export {
   CloseInvoiceBody,
   CreateManualInvoiceBody,
+  FeeDashboardQuery,
   INVOICE_STATUS_VALUES,
   ListInvoicesQuery,
+  ListPaymentsQuery,
+  RecordPaymentBody,
+  VoidPaymentBody,
 } from './schemas/fees';
 export {
   ATTENDANCE_STATUSES,
