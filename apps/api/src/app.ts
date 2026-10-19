@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { createAuthGuard } from './http/auth-guard';
 import { registerErrorHandler } from './http/error-handler';
+import { createTenancyGuard, type MembershipLookup } from './http/tenancy-guard';
 import type { JwtAccessTokens } from './modules/auth/access-tokens';
 import type { AuthController } from './modules/auth/auth.controller';
 import { registerAuthRoutes } from './modules/auth/auth.routes';
@@ -16,6 +17,7 @@ export interface AppDependencies {
   meController: MeController;
   institutesController: InstitutesController;
   accessTokens: JwtAccessTokens;
+  memberships: MembershipLookup;
   isReady: () => Promise<boolean>;
 }
 
@@ -35,10 +37,12 @@ export function buildApp(deps: AppDependencies, options: AppOptions = {}): Fasti
 
   // Every request starts with auth = null; the guard fills it in on protected routes (9a).
   app.decorateRequest('auth', null);
+  app.decorateRequest('tenant', null);
   registerErrorHandler(app);
 
   // ONE guard instance, created here and handed to every module that has protected routes.
   const requireAuth = createAuthGuard(deps.accessTokens);
+  const requireMember = createTenancyGuard(deps.memberships);
 
   // /health = "is the process alive?"; /ready = "can it serve traffic?" (Redis + Postgres reachable).
   // A load balancer stops sending traffic to an instance whose /ready returns 503.
@@ -49,7 +53,7 @@ export function buildApp(deps: AppDependencies, options: AppOptions = {}): Fasti
 
   registerAuthRoutes(app, deps.authController);
   registerUserRoutes(app, deps.meController, requireAuth);
-  registerInstituteRoutes(app, deps.institutesController, requireAuth);
+  registerInstituteRoutes(app, deps.institutesController, { requireAuth, requireMember });
 
   return app;
 }

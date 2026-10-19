@@ -10,6 +10,11 @@ export interface NewInstituteInput {
   city?: string | null;
 }
 
+export interface DetailsChanges {
+  name?: string;
+  city?: string | null;
+}
+
 export interface BillingSettingsChanges {
   billingDay?: number;
   dueAfterDays?: number;
@@ -95,6 +100,13 @@ export class Institute {
     assertBillingDay(props.billingDay);
     assertDueAfterDays(props.dueAfterDays);
     return new Institute(props);
+  }
+
+  /** Returns a new Institute with a changed name and/or city (same rules as create). */
+  withDetails(changes: DetailsChanges): Institute {
+    const name = changes.name === undefined ? this.name : cleanName(changes.name);
+    const city = changes.city === undefined ? this.city : cleanCity(changes.city);
+    return new Institute({ ...this.toProps(), name, city });
   }
 
   /** Returns a new Institute with changed billing settings. Applies from the NEXT period (LLD §6.1). */

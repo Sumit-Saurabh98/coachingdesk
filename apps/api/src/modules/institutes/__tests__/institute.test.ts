@@ -99,3 +99,20 @@ describe('Institute.restore', () => {
     );
   });
 });
+
+describe('Institute.withDetails', () => {
+  it('changes name and city with the same rules as create', () => {
+    const changed = create({ city: 'Pune' }).withDetails({ name: ' New  Name ', city: null });
+    expect(changed.name).toBe('New Name');
+    expect(changed.city).toBeNull();
+  });
+
+  it('keeps fields that were not sent', () => {
+    const changed = create({ city: 'Pune' }).withDetails({ name: 'New Name' });
+    expect(changed.city).toBe('Pune');
+  });
+
+  it('rejects a bad name', () => {
+    expect(() => create().withDetails({ name: 'A' })).toThrow(fieldError('name'));
+  });
+});

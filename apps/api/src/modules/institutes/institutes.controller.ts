@@ -1,6 +1,7 @@
-import { CreateInstituteBody } from '@coachingdesk/shared';
+import { CreateInstituteBody, UpdateInstituteBody } from '@coachingdesk/shared';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { currentUserId } from '../../http/auth-guard';
+import { currentTenant } from '../../http/tenancy-guard';
 import type { InstituteService } from './institute.service';
 
 export class InstitutesController {
@@ -20,5 +21,19 @@ export class InstitutesController {
         trialEndsAt: created.trialEndsAt.toISOString(),
       },
     });
+  }
+
+  /** GET /v1/institutes/:instituteId (any member) -> 200 { institute, role } */
+  async get(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+    const tenant = currentTenant(request);
+    const institute = await this.institutes.get(tenant.instituteId);
+    await reply.status(200).send({ institute: institute.toPublicJSON(), role: tenant.role });
+  }
+
+  /** PATCH /v1/institutes/:instituteId (owner only) -> 200 { institute } */
+  async update(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+    const body = UpdateInstituteBody.parse(request.body);
+    const institute = await this.institutes.update(currentTenant(request).instituteId, body);
+    await reply.status(200).send({ institute: institute.toPublicJSON() });
   }
 }

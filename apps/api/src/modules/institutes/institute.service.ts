@@ -1,6 +1,11 @@
-import type { Clock, IdGenerator } from '@coachingdesk/shared';
+import { AppError, type Clock, type IdGenerator } from '@coachingdesk/shared';
 import type { UserService } from '../users/user.service';
-import { Institute, type NewInstituteInput } from './institute';
+import {
+  type BillingSettingsChanges,
+  type DetailsChanges,
+  Institute,
+  type NewInstituteInput,
+} from './institute';
 import type { InstituteRepository, MemberRole, Membership } from './institute.repository';
 
 const TRIAL_DAYS = 30; // KNOWLEDGE_BASE §3: 30 days of Pro on signup
@@ -53,5 +58,26 @@ export class InstituteService {
 
   async findMembership(instituteId: string, userId: string): Promise<Membership | null> {
     return this.deps.institutes.findMembership(instituteId, userId);
+  }
+
+  /** Called only behind the tenancy guard, so the institute id is already a verified membership. */
+  async get(instituteId: string): Promise<Institute> {
+    const institute = await this.deps.institutes.findById(instituteId);
+    if (!institute) {
+      throw new AppError('NOT_FOUND', 'Institute not found');
+    }
+    return institute;
+  }
+
+  /** PATCH /v1/institutes/:id (owner only). The entity applies the rules; we load, change, save. */
+  async update(
+    instituteId: string,
+    changes: DetailsChanges & BillingSettingsChanges,
+  ): Promise<Institute> {
+    const updated = (await this.get(instituteId))
+      .withDetails({ name: changes.name, city: changes.city })
+      .withBillingSettings({ billingDay: changes.billingDay, dueAfterDays: changes.dueAfterDays });
+    await this.deps.institutes.update(updated);
+    return updated;
   }
 }

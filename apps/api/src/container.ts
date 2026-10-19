@@ -86,6 +86,7 @@ export function createContainer(config: Config): Container {
     authController: new AuthController({ otpService, authService, sessionService }),
     meController: new MeController(userService, instituteService),
     institutesController: new InstitutesController(instituteService),
+    memberships: instituteService,
     accessTokens,
     // Ready = BOTH Redis and Postgres answer. Otherwise the load balancer sends traffic elsewhere.
     isReady: async () => {

@@ -94,3 +94,111 @@ describe('POST /v1/institutes', () => {
     ).toBe(401);
   });
 });
+
+describe('tenancy: /v1/institutes/:instituteId', () => {
+  const get = (token: string, id: string) =>
+    app.inject({
+      method: 'GET',
+      url: `/v1/institutes/${id}`,
+      headers: { authorization: `Bearer ${token}` },
+    });
+  const patch = (token: string, id: string, payload: Record<string, unknown>) =>
+    app.inject({
+      method: 'PATCH',
+      url: `/v1/institutes/${id}`,
+      headers: { authorization: `Bearer ${token}` },
+      payload,
+    });
+
+  async function ownerWithInstitute() {
+    const owner = await loginOverHttp(app, '9876543210');
+    const created = await createInstitute(owner.accessToken, {
+      name: 'Sharma Classes',
+      type: 'tuition',
+    });
+    return { owner, instituteId: created.json().institute.id as string };
+  }
+
+  it('lets a member read their institute, with their role', async () => {
+    setup();
+    const { owner, instituteId } = await ownerWithInstitute();
+
+    const response = await get(owner.accessToken, instituteId);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      institute: { id: instituteId, name: 'Sharma Classes' },
+      role: 'owner',
+    });
+  });
+
+  // THE most important test in the app: one institute's data never leaks to another user.
+  it('answers 404 to a non-member, exactly like an institute that does not exist', async () => {
+    setup();
+    const { instituteId } = await ownerWithInstitute();
+    const stranger = await loginOverHttp(app, '9123456789');
+
+    const someoneElses = await get(stranger.accessToken, instituteId);
+    const nonExistent = await get(stranger.accessToken, '00000000-0000-7000-8000-00000000ffff');
+
+    expect(someoneElses.statusCode).toBe(404);
+    expect(nonExistent.statusCode).toBe(404);
+    // Same body shape and message: nothing tells the stranger which one actually exists.
+    expect(someoneElses.json().error).toEqual(nonExistent.json().error);
+  });
+
+  it('also blocks non-members from editing', async () => {
+    setup();
+    const { instituteId } = await ownerWithInstitute();
+    const stranger = await loginOverHttp(app, '9123456789');
+
+    expect((await patch(stranger.accessToken, instituteId, { name: 'Hacked' })).statusCode).toBe(
+      404,
+    );
+  });
+
+  it('answers 404 (not 500) for an id that is not even a UUID', async () => {
+    setup();
+    const owner = await loginOverHttp(app);
+    expect((await get(owner.accessToken, 'not-a-uuid')).statusCode).toBe(404);
+  });
+
+  it('lets the owner change settings, with the entity rules applied', async () => {
+    setup();
+    const { owner, instituteId } = await ownerWithInstitute();
+
+    const ok = await patch(owner.accessToken, instituteId, { billingDay: 5, city: ' Pune ' });
+    expect(ok.statusCode).toBe(200);
+    expect(ok.json().institute).toMatchObject({
+      billingDay: 5,
+      city: 'Pune',
+      name: 'Sharma Classes',
+    });
+
+    const bad = await patch(owner.accessToken, instituteId, { billingDay: 31 });
+    expect(bad.statusCode).toBe(422);
+    expect(bad.json().error.details).toEqual({ field: 'billingDay' });
+  });
+
+  it('lets a teacher read but not change settings (403)', async () => {
+    const { instituteRepository } = setup();
+    const { instituteId } = await ownerWithInstitute();
+    const teacher = await loginOverHttp(app, '9123456789');
+    instituteRepository.addMember({ instituteId, userId: teacher.user.id, role: 'teacher' });
+
+    const read = await get(teacher.accessToken, instituteId);
+    expect(read.statusCode).toBe(200);
+    expect(read.json().role).toBe('teacher');
+
+    const write = await patch(teacher.accessToken, instituteId, { billingDay: 5 });
+    expect(write.statusCode).toBe(403);
+    expect(write.json().error.code).toBe('FORBIDDEN');
+  });
+
+  it('requires login before anything else (401)', async () => {
+    setup();
+    const { instituteId } = await ownerWithInstitute();
+    const response = await app.inject({ method: 'GET', url: `/v1/institutes/${instituteId}` });
+    expect(response.statusCode).toBe(401);
+  });
+});

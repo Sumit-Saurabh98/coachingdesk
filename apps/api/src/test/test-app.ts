@@ -65,6 +65,7 @@ export function buildTestApp() {
     authController: new AuthController({ otpService, authService, sessionService }),
     meController: new MeController(userService, instituteService),
     institutesController: new InstitutesController(instituteService),
+    memberships: instituteService,
     accessTokens,
     isReady: async () => true,
   });
