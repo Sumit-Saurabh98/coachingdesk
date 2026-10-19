@@ -92,6 +92,13 @@
       "when": 1792442745122,
       "tag": "0012_broad_shaman",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792445838878,
+      "tag": "0013_abnormal_snowbird",
+      "breakpoints": true
     }
   ]
 }

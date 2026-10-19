@@ -24,9 +24,18 @@ export interface BillingSettingsChanges {
 export interface InstituteSettings {
   absenceAlerts: boolean; // FR-3.3: "if absence alerts are enabled"
   messageLanguage: 'en' | 'hi';
+  /**
+   * FR-5.1: days BEFORE the due date to send a fee reminder (0 = on the due date, negative =
+   * after it). Default: 3 before, on the day, 3 and 7 after. [] = automatic reminders off.
+   */
+  reminderOffsets: number[];
 }
 
-const DEFAULT_SETTINGS: InstituteSettings = { absenceAlerts: true, messageLanguage: 'en' };
+const DEFAULT_SETTINGS: InstituteSettings = {
+  absenceAlerts: true,
+  messageLanguage: 'en',
+  reminderOffsets: [3, 0, -3, -7],
+};
 
 /**
  * Reads the stored JSON leniently: missing or unknown keys fall back to the defaults, so an
@@ -38,7 +47,18 @@ export function parseSettings(json: unknown): InstituteSettings {
     absenceAlerts:
       typeof raw.absenceAlerts === 'boolean' ? raw.absenceAlerts : DEFAULT_SETTINGS.absenceAlerts,
     messageLanguage: raw.messageLanguage === 'hi' ? 'hi' : DEFAULT_SETTINGS.messageLanguage,
+    reminderOffsets: parseOffsets(raw.reminderOffsets),
   };
+}
+
+/** Whole days within a month either side, no repeats, at most 6; anything else -> default. */
+function parseOffsets(value: unknown): number[] {
+  const valid =
+    Array.isArray(value) &&
+    value.length <= 6 &&
+    value.every((n) => Number.isInteger(n) && n >= -30 && n <= 30) &&
+    new Set(value).size === value.length;
+  return valid ? [...(value as number[])] : [...DEFAULT_SETTINGS.reminderOffsets];
 }
 
 /** Every field of an institute, as stored. Used by restore() when loading from the database. */
@@ -111,7 +131,7 @@ export class Institute {
       dueAfterDays: DEFAULT_DUE_AFTER_DAYS,
       createdBy,
       archivedAt: null,
-      settings: { ...DEFAULT_SETTINGS },
+      settings: { ...DEFAULT_SETTINGS, reminderOffsets: [...DEFAULT_SETTINGS.reminderOffsets] },
     });
   }
 

@@ -119,20 +119,25 @@ describe('Institute.withDetails', () => {
 
 describe('settings', () => {
   it('a new institute has absence alerts on and English messages', () => {
-    expect(create().settings).toEqual({ absenceAlerts: true, messageLanguage: 'en' });
+    expect(create().settings).toEqual({
+      absenceAlerts: true,
+      messageLanguage: 'en',
+      reminderOffsets: [3, 0, -3, -7],
+    });
   });
 
+  const defaults = { absenceAlerts: true, messageLanguage: 'en', reminderOffsets: [3, 0, -3, -7] };
+
   it.each([
-    [{}, { absenceAlerts: true, messageLanguage: 'en' }],
+    [{}, defaults],
     [
-      { absenceAlerts: false, messageLanguage: 'hi' },
-      { absenceAlerts: false, messageLanguage: 'hi' },
+      { absenceAlerts: false, messageLanguage: 'hi', reminderOffsets: [1, -1] },
+      { absenceAlerts: false, messageLanguage: 'hi', reminderOffsets: [1, -1] },
     ],
-    [
-      { absenceAlerts: 'yes', messageLanguage: 'fr', quietHours: {} },
-      { absenceAlerts: true, messageLanguage: 'en' },
-    ],
-    [null, { absenceAlerts: true, messageLanguage: 'en' }],
+    [{ reminderOffsets: [] }, { ...defaults, reminderOffsets: [] }], // reminders off
+    [{ absenceAlerts: 'yes', messageLanguage: 'fr', reminderOffsets: [1, 1.5, 99] }, defaults],
+    [{ reminderOffsets: [1, 1] }, defaults], // repeats
+    [null, defaults],
   ])('parseSettings(%j) -> %j (lenient, with defaults)', (json, expected) => {
     expect(parseSettings(json)).toEqual(expected);
   });

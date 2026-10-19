@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import {
   check,
+  date,
   index,
   integer,
   jsonb,
@@ -97,5 +98,25 @@ export const messageOutbox = pgTable(
     ),
     check('message_outbox_priority_check', sql`${t.priority} between 1 and 4`),
     check('message_outbox_attempts_check', sql`${t.attempts} >= 0`),
+  ],
+);
+
+/**
+ * Automatic messages SENT per institute per (institute-local) day. Enforces the plan's monthly
+ * quota (sum of the month's days), the new-institute/trial daily cap, and the trial total
+ * (FR-5.6, FR-5.9; LLD §6.8). One small table instead of two: the month and trial totals are sums.
+ */
+export const messageUsage = pgTable(
+  'message_usage',
+  {
+    instituteId: uuid()
+      .notNull()
+      .references(() => institutes.id),
+    day: date({ mode: 'string' }).notNull(),
+    sent: integer().notNull().default(0),
+  },
+  (t) => [
+    primaryKey({ columns: [t.instituteId, t.day] }),
+    check('message_usage_sent_check', sql`${t.sent} >= 0`),
   ],
 );
