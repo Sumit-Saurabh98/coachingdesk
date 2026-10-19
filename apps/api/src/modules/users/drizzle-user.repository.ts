@@ -65,6 +65,10 @@ export class DrizzleUserRepository implements UserRepository {
       throw new Error(`DrizzleUserRepository: no user ${user.id}`);
     }
   }
+
+  async delete(userId: string): Promise<void> {
+    await this.db.delete(users).where(eq(users.id, userId));
+  }
 }
 
 // Row (database shape) -> entity (domain shape). Kept in one place.

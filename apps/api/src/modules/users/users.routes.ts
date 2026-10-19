@@ -17,4 +17,7 @@ export function registerUserRoutes(
   app.patch('/v1/me', { preHandler: requireAuth }, (request, reply) =>
     controller.updateMe(request, reply),
   );
+  app.delete('/v1/me', { preHandler: requireAuth }, (request, reply) =>
+    controller.deleteMe(request, reply),
+  );
 }

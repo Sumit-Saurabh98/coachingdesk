@@ -41,6 +41,10 @@ export interface InstituteRepository {
   listMembers(instituteId: string): Promise<Membership[]>;
   /** Removes a NON-owner member. Returns false if there was no such member. */
   removeMember(instituteId: string, userId: string): Promise<boolean>;
+  /** Is the user the owner of any institute? (Account deletion is refused while they are.) */
+  ownsAnyInstitute(userId: string): Promise<boolean>;
+  /** Removes the user from every institute where they are NOT the owner. */
+  removeAllMembershipsOf(userId: string): Promise<void>;
 }
 
 /** Tests and local dev only. */
@@ -132,6 +136,19 @@ export class InMemoryInstituteRepository implements InstituteRepository {
     }
     this.memberships.splice(index, 1);
     return true;
+  }
+
+  async ownsAnyInstitute(userId: string): Promise<boolean> {
+    return this.memberships.some((m) => m.userId === userId && m.role === 'owner');
+  }
+
+  async removeAllMembershipsOf(userId: string): Promise<void> {
+    for (let i = this.memberships.length - 1; i >= 0; i--) {
+      const m = this.memberships[i];
+      if (m && m.userId === userId && m.role !== 'owner') {
+        this.memberships.splice(i, 1);
+      }
+    }
   }
 
   /** TEST HELPER ONLY: add a member directly, skipping the plan limit. */

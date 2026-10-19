@@ -54,6 +54,10 @@ export class DrizzleRefreshTokenRepository implements RefreshTokenRepository {
       .set({ revokedAt: now })
       .where(and(eq(refreshTokens.familyId, familyId), isNull(refreshTokens.revokedAt)));
   }
+
+  async deleteAllForUser(userId: string): Promise<void> {
+    await this.db.delete(refreshTokens).where(eq(refreshTokens.userId, userId));
+  }
 }
 
 function toRecord(row: RefreshTokenRow): RefreshTokenRecord {

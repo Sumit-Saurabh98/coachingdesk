@@ -150,6 +150,20 @@ export class DrizzleInstituteRepository implements InstituteRepository {
       .returning({ userId: memberships.userId });
     return removed.length > 0;
   }
+
+  async ownsAnyInstitute(userId: string): Promise<boolean> {
+    const count = await this.db.$count(
+      memberships,
+      and(eq(memberships.userId, userId), eq(memberships.role, 'owner')),
+    );
+    return count > 0;
+  }
+
+  async removeAllMembershipsOf(userId: string): Promise<void> {
+    await this.db
+      .delete(memberships)
+      .where(and(eq(memberships.userId, userId), ne(memberships.role, 'owner')));
+  }
 }
 
 function toInstitute(row: InstituteRow): Institute {

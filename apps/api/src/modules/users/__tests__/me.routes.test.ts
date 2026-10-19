@@ -105,3 +105,77 @@ describe('PATCH /v1/me', () => {
     expect(response.statusCode).toBe(401);
   });
 });
+
+describe('DELETE /v1/me', () => {
+  const deleteMe = (token?: string) =>
+    app.inject({
+      method: 'DELETE',
+      url: '/v1/me',
+      headers: token ? { authorization: `Bearer ${token}` } : {},
+    });
+
+  it('204: the account is gone; its refresh token no longer works', async () => {
+    setup();
+    const login = await loginOverHttp(app);
+
+    expect((await deleteMe(login.accessToken)).statusCode).toBe(204);
+
+    expect((await getMe(login.accessToken)).statusCode).toBe(401);
+    const refresh = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/refresh',
+      payload: { refreshToken: login.refreshToken },
+    });
+    expect(refresh.statusCode).toBe(401);
+  });
+
+  it('the same phone can sign up again afterwards, as a NEW user', async () => {
+    setup();
+    const first = await loginOverHttp(app);
+    await deleteMe(first.accessToken);
+
+    const again = await loginOverHttp(app);
+
+    expect(again.user.id).not.toBe(first.user.id);
+  });
+
+  it('409 OWNER_OF_INSTITUTES while the user owns an institute; nothing is deleted', async () => {
+    setup();
+    const login = await loginOverHttp(app);
+    await app.inject({
+      method: 'POST',
+      url: '/v1/institutes',
+      headers: { authorization: `Bearer ${login.accessToken}` },
+      payload: { name: 'Sharma Classes', type: 'tuition' },
+    });
+
+    const response = await deleteMe(login.accessToken);
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json().error.code).toBe('OWNER_OF_INSTITUTES');
+    expect((await getMe(login.accessToken)).statusCode).toBe(200);
+  });
+
+  it('a teacher can delete their account; they leave the institute', async () => {
+    const { instituteRepository } = setup();
+    const owner = await loginOverHttp(app);
+    const created = await app.inject({
+      method: 'POST',
+      url: '/v1/institutes',
+      headers: { authorization: `Bearer ${owner.accessToken}` },
+      payload: { name: 'Sharma Classes', type: 'tuition' },
+    });
+    const instituteId: string = created.json().institute.id;
+    const teacher = await loginOverHttp(app, '9123456789');
+    instituteRepository.addMember({ instituteId, userId: teacher.user.id, role: 'teacher' });
+
+    expect((await deleteMe(teacher.accessToken)).statusCode).toBe(204);
+
+    expect(await instituteRepository.findMembership(instituteId, teacher.user.id)).toBeNull();
+  });
+
+  it('401 without a token', async () => {
+    setup();
+    expect((await deleteMe()).statusCode).toBe(401);
+  });
+});

@@ -49,4 +49,8 @@ export class UserService {
     }
     return user;
   }
+
+  async delete(userId: string): Promise<void> {
+    await this.users.delete(userId);
+  }
 }

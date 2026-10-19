@@ -26,6 +26,8 @@ export interface RefreshTokenRepository {
   rotate(oldId: string, replacement: RefreshTokenRecord, now: Date): Promise<boolean>;
   /** Revokes every still-active token of a login (a "family"). Used by logout and reuse detection. */
   revokeFamily(familyId: string, now: Date): Promise<void>;
+  /** Deletes every token of the user (account deletion: the rows must go before the user row). */
+  deleteAllForUser(userId: string): Promise<void>;
 }
 
 /** Tests and local dev only. */
@@ -60,6 +62,14 @@ export class InMemoryRefreshTokenRepository implements RefreshTokenRepository {
     for (const record of this.records.values()) {
       if (record.familyId === familyId && record.revokedAt === null) {
         record.revokedAt = now;
+      }
+    }
+  }
+
+  async deleteAllForUser(userId: string): Promise<void> {
+    for (const [id, record] of this.records) {
+      if (record.userId === userId) {
+        this.records.delete(id);
       }
     }
   }

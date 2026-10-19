@@ -123,7 +123,7 @@ export function createContainer(config: Config): Container {
 
   return {
     authController: new AuthController({ otpService, authService, sessionService }),
-    meController: new MeController(userService, instituteService),
+    meController: new MeController(userService, instituteService, sessionService),
     institutesController: new InstitutesController(instituteService),
     membersController: new MembersController(instituteService),
     batchesController: new BatchesController(batchService, enrollmentService),

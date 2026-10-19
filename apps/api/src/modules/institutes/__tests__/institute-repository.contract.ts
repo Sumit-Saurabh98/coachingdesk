@@ -120,6 +120,20 @@ export function describeInstituteRepositoryContract(
         expect(await repo.listMembers(instituteId(1))).toHaveLength(2);
       });
 
+      it('knows owners, and removes all NON-owner memberships of a user', async () => {
+        const repo = create();
+        await repo.createWithOwner(newInstitute(1), trial);
+        await repo.addMemberWithinLimit(teacher, 5);
+
+        expect(await repo.ownsAnyInstitute(CONTRACT_OWNER_ID)).toBe(true);
+        expect(await repo.ownsAnyInstitute(CONTRACT_OTHER_USER_ID)).toBe(false);
+
+        await repo.removeAllMembershipsOf(CONTRACT_OTHER_USER_ID);
+        await repo.removeAllMembershipsOf(CONTRACT_OWNER_ID); // owners are never removed this way
+
+        expect((await repo.listMembers(instituteId(1))).map((m) => m.role)).toEqual(['owner']);
+      });
+
       it('removes a member, never the owner', async () => {
         const repo = create();
         await repo.createWithOwner(newInstitute(1), trial);

@@ -75,6 +75,11 @@ export class SessionService {
   }
 
   /** Ends this login on every device that shares it. Unknown tokens are ignored (logout is idempotent). */
+  /** Account deletion: every session of the user ends, on every device. */
+  async endAllSessions(userId: string): Promise<void> {
+    await this.deps.refreshTokens.deleteAllForUser(userId);
+  }
+
   async logout(refreshToken: string): Promise<void> {
     const current = await this.deps.refreshTokens.findByHash(hashToken(refreshToken));
     if (current) {

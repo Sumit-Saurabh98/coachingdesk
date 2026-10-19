@@ -159,6 +159,14 @@ export class InstituteService {
     }
     throw new AppError('NOT_FOUND', 'Member not found');
   }
+
+  async ownsAnyInstitute(userId: string): Promise<boolean> {
+    return this.deps.institutes.ownsAnyInstitute(userId);
+  }
+
+  async removeAllMembershipsOf(userId: string): Promise<void> {
+    await this.deps.institutes.removeAllMembershipsOf(userId);
+  }
 }
 
 function toView(user: User, role: MemberRole): MemberView {

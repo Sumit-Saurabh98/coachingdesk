@@ -53,6 +53,16 @@ export function describeUserRepositoryContract(name: string, create: () => UserR
       expect(await users.findByIds([])).toEqual([]);
     });
 
+    it('deletes a user: gone by id and by phone (the phone can sign up again)', async () => {
+      const users = create();
+      await users.findOrCreateByPhone(phone, id1);
+
+      await users.delete(id1);
+
+      expect(await users.findById(id1)).toBeNull();
+      expect((await users.findOrCreateByPhone(phone, id2)).created).toBe(true);
+    });
+
     // NEW in 9d
     it('saves profile changes', async () => {
       const users = create();

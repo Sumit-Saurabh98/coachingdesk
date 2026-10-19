@@ -12,6 +12,8 @@ export interface UserRepository {
   findByIds(ids: readonly string[]): Promise<User[]>;
   /** Saves the user's profile fields (name, locale). The phone never changes here. */
   updateProfile(user: User): Promise<void>;
+  /** Deletes the user row. Rows pointing at it (tokens, memberships) must be gone first. */
+  delete(userId: string): Promise<void>;
 }
 
 /** Tests and local dev only. */
@@ -48,5 +50,9 @@ export class InMemoryUserRepository implements UserRepository {
     // Keep the STORED phone, take only the profile fields, exactly like the SQL version does.
     // If the fake behaved differently from Postgres here, the contract test would catch it.
     this.byId.set(user.id, new User(existing.id, existing.phone, user.name, user.locale));
+  }
+
+  async delete(userId: string): Promise<void> {
+    this.byId.delete(userId);
   }
 }

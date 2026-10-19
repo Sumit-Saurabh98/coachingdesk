@@ -87,5 +87,18 @@ export function describeRefreshTokenRepositoryContract(
       expect((await repo.findByHash(b.tokenHash))?.revokedAt).toEqual(now);
       expect((await repo.findByHash(otherFamily.tokenHash))?.revokedAt).toBeNull();
     });
+
+    it("deletes all of a user's tokens (account deletion)", async () => {
+      const repo = create();
+      const a = record();
+      const b = record({ familyId: '00000000-0000-7000-9000-000000000002' });
+      await repo.create(a);
+      await repo.create(b);
+
+      await repo.deleteAllForUser(CONTRACT_USER_ID);
+
+      expect(await repo.findByHash(a.tokenHash)).toBeNull();
+      expect(await repo.findByHash(b.tokenHash)).toBeNull();
+    });
   });
 }
