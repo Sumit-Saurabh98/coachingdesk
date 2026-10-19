@@ -156,6 +156,7 @@ Each needs Hindi version. Template approval takes time — submit early.
 | 23 | 2026-10 | OTP only to +91 numbers; fixed-OTP reviewer number | Block SMS-pumping fraud; app-store review needs a login |
 | 24 | 2026-10 | Pay page falls back to the institute's own UPI ID (manual reconciliation) until payouts KYC is active | Tiny tutors may never finish KYC; they still get value |
 | 25 | 2026-10 | OOP + SOLID: value objects/entities, services with constructor-injected interfaces, repository interfaces, hand-written composition root | Founder preference and learning goal; clear seams for testing with fakes |
+| 26 | 2026-10 | `InstituteRepository.createWithOwner` writes institute + owner membership + initial trial subscription in ONE transaction — the only place one module writes another's table (`subscriptions`); the subscriptions module owns every later change | A half-created institute (no owner / no plan) must be impossible; cross-module 2-phase writes would be far more complex |
 
 ## 7. Open questions
 
