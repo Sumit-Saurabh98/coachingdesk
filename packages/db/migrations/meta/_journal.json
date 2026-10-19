@@ -29,6 +29,13 @@
       "when": 1792387476194,
       "tag": "0003_great_silhouette",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792388932527,
+      "tag": "0004_round_shinko_yamashiro",
+      "breakpoints": true
     }
   ]
 }
