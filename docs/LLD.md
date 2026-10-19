@@ -186,7 +186,8 @@ payments (                                -- money received; one row per provide
   amount_paise bigint not null check (amount_paise > 0),
   method text check (method in ('upi_link','cash','bank','other')),
   provider text, provider_payment_id text unique,  -- null for offline
-  payment_link_id uuid fk null,
+  payment_link_id uuid fk null,           -- FK added with payment_links
+  idempotency_key text,                   -- unique (institute_id, idempotency_key): AGENTS rule 6
   status text not null default 'active' check (status in ('active','voided','refunded')),
   voided_at timestamptz, voided_by uuid, void_reason text,
   recorded_by uuid null, note text,
@@ -589,7 +590,7 @@ enqueue receipt message (dedupe_key = "receipt:" + payment_id)
 enqueue payment-links.reconcile for each touched invoice
 ```
 - A payment can arrive on a link we already cancelled (provider race). It is processed exactly the same way; anything that no longer fits goes to credit and the owner sees it.
-- Offline payment (`POST /invoices/{id}/payments`): same transaction shape with a single target invoice; amount above `remaining` goes to credit.
+- Offline payment (`POST /invoices/{id}/payments`): same transaction shape with a single target invoice (`SELECT … FOR UPDATE` on it); amount above `remaining` goes to credit. A paid/waived/cancelled invoice → `409`. Implemented in `DrizzlePaymentRepository.recordForInvoice`; a repeated `Idempotency-Key` returns the first payment (also when two requests race: the loser hits the unique key and replays).
 - Refund webhooks (`refund.processed`): full refund → treat as a void of that payment (§6.7, `status='refunded'`). Partial refund → no automatic change; alert the owner to fix it manually. Refunds are initiated from the provider dashboard in MVP.
 
 ### 6.5 Offline attendance sync

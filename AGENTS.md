@@ -56,7 +56,7 @@ pnpm db:generate              # create migration after schema change
 3. **Time:** inject `Clock`; never call `new Date()` / `Date.now()` in services. Store UTC; business dates are institute-local `date`s. Use `packages/shared/src/dates.ts`.
 4. **Messages:** never call a messaging provider directly from API code. Insert into `message_outbox` (with a `dedupe_key`) and let the worker send. **Only exception:** login OTPs, which the `auth` module sends synchronously via `SmsProvider` because the user is waiting on the screen (still rate-limited, never logged).
 5. **Webhooks:** verify signature → persist to `webhook_events` → enqueue → return 200. No business logic in the handler.
-6. **Idempotency:** mutating endpoints accept `Idempotency-Key`; jobs must be safe to run twice (use unique constraints + `ON CONFLICT`).
+6. **Idempotency:** mutating endpoints accept `Idempotency-Key`; jobs must be safe to run twice (use unique constraints + `ON CONFLICT`). Pattern (first used by record-payment): store the key with `unique (institute_id, key)`; a repeat returns the first result with `200`.
 7. **Validation:** Zod schemas live in `packages/shared` and are used by API, mobile, and web. Do not duplicate types by hand.
 8. **Entitlements:** check plan limits via the `entitlements` service, never by comparing plan names in feature code.
 9. **PII:** don't log phone numbers (mask), OTPs, tokens, or payloads with guardian data.

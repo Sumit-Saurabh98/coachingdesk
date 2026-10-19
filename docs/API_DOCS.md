@@ -230,17 +230,18 @@ PUT body (`clientId` = a UUID the phone generated offline; a retry with the same
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/institutes/{id}/fees/dashboard?month=2026-10` | Totals + top overdue |
+| GET | `/institutes/{id}/fees/dashboard?month=2026-10` | Owner, staff. `month` (default: this month, institute time) only affects `collectedPaise`/`byMethod`; `pendingPaise`, `overdueCount`, `topOverdue` (top 10 students, largest overdue first) are as of now |
 | GET | `/institutes/{id}/invoices` | Owner, staff. `?status=due,partially_paid&studentId&batchId&overdue=true&limit=1–200 (100)` → `200 { invoices }`, oldest due date first. `overdue` = open and due before today (institute time) |
-| GET | `/institutes/{id}/invoices/{invoiceId}` | Owner, staff → `200 { invoice }`. Payments and messages sent are added with Steps 17–18 |
+| GET | `/institutes/{id}/invoices/{invoiceId}` | Owner, staff → `200 { invoice, payments }`; each payment has `allocatedPaise` (what it paid on THIS invoice). Messages sent arrive with reminders |
 | POST | `/institutes/{id}/invoices` | Owner. Manual one-off invoice `{ studentId, amountPaise, discountPaise?, dueDate, description }` (`description` required, 1–200 chars; discount < amount) → `201 { invoice }` |
-| POST | `/institutes/{id}/invoices/{invoiceId}/payments` | Record offline payment. Amount above the remaining due is kept as guardian credit |
-| POST | `/institutes/{id}/payments/{paymentId}/void` | `{ reason }` — owner only, offline payments only. Reopens the invoice(s); audited. `409 CONFLICT` if already voided or if `method = upi_link` (refund via provider instead) |
+| POST | `/institutes/{id}/invoices/{invoiceId}/payments` | Owner, staff. Record an offline payment (body below; header `Idempotency-Key` recommended) → `201 { payment, invoice, creditPaise, replayed: false }`. Amount above the remaining due is kept as guardian credit. Same `Idempotency-Key` again → `200` with the first payment and `replayed: true` (nothing recorded twice). `409` if the invoice is paid, waived or cancelled; `422` for a future `paidAt` (> 5 min) or `method: upi_link` |
+| POST | `/institutes/{id}/payments/{paymentId}/void` | `{ reason }` — owner only, offline payments only → `200 { payment, invoices }`. Reopens the invoice(s) (waived/cancelled ones stay so). `409 CONFLICT` if already voided or if `method = upi_link` (refund via provider instead) |
 | POST | `/institutes/{id}/invoices/{invoiceId}/remind` | `{ force?: boolean }` → `{ scheduledFor }`. Refused with `409 ALREADY_REMINDED_TODAY` if the guardian already got a fee reminder today; `force` (owner only) allows one extra per day. Quiet hours always apply (scheduled for 08:00) |
 | POST | `/institutes/{id}/invoices/{invoiceId}/waive` | Owner. `{ reason }` → `200 { invoice }`. Only open invoices (`due`, `partially_paid`); otherwise `409` |
 | POST | `/institutes/{id}/invoices/{invoiceId}/cancel` | Owner. `{ reason }` → `200 { invoice }`. Only `due` invoices with nothing paid (part-paid: waive the rest instead); otherwise `409`. A concurrent change (e.g. a payment) → `409`, reload |
 | POST | `/institutes/{id}/invoices/{invoiceId}/share-link` | Mints a guardian pay-page token for this invoice's guardian → `{ url, whatsappText }` (Free plan manual share). POST because it creates a token |
-| GET | `/institutes/{id}/payments?from&to&method&status` | Collections list (`status=active` by default; voided/refunded shown when asked) |
+| GET | `/institutes/{id}/payments?from&to&method&status&limit` | Owner, staff. Collections list, newest first. `from`/`to` are institute-local days (inclusive); `status=active` by default |
+| GET | `/institutes/{id}/payments/{paymentId}` | Owner, staff → `200 { payment, allocations: [{ invoiceId, amountPaise }], creditPaise }` |
 
 Invoice object:
 ```json
@@ -259,15 +260,16 @@ Dashboard response:
   "overdueCount": 12,
   "byMethod": { "upi_link": 3100000, "cash": 1150000 },
   "topOverdue": [
-    { "studentId": "...", "name": "Aarav Sharma", "guardianPhone": "+9198XXXXX210", "overduePaise": 300000, "daysOverdue": 14 }
+    { "studentId": "...", "name": "Aarav Sharma", "guardianPhone": "+9198XXXXX210", "overduePaise": 300000, "daysOverdue": 14 }   // days since the OLDEST overdue due date
   ]
 }
 ```
 
-Record payment:
+Record payment (`method`: `cash` \| `bank` \| `other`; `paidAt` ISO 8601 with a zone, default now; `note` optional):
 ```json
 { "amountPaise": 150000, "method": "cash", "paidAt": "2026-10-18T09:00:00Z", "note": "Paid at center" }
 ```
+Payment object: `{ id, guardianPhone, amountPaise, method, status, paidAt, note, voidedAt, voidReason }`. Teachers get `403` on every fees endpoint.
 
 ## 9. Tests & results
 
