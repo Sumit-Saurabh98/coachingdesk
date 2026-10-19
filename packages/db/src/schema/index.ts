@@ -7,3 +7,4 @@ export * from './messaging';
 export * from './fees';
 export * from './audit';
 export * from './results';
+export * from './data-rights';

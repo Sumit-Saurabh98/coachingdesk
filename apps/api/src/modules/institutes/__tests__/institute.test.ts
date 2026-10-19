@@ -163,3 +163,19 @@ describe('Institute.withSettings', () => {
     },
   );
 });
+
+describe('deletion state', () => {
+  it('a new institute is not pending deletion', () => {
+    expect(create().isPendingDeletion).toBe(false);
+    expect(create().purgeAfter).toBeNull();
+  });
+
+  it('purge may run 30 days after the request', () => {
+    const requested = Institute.restore({
+      ...create().toProps(),
+      deletionRequestedAt: new Date('2026-10-20T10:00:00Z'),
+    });
+    expect(requested.isPendingDeletion).toBe(true);
+    expect(requested.purgeAfter).toEqual(new Date('2026-11-19T10:00:00Z'));
+  });
+});

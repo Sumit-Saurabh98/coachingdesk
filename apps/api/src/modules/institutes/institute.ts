@@ -73,7 +73,13 @@ export interface InstituteProps {
   createdBy: string;
   archivedAt: Date | null;
   settings: InstituteSettings;
+  /** Owner asked to delete the institute (FR-7.7); null = not pending. */
+  deletionRequestedAt: Date | null;
 }
+
+/** FR-7.7: a deleted institute can be restored for 30 days, then everything is purged. */
+export const DELETION_UNDO_DAYS = 30;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 // Defaults from docs/LLD.md §2.1 and KNOWLEDGE_BASE §3: bill on the 1st, due 6 days later (the 7th).
 const DEFAULT_TIMEZONE = 'Asia/Kolkata';
@@ -97,6 +103,7 @@ export class Institute {
   readonly createdBy: string;
   readonly archivedAt: Date | null;
   readonly settings: InstituteSettings;
+  readonly deletionRequestedAt: Date | null;
 
   // private: the only ways in are create() (new, validated) and restore() (from storage).
   // With 9 fields, a props OBJECT is safer than 9 positional parameters you could mix up.
@@ -111,6 +118,7 @@ export class Institute {
     this.createdBy = props.createdBy;
     this.archivedAt = props.archivedAt;
     this.settings = props.settings;
+    this.deletionRequestedAt = props.deletionRequestedAt;
   }
 
   /**
@@ -132,6 +140,7 @@ export class Institute {
       createdBy,
       archivedAt: null,
       settings: { ...DEFAULT_SETTINGS, reminderOffsets: [...DEFAULT_SETTINGS.reminderOffsets] },
+      deletionRequestedAt: null,
     });
   }
 
@@ -233,7 +242,19 @@ export class Institute {
       createdBy: this.createdBy,
       archivedAt: this.archivedAt,
       settings: this.settings,
+      deletionRequestedAt: this.deletionRequestedAt,
     };
+  }
+
+  get isPendingDeletion(): boolean {
+    return this.deletionRequestedAt !== null;
+  }
+
+  /** When the purge may run: 30 days after the request. null when not pending. */
+  get purgeAfter(): Date | null {
+    return this.deletionRequestedAt === null
+      ? null
+      : new Date(this.deletionRequestedAt.getTime() + DELETION_UNDO_DAYS * DAY_MS);
   }
 }
 

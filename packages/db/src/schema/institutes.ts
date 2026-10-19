@@ -29,7 +29,11 @@ export const institutes = pgTable(
     payoutStatus: text().notNull().default('not_started'),
     upiVpa: text(),
     messagingPausedAt: timestamp({ withTimezone: true }),
+    // Institute deletion (FR-7.7): set on request, cleared on cancel; purged 30 days later.
     deletionRequestedAt: timestamp({ withTimezone: true }),
+    // Set by the purge: every tenant row is gone; this row stays as a tombstone for OUR
+    // billing records (KB #44). archivedAt is set at the same time.
+    purgedAt: timestamp({ withTimezone: true }),
     createdBy: uuid()
       .notNull()
       .references(() => users.id),

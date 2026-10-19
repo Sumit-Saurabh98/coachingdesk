@@ -196,6 +196,7 @@ function toInstitute(row: InstituteRow): Institute {
     createdBy: row.createdBy,
     archivedAt: row.archivedAt,
     settings: parseSettings(row.settings),
+    deletionRequestedAt: row.deletionRequestedAt,
   });
 }
 
