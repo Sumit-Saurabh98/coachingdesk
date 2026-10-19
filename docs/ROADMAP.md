@@ -21,7 +21,7 @@ Solo developer, ~12 weeks to a paid MVP. Each milestone ends with something demo
 ## Phase 2 — Attendance (Week 4)
 - [x] Attendance API + offline sync
 - [ ] Mobile: Today screen, one-tap attendance, offline queue
-- [ ] Outbox + send worker + WhatsApp provider; absence alerts (with late-sync expiry)
+- [ ] Outbox + send worker + WhatsApp provider; absence alerts (with late-sync expiry)  _(✅ outbox, worker, consent, absence alerts with expiry, quiet hours; ⏳ Meta WhatsApp sender needs the number)_
 - [ ] WhatsApp inbound: STOP/START, auto-reply, "Parent replies"; daily caps + quality guard
 - **Demo:** take attendance in airplane mode, sync, parent gets WhatsApp
 

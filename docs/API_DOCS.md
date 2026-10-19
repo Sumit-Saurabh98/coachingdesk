@@ -171,6 +171,7 @@ Create student:
 - `guardianPhone`: any common Indian format (`98765 43210`, `+91…`); stored and returned as E.164. Siblings may share it.
 - `joinedOn` default: today in the institute's time zone. `leftOn` ≥ `joinedOn`.
 - Name 2–80 chars, guardian name ≤ 80, notes ≤ 1000. `status` is never sent: only `/leave` changes it.
+- `guardianConsent: true` (create and bulk) records the guardian's WhatsApp consent (source `add_student`). Without consent no automatic message is sent to that guardian.
 
 Enrollment object (owner/staff):
 ```json
@@ -223,7 +224,7 @@ PUT body (`clientId` = a UUID the phone generated offline; a retry with the same
 - Statuses: `present`, `absent`, `late`, `leave`. 1–500 records, each student once.
 - **Merge:** another phone's sync for the same batch and date lands on the same session. Each sent mark replaces that student's mark; students not sent keep theirs. The sync the **server receives last** wins; `submittedAt` and record times are server time, never the phone's clock. The first phone's `clientId` and `takenBy` are kept.
 - `422`: `date` after tomorrow or more than 7 days back (`details.field = "date"`); a student not enrolled in the batch on that date (`details: { field: "records", studentIds }`); `clientId` not a UUID. `404` batch not in this institute; `409` archived batch, or `clientId` already used for another batch/date.
-- `alerts.status`: `queued`, `none_absent`, `already_sent`, `too_late`, `not_enabled`. Until the outbox ships (Phase 2) it is always `not_enabled` with `queued: 0`.
+- `alerts.status`: `queued` (one `absence_alert` per absent student queued in the outbox), `none_absent`, `already_sent` (alerts go out once per session; later edits don't resend, FR-3.4), `too_late` (synced at/after 10:00 the day after the class), `not_enabled` (plan without automatic messages, or the institute's `absenceAlerts` setting is off). Consent, quiet hours and "still absent?" are checked when the worker sends.
 
 ## 8. Fees
 
@@ -283,7 +284,10 @@ Record payment:
 | GET | `/institutes/{id}/messages?status&category&limit&cursor` — outbox log |
 | GET | `/institutes/{id}/messages/usage` — `{ month, used, limit, todayUsed, todayLimit }` |
 | GET | `/institutes/{id}/replies?limit&cursor` — guardians' WhatsApp replies routed to this institute ("Parent replies") |
-| POST | `/institutes/{id}/guardians/{phone}/opt-in` — record consent `{ source: "verbal" \| "form" \| "whatsapp" }` |
+| POST | `/institutes/{id}/guardians/{phone}/opt-in` — owner, staff. Record consent `{ source: "verbal" \| "form" \| "whatsapp" }` → `204`. `phone`: any Indian format (`9812345678` or URL-encoded `%2B919812345678`); bad → `422` |
+| POST | `/institutes/{id}/guardians/{phone}/opt-out` — owner, staff. Same body → `204`. The guardian gets no automatic messages from this institute |
+
+Only guardians with consent (`opted_in`) are ever messaged; the check happens at send time. Consent is also recorded by `guardianConsent: true` on `POST /students` and `POST /students/bulk` (the "Guardian agreed to receive updates on WhatsApp" checkbox).
 
 ## 12. Subscription
 

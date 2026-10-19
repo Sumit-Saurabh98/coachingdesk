@@ -17,7 +17,7 @@ Principle: **one language (TypeScript) end to end, boring managed infrastructure
 | Validation / contracts | **Zod** (shared package) + `fastify-type-provider-zod` | Same schemas on mobile, web, API; generates OpenAPI |
 | Database | **PostgreSQL 18** (or the newest major RDS supports in ap-south-1 at setup; minimum 17) | Relational data (fees, attendance), transactions, JSONB where needed |
 | ORM / migrations | **Drizzle ORM + drizzle-kit** | SQL-close, typed, lightweight migrations |
-| Jobs / queues / cron | **BullMQ (v5.16+) on Redis** — Job Schedulers for cron, not the deprecated repeatable-jobs API | Reminders, invoice generation, message sending, webhook processing |
+| Jobs / queues / cron | **BullMQ (v5.16+) on Redis** — Job Schedulers for cron, not the deprecated repeatable-jobs API | Reminders, invoice generation, webhook processing. **Message sending** uses the outbox table itself as the queue (`FOR UPDATE SKIP LOCKED` polling), so BullMQ is added only when scheduled jobs arrive (KB #33) |
 | Cache / rate limits | Redis (same instance in MVP), `maxmemory-policy noeviction`, AOF on | OTP throttling, idempotency keys, rate limiting |
 | WhatsApp | **WhatsApp Business Platform** via Meta Cloud API, behind a `MessagingProvider` interface (BSP like Gupshup/Interakt can be swapped in) | Templates, delivery webhooks |
 | SMS / OTP | MSG91 (or similar DLT-registered Indian SMS provider) behind `SmsProvider` interface | OTP + fallback; DLT compliance handled by provider |

@@ -6,7 +6,7 @@ See `LLD.md` for schema, module internals, and state machines.
 
 **Modular monolith + background worker.**
 - One API service (stateless, horizontally scalable).
-- One worker service (BullMQ consumers + schedulers).
+- One worker service. Today: the outbox sender, run from the `api` package as a separate process (`src/worker.ts`) so it shares the domain modules; BullMQ arrives with scheduled jobs (KB decision #33).
 - One Postgres, one Redis.
 - External providers behind adapter interfaces.
 

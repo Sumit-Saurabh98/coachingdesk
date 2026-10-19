@@ -226,7 +226,8 @@ webhook_events (
 -- messaging
 guardian_contacts (
   institute_id, phone text, opt_in_status text check (opt_in_status in ('unknown','opted_in','opted_out')),
-  opt_in_source text, updated_at,
+  opt_in_source text,                     -- add_student | verbal | form | whatsapp
+  updated_at,
   primary key (institute_id, phone)
 )
 
@@ -555,6 +556,8 @@ for msg:
 | `result` | Score still exists | Test deleted (`stale`) |
 | `notice` | — | — |
 
+**Implemented so far** (`OutboxDispatcher`, `apps/api/src/modules/messaging`): release rows stuck in `sending` > 5 min, claim 50 with `SKIP LOCKED`, then per message: expired → global STOP (not receipts) → consent → **quiet hours 21:00–08:00 institute time → `scheduled` for 08:00** (not an attempt) → revalidate (absence: still `absent`) → send. Retryable errors back off 1, 2, 4 min; after 3 attempts or a permanent error → `failed`. An error while handling one message never stops the batch. Not yet: `messaging_paused_at`, platform limit, daily caps, quota, `mintTokens`.
+
 `mintTokens`: for each `{ $mint: kind }` placeholder, generate a 128-bit random token, store only `sha256(token)` in `public_tokens` (with `message_id`), and put the raw token **only** into the outgoing provider request (the URL-button suffix). The raw token is never written to the outbox, logs, or DB. Pay tokens expire after 30 days; receipt/result tokens after 180 days.
 
 ### 6.4 Payment event processing
@@ -689,13 +692,13 @@ anything else → auto-reply once per phone per 24 h:
 |---|---|---|---|
 | `invoices.generate` | daily scheduler | 5 | 5x exp backoff |
 | `reminders.plan` | 15-min scheduler | 2 | 3x |
-| `messages.send` | outbox poller (every 30 s) | 10 (respect provider rate) | handled in outbox |
+| `messages.send` | outbox poller (every 30 s) | 10 (respect provider rate) | handled in outbox — **today: no BullMQ queue**; the worker polls the outbox directly (`OUTBOX_POLL_MS`) |
 | `webhooks.process` | API webhook routes | 10 | 8x exp backoff → DLQ + alert |
 | `payment-links.reconcile` | API + worker after invoice changes | 5 | 5x exp backoff |
 | `inbound.process` | WhatsApp message webhooks | 5 | 5x exp backoff |
 | `quality.guard` | nightly + status webhooks | 1 | 3x |
 | `data.export` / `data.purge` | API / nightly | 1 | 3x → DLQ + alert |
-| `attendance.alerts` | API | 5 | 3x |
+| `attendance.alerts` | API | 5 | 3x — **today: not a queue**; the API writes the alert rows to the outbox inside the sync request |
 | `subscriptions.sweep` | nightly | 1 | 3x |
 | `reports.pdf` (v2) | API / monthly | 2 | 3x |
 

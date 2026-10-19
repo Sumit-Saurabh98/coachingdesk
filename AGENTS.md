@@ -23,7 +23,7 @@ Instructions for AI coding agents (Claude Code, Codex, Cursor, etc.) working in 
 ```
 apps/mobile    Expo React Native app (owner/teacher)
 apps/api       Fastify API (modular monolith)
-apps/worker    BullMQ workers + schedulers
+apps/worker    (planned) BullMQ schedulers. Today the worker runs from apps/api: src/worker.ts (KB #33)
 apps/web       Next.js guardian pages, landing, free tools
 packages/shared     Zod schemas, types, money/date/phone utils, error codes
 packages/db         Drizzle schema + migrations + seed
@@ -41,6 +41,7 @@ docker compose up -d          # postgres + redis
 pnpm db:migrate               # apply migrations
 pnpm db:seed                  # demo institute with batches/students
 pnpm dev                      # api + worker + web (turbo)
+pnpm --filter @coachingdesk/api dev:worker   # outbox worker (sends queued messages)
 pnpm --filter mobile start    # expo
 pnpm test                     # all tests
 pnpm turbo test --filter=api  # one package's tests (note: `pnpm test --filter x` passes the flag to the test runner)
@@ -74,7 +75,7 @@ pnpm db:generate              # create migration after schema change
   - **Repositories**: an interface per aggregate (`InvoiceRepository`) + a Drizzle implementation (`DrizzleInvoiceRepository`). Services depend on the interface.
   - **Providers**: interface + real + `Fake*` implementations, interchangeable everywhere (Liskov).
   - Small, focused interfaces (`Clock`, `IdGenerator`, `MessageSender`) over one big "utils" object.
-  - Wiring happens in one **composition root** per app (`apps/api/src/container.ts`, `apps/worker/src/container.ts`) — hand-written, no DI framework.
+  - Wiring happens in one **composition root** per app (`apps/api/src/container.ts` for the API, `apps/api/src/worker-container.ts` for the worker; both build domain services via `apps/api/src/services.ts`) — hand-written, no DI framework.
   - Prefer composition over inheritance; inheritance only for true "is-a" (e.g. `AppError` subclasses).
   - Methods that implement business rules stay pure (no I/O inside entities/value objects) so they're easy to unit test.
 - **Practical OOP, not OOP everywhere:**
