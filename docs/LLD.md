@@ -286,9 +286,10 @@ subscriptions (
   current_period_end timestamptz, grace_until timestamptz, updated_at
 )
 
-usage_counters (institute_id, month date, messages_sent int, primary key (institute_id, month))
-daily_usage (institute_id, date date, messages_sent int, notices_sent int, primary key (institute_id, date))
-                                          -- enforces new-institute / trial / notice daily caps
+message_usage (institute_id, day date, sent int, primary key (institute_id, day))
+                                          -- automatic messages SENT per institute-local day. Month and trial
+                                          -- totals are sums; checks + increment run under a per-institute
+                                          -- advisory lock (KB #39). Notice counts: added with notices.
 
 data_exports (
   id uuid pk, institute_id uuid fk, requested_by uuid fk users,
@@ -521,6 +522,7 @@ for each group:
   on conflict (dedupe_key) do nothing
 ```
 - An offset hitting **any** of a guardian's invoices triggers the reminder; the message covers **all** of that guardian's open dues at the institute (matches the pay page, §6.6).
+- **Implemented** (`ReminderPlanner`, worker every 15 min, `REMINDER_POLL_MS`): only active students; plan must include `automatic_messages`; `reminderOffsets` from institute settings; the message is queued with `params: {}` (no `$mint` yet: pay page later) and `expires_at` = 21:00 the next day.
 - **Manual "remind now"** (`POST /invoices/{id}/remind`) uses the same key, so it is refused with `409 ALREADY_REMINDED_TODAY` if the guardian already got a fee reminder today. With `force: true` (owner only) it uses `fee_reminder:manual:{instituteId}:{phone}:{date}` instead — at most one extra per day. Quiet hours always apply: during them the message is scheduled for 08:00 and the response says so (`scheduledFor`).
 - Names, amounts, and template choice (`fee_reminder` vs `fee_reminder_multi`) are **not** frozen here — the send worker computes them from current data, so a payment made while the message waited in quiet hours is reflected.
 
@@ -559,7 +561,7 @@ for msg:
 | `result` | Score still exists | Test deleted (`stale`) |
 | `notice` | — | — |
 
-**Implemented so far** (`OutboxDispatcher`, `apps/api/src/modules/messaging`): release rows stuck in `sending` > 5 min, claim 50 with `SKIP LOCKED`, then per message: expired → global STOP (not receipts) → consent → **quiet hours 21:00–08:00 institute time → `scheduled` for 08:00** (not an attempt) → revalidate (absence: still `absent`) → send. Retryable errors back off 1, 2, 4 min; after 3 attempts or a permanent error → `failed`. An error while handling one message never stops the batch. Not yet: `messaging_paused_at`, platform limit, daily caps, quota, `mintTokens`.
+**Implemented so far** (`OutboxDispatcher`, `apps/api/src/modules/messaging`): release rows stuck in `sending` > 5 min, claim 50 with `SKIP LOCKED`, then per message: expired → global STOP (not receipts) → consent → **quiet hours 21:00–08:00 institute time → `scheduled` for 08:00** (not an attempt) → revalidate (absence: still `absent`) → send. Retryable errors back off 1, 2, 4 min; after 3 attempts or a permanent error → `failed`. An error while handling one message never stops the batch. Since Step 18 also: revalidation RENDERS the message (`Revalidation = send {template?, params?} | skip {reason}`: fee reminders pick `fee_reminder` / `fee_reminder_multi` and compute names/total/date from current dues, or skip `nothing_due`), then `MessageQuota.tryConsume` (monthly quota, trial/new-institute daily caps, trial total) right before sending — over → `skipped (over_quota)`; a failed send releases its unit. Not yet: `messaging_paused_at`, platform limit, `mintTokens`.
 
 `mintTokens`: for each `{ $mint: kind }` placeholder, generate a 128-bit random token, store only `sha256(token)` in `public_tokens` (with `message_id`), and put the raw token **only** into the outgoing provider request (the URL-button suffix). The raw token is never written to the outbox, logs, or DB. Pay tokens expire after 30 days; receipt/result tokens after 180 days.
 

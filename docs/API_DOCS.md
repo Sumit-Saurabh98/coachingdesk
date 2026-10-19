@@ -236,7 +236,7 @@ PUT body (`clientId` = a UUID the phone generated offline; a retry with the same
 | POST | `/institutes/{id}/invoices` | Owner. Manual one-off invoice `{ studentId, amountPaise, discountPaise?, dueDate, description }` (`description` required, 1–200 chars; discount < amount) → `201 { invoice }` |
 | POST | `/institutes/{id}/invoices/{invoiceId}/payments` | Owner, staff. Record an offline payment (body below; header `Idempotency-Key` recommended) → `201 { payment, invoice, creditPaise, replayed: false }`. Amount above the remaining due is kept as guardian credit. Same `Idempotency-Key` again → `200` with the first payment and `replayed: true` (nothing recorded twice). `409` if the invoice is paid, waived or cancelled; `422` for a future `paidAt` (> 5 min) or `method: upi_link` |
 | POST | `/institutes/{id}/payments/{paymentId}/void` | `{ reason }` — owner only, offline payments only → `200 { payment, invoices }`. Reopens the invoice(s) (waived/cancelled ones stay so). `409 CONFLICT` if already voided or if `method = upi_link` (refund via provider instead) |
-| POST | `/institutes/{id}/invoices/{invoiceId}/remind` | `{ force?: boolean }` → `{ scheduledFor }`. Refused with `409 ALREADY_REMINDED_TODAY` if the guardian already got a fee reminder today; `force` (owner only) allows one extra per day. Quiet hours always apply (scheduled for 08:00) |
+| POST | `/institutes/{id}/invoices/{invoiceId}/remind` | Owner, staff. `{ force?: boolean }` → `202 { scheduledFor }` (queued; the worker sends it). Refused with `409 ALREADY_REMINDED_TODAY` if the guardian already got a fee reminder today (automatic or manual); `force` (owner only, else `403`) allows one extra per day. Quiet hours always apply (`scheduledFor` = 08:00 institute time). `409 NOTHING_DUE` if the invoice is not open; `402 FEATURE_NOT_IN_PLAN` on Free. The text covers ALL the guardian's open dues and is decided at send time |
 | POST | `/institutes/{id}/invoices/{invoiceId}/waive` | Owner. `{ reason }` → `200 { invoice }`. Only open invoices (`due`, `partially_paid`); otherwise `409` |
 | POST | `/institutes/{id}/invoices/{invoiceId}/cancel` | Owner. `{ reason }` → `200 { invoice }`. Only `due` invoices with nothing paid (part-paid: waive the rest instead); otherwise `409`. A concurrent change (e.g. a payment) → `409`, reload |
 | POST | `/institutes/{id}/invoices/{invoiceId}/share-link` | Mints a guardian pay-page token for this invoice's guardian → `{ url, whatsappText }` (Free plan manual share). POST because it creates a token |
@@ -292,12 +292,16 @@ Payment object: `{ id, guardianPhone, amountPaise, method, status, paidAt, note,
 | Method | Path |
 |---|---|
 | GET | `/institutes/{id}/messages?status&category&limit&cursor` — outbox log |
-| GET | `/institutes/{id}/messages/usage` — `{ month, used, limit, todayUsed, todayLimit }` |
+| GET | `/institutes/{id}/messages/usage` — owner, staff → `{ month, used, limit, todayUsed, todayLimit, trialTotalLimit }`. `limit` = the plan's monthly quota (0 on Free); `todayLimit` is set during the trial and an institute's first 7 days (100), else `null`; `trialTotalLimit` = 200 during the trial |
 | GET | `/institutes/{id}/replies?limit&cursor` — guardians' WhatsApp replies routed to this institute ("Parent replies") |
 | POST | `/institutes/{id}/guardians/{phone}/opt-in` — owner, staff. Record consent `{ source: "verbal" \| "form" \| "whatsapp" }` → `204`. `phone`: any Indian format (`9812345678` or URL-encoded `%2B919812345678`); bad → `422` |
 | POST | `/institutes/{id}/guardians/{phone}/opt-out` — owner, staff. Same body → `204`. The guardian gets no automatic messages from this institute |
 
-Only guardians with consent (`opted_in`) are ever messaged; the check happens at send time. Consent is also recorded by `guardianConsent: true` on `POST /students` and `POST /students/bulk` (the "Guardian agreed to receive updates on WhatsApp" checkbox).
+Only guardians with consent (`opted_in`) are ever messaged; the check happens at send time.
+
+**Fee reminders** (automatic, worker): on the institute's `reminderOffsets` (setting; default `[3, 0, -3, -7]` = 3 days before the due date, on it, 3 and 7 days after; `[]` = off), at most one per guardian per day, siblings combined (`fee_reminder` for one child, `fee_reminder_multi` for several, chosen at send time from what is due THEN; skipped if nothing is due). Students who left get none. Plan needs automatic messages. The "Pay now" button's link token arrives with the pay page.
+
+**Limits** (checked right before sending; over → message `skipped`, `skip_reason = over_quota`): the plan's monthly quota; during the trial 100/day and 200 in total; any institute's first 7 days 100/day. A failed send doesn't count. Consent is also recorded by `guardianConsent: true` on `POST /students` and `POST /students/bulk` (the "Guardian agreed to receive updates on WhatsApp" checkbox).
 
 ## 12. Subscription
 

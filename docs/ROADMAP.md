@@ -29,7 +29,7 @@ Solo developer, ~12 weeks to a paid MVP. Each milestone ends with something demo
 - [ ] Invoice generation scheduler, manual invoices, offline payment recording  _(✅ invoices: billing job, at-enrollment billing, manual, waive, cancel; ✅ offline payments, void, fee dashboard API)_
 - [ ] Payment links + Razorpay webhook pipeline (idempotent)
 - [ ] Payout onboarding (KYC) flow + UPI-ID fallback on the pay page
-- [ ] Reminder planner (offsets, 1/day, quiet hours, sibling grouping)
+- [x] Reminder planner (offsets, 1/day, quiet hours, sibling grouping)  _(+ message quota and trial/new-institute caps; pay-link token with the pay page)_
 - [ ] Receipts; web pages: pay, receipt (Next.js)
 - [ ] Mobile: fee dashboard, pending list, student fee history, "remind now"
 - **Demo:** parent pays via UPI link → app shows paid → receipt on WhatsApp
