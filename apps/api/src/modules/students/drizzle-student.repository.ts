@@ -106,6 +106,13 @@ export class DrizzleStudentRepository implements StudentRepository {
     };
   }
 
+  async countActive(instituteId: string): Promise<number> {
+    return this.db.$count(
+      students,
+      and(eq(students.instituteId, instituteId), eq(students.status, 'active')),
+    );
+  }
+
   async listByGuardianPhone(instituteId: string, phone: PhoneNumber): Promise<Student[]> {
     const rows = await this.db
       .select()

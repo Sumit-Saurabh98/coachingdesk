@@ -38,9 +38,8 @@ export type DomainServices = ReturnType<typeof createDomainServices>;
  */
 export function createDomainServices(db: Db, clock: Clock, ids: IdGenerator) {
   const userService = new UserService(new DrizzleUserRepository(db), ids);
-  const entitlements = new EntitlementsService(
-    new SubscriptionService(new DrizzleSubscriptionRepository(db), clock),
-  );
+  const subscriptionService = new SubscriptionService(new DrizzleSubscriptionRepository(db), clock);
+  const entitlements = new EntitlementsService(subscriptionService);
   const instituteService = new InstituteService({
     institutes: new DrizzleInstituteRepository(db),
     users: userService,
@@ -132,6 +131,7 @@ export function createDomainServices(db: Db, clock: Clock, ids: IdGenerator) {
   });
 
   return {
+    subscriptionService,
     messageQuota,
     feeReminders,
     paymentService,

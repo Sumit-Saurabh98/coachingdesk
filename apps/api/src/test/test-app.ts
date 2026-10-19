@@ -48,6 +48,7 @@ import { StudentService } from '../modules/students/student.service';
 import { StudentsController } from '../modules/students/students.controller';
 import { InMemorySubscriptionRepository } from '../modules/subscriptions/subscription.repository';
 import { SubscriptionService } from '../modules/subscriptions/subscription.service';
+import { SubscriptionsController } from '../modules/subscriptions/subscriptions.controller';
 import { MeController } from '../modules/users/me.controller';
 import { InMemoryUserRepository } from '../modules/users/user.repository';
 import { UserService } from '../modules/users/user.service';
@@ -84,9 +85,8 @@ export function buildTestApp() {
   const subscriptionRepository = new InMemorySubscriptionRepository();
   // Shared like one database: creating an institute writes its trial where subscriptions reads it.
   const instituteRepository = new InMemoryInstituteRepository(subscriptionRepository);
-  const entitlements = new EntitlementsService(
-    new SubscriptionService(subscriptionRepository, clock),
-  );
+  const subscriptionService = new SubscriptionService(subscriptionRepository, clock);
+  const entitlements = new EntitlementsService(subscriptionService);
   const instituteService = new InstituteService({
     institutes: instituteRepository,
     users: userService,
@@ -180,7 +180,14 @@ export function buildTestApp() {
   const app = buildApp({
     authController: new AuthController({ otpService, authService, sessionService }),
     meController: new MeController(userService, instituteService, sessionService),
-    institutesController: new InstitutesController(instituteService),
+    institutesController: new InstitutesController(instituteService, entitlements),
+    subscriptionsController: new SubscriptionsController(subscriptionService, {
+      entitlements,
+      students: studentService,
+      members: instituteService,
+      messages: messageQuota,
+      institutes: instituteService,
+    }),
     membersController: new MembersController(instituteService),
     batchesController: new BatchesController(batchService, enrollmentService),
     studentsController: new StudentsController(

@@ -37,4 +37,20 @@ export class SubscriptionService {
       signedUpAt: record?.createdAt ?? null,
     };
   }
+
+  /** GET /subscription: the stored row (status, dates) and the plan that applies now. */
+  async details(instituteId: string): Promise<{
+    plan: PlanId;
+    status: string;
+    currentPeriodEnd: Date | null;
+    graceUntil: Date | null;
+  }> {
+    const record = await this.subscriptions.findByInstitute(instituteId);
+    return {
+      plan: effectivePlan(record, this.clock.now()),
+      status: record?.status ?? 'free',
+      currentPeriodEnd: record?.currentPeriodEnd ?? null,
+      graceUntil: record?.graceUntil ?? null,
+    };
+  }
 }

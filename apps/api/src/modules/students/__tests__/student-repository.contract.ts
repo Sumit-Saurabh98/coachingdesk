@@ -93,6 +93,19 @@ export function describeStudentRepositoryContract(
         );
       });
 
+      it('countActive: active students of this institute only', async () => {
+        const repo = create();
+        const leaver = newStudent(1);
+        await seed(
+          repo,
+          leaver,
+          newStudent(2),
+          newStudent(3, 'Other', { instituteId: CONTRACT_INSTITUTE_B }),
+        );
+        await repo.update(leaver.leave(leftOn));
+        expect(await repo.countActive(CONTRACT_INSTITUTE_A)).toBe(1);
+      });
+
       it("another institute's students do not count", async () => {
         const repo = create();
         await seed(repo, newStudent(1, 'Theirs', { instituteId: CONTRACT_INSTITUTE_B }));

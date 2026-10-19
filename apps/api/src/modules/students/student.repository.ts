@@ -43,6 +43,8 @@ export interface StudentRepository {
   findById(instituteId: string, studentId: string): Promise<Student | null>;
   /** Sorted by name (case-insensitive), then id. Keyset paging: pass page.next as `after`. */
   list(instituteId: string, query: StudentListQuery): Promise<StudentPage>;
+  /** How many ACTIVE students the institute has (plan usage). */
+  countActive(instituteId: string): Promise<number>;
   /** Every student of this guardian at this institute (siblings), any status. */
   listByGuardianPhone(instituteId: string, phone: PhoneNumber): Promise<Student[]>;
   /** Saves every editable field + status/leftOn. Matches id AND instituteId; throws if none. */
@@ -105,6 +107,11 @@ export class InMemoryStudentRepository implements StudentRepository {
       students: page,
       next: matches.length > query.limit && last ? { nameKey: nameKeyOf(last), id: last.id } : null,
     };
+  }
+
+  async countActive(instituteId: string): Promise<number> {
+    return [...this.students.values()].filter((s) => s.instituteId === instituteId && s.isActive)
+      .length;
   }
 
   async listByGuardianPhone(instituteId: string, phone: PhoneNumber): Promise<Student[]> {

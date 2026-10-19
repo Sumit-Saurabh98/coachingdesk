@@ -129,6 +129,10 @@ export class StudentService {
     return page.students;
   }
 
+  async countActive(instituteId: string): Promise<number> {
+    return this.deps.students.countActive(instituteId);
+  }
+
   /** This guardian's ACTIVE students here (siblings): who a fee reminder is about. */
   async activeByGuardianPhone(instituteId: string, phone: PhoneNumber): Promise<Student[]> {
     const siblings = await this.deps.students.listByGuardianPhone(instituteId, phone);

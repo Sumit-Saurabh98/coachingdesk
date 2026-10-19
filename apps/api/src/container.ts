@@ -25,6 +25,7 @@ import { MembersController } from './modules/institutes/members.controller';
 import { ConsentController } from './modules/messaging/consent.controller';
 import { RemindersController } from './modules/messaging/reminders.controller';
 import { StudentsController } from './modules/students/students.controller';
+import { SubscriptionsController } from './modules/subscriptions/subscriptions.controller';
 import { MeController } from './modules/users/me.controller';
 import { createDomainServices } from './services';
 
@@ -85,7 +86,17 @@ export function createContainer(config: Config): Container {
   return {
     authController: new AuthController({ otpService, authService, sessionService }),
     meController: new MeController(services.userService, services.instituteService, sessionService),
-    institutesController: new InstitutesController(services.instituteService),
+    institutesController: new InstitutesController(
+      services.instituteService,
+      services.entitlements,
+    ),
+    subscriptionsController: new SubscriptionsController(services.subscriptionService, {
+      entitlements: services.entitlements,
+      students: services.studentService,
+      members: services.instituteService,
+      messages: services.messageQuota,
+      institutes: services.instituteService,
+    }),
     membersController: new MembersController(services.instituteService),
     batchesController: new BatchesController(services.batchService, services.enrollmentService),
     studentsController: new StudentsController(
