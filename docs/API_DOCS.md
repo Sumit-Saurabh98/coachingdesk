@@ -90,6 +90,16 @@ Roles are institute-wide in MVP (`memberships.batch_scope` stays null). Fixed pe
 | POST | `/institutes/{id}/delete` | Owner. `{ otp }` (fresh OTP required). Stops messaging/billing; purged after 30 days |
 | POST | `/institutes/{id}/delete/cancel` | Owner. Cancels a pending deletion within the 30 days |
 
+`POST /institutes` → `201`:
+```json
+{
+  "institute": { "id": "…", "name": "Sharma Classes", "type": "tuition", "city": "Pune", "timezone": "Asia/Kolkata", "billingDay": 1, "dueAfterDays": 6 },
+  "role": "owner",
+  "subscription": { "plan": "pro", "status": "trialing", "trialEndsAt": "2026-11-18T10:00:00.000Z" }
+}
+```
+`GET /me` → `{ "user": { "id", "name", "locale" }, "institutes": [{ "id", "name", "type", "role" }] }`
+
 `settings` shape:
 ```json
 {

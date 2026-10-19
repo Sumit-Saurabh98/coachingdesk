@@ -5,6 +5,8 @@ import { registerErrorHandler } from './http/error-handler';
 import type { JwtAccessTokens } from './modules/auth/access-tokens';
 import type { AuthController } from './modules/auth/auth.controller';
 import { registerAuthRoutes } from './modules/auth/auth.routes';
+import type { InstitutesController } from './modules/institutes/institutes.controller';
+import { registerInstituteRoutes } from './modules/institutes/institutes.routes';
 import type { MeController } from './modules/users/me.controller';
 import { registerUserRoutes } from './modules/users/users.routes';
 
@@ -12,6 +14,7 @@ import { registerUserRoutes } from './modules/users/users.routes';
 export interface AppDependencies {
   authController: AuthController;
   meController: MeController;
+  institutesController: InstitutesController;
   accessTokens: JwtAccessTokens;
   isReady: () => Promise<boolean>;
 }
@@ -46,6 +49,7 @@ export function buildApp(deps: AppDependencies, options: AppOptions = {}): Fasti
 
   registerAuthRoutes(app, deps.authController);
   registerUserRoutes(app, deps.meController, requireAuth);
+  registerInstituteRoutes(app, deps.institutesController, requireAuth);
 
   return app;
 }

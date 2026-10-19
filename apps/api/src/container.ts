@@ -15,6 +15,9 @@ import { OtpHasher } from './modules/auth/otp-hasher';
 import { DEFAULT_OTP_POLICY, OtpService } from './modules/auth/otp.service';
 import { RedisOtpStore } from './modules/auth/redis-otp-store';
 import { SessionService } from './modules/auth/session.service';
+import { DrizzleInstituteRepository } from './modules/institutes/drizzle-institute.repository';
+import { InstituteService } from './modules/institutes/institute.service';
+import { InstitutesController } from './modules/institutes/institutes.controller';
 import { DrizzleUserRepository } from './modules/users/drizzle-user.repository';
 import { MeController } from './modules/users/me.controller';
 import { UserService } from './modules/users/user.service';
@@ -67,6 +70,12 @@ export function createContainer(config: Config): Container {
     clock,
   });
   const userService = new UserService(new DrizzleUserRepository(database.db), ids);
+  const instituteService = new InstituteService({
+    institutes: new DrizzleInstituteRepository(database.db),
+    users: userService,
+    ids,
+    clock,
+  });
   const authService = new AuthService({
     otp: otpService,
     users: userService,
@@ -75,7 +84,8 @@ export function createContainer(config: Config): Container {
 
   return {
     authController: new AuthController({ otpService, authService, sessionService }),
-    meController: new MeController(userService),
+    meController: new MeController(userService, instituteService),
+    institutesController: new InstitutesController(instituteService),
     accessTokens,
     // Ready = BOTH Redis and Postgres answer. Otherwise the load balancer sends traffic elsewhere.
     isReady: async () => {

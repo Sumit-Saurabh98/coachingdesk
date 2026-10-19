@@ -12,6 +12,9 @@ import { InMemoryOtpStore } from '../modules/auth/otp-store';
 import { OtpService } from '../modules/auth/otp.service';
 import { InMemoryRefreshTokenRepository } from '../modules/auth/refresh-token.repository';
 import { SessionService } from '../modules/auth/session.service';
+import { InMemoryInstituteRepository } from '../modules/institutes/institute.repository';
+import { InstituteService } from '../modules/institutes/institute.service';
+import { InstitutesController } from '../modules/institutes/institutes.controller';
 import { MeController } from '../modules/users/me.controller';
 import { InMemoryUserRepository } from '../modules/users/user.repository';
 import { UserService } from '../modules/users/user.service';
@@ -45,6 +48,13 @@ export function buildTestApp() {
     clock,
   });
   const userService = new UserService(new InMemoryUserRepository(), ids);
+  const instituteRepository = new InMemoryInstituteRepository();
+  const instituteService = new InstituteService({
+    institutes: instituteRepository,
+    users: userService,
+    ids,
+    clock,
+  });
   const authService = new AuthService({
     otp: otpService,
     users: userService,
@@ -53,12 +63,13 @@ export function buildTestApp() {
 
   const app = buildApp({
     authController: new AuthController({ otpService, authService, sessionService }),
-    meController: new MeController(userService),
+    meController: new MeController(userService, instituteService),
+    institutesController: new InstitutesController(instituteService),
     accessTokens,
     isReady: async () => true,
   });
 
-  return { app, clock, sms, accessTokens };
+  return { app, clock, sms, accessTokens, instituteRepository };
 }
 
 /** Logs in through the real HTTP endpoints and returns the response body (tokens + user). */

@@ -8,3 +8,4 @@ export { zPhoneIN } from './schemas/common';
 export { DeviceInfoSchema, RefreshTokenBody, RequestOtpBody, VerifyOtpBody } from './schemas/auth';
 export { type IdGenerator, SequentialIdGenerator, UuidV7Generator } from './id-generator';
 export { UpdateMeBody } from './schemas/users';
+export { CreateInstituteBody, UpdateInstituteBody } from './schemas/institutes';
