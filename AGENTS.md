@@ -50,7 +50,7 @@ pnpm db:generate              # create migration after schema change
 
 ## Non-negotiable rules
 
-1. **Tenancy:** every tenant-owned query filters by `instituteId`. Repo functions take `instituteId` as a required first argument. Never trust an `instituteId` from the URL or body — tenant routes run `[requireAuth, requireMember]` (`apps/api/src/http/tenancy-guard.ts`) and controllers read `currentTenant(request).instituteId`. Non-members get 404, never 403.
+1. **Tenancy:** every tenant-owned query filters by `instituteId`. Repo functions take `instituteId` as a required first argument. Never trust an `instituteId` from the URL or body — tenant routes run `[requireAuth, requireMember]` (`apps/api/src/http/tenancy-guard.ts`) and controllers read `currentTenant(request).instituteId`. Non-members get 404, never 403. Other ids in the URL (e.g. `:batchId`) are read with `uuidParam()` (`apps/api/src/http/route-params.ts`) and looked up *within* the tenant — another institute's id is a 404.
 2. **Money:** integer paise, field names end with `Paise`. Postgres `bigint`; in TypeScript a safe-integer `number` (not JS `BigInt`) validated by `zMoneyPaise`. No floats, and no ad-hoc arithmetic — use the helpers in `packages/shared/src/money.ts`.
 3. **Time:** inject `Clock`; never call `new Date()` / `Date.now()` in services. Store UTC; business dates are institute-local `date`s. Use `packages/shared/src/dates.ts`.
 4. **Messages:** never call a messaging provider directly from API code. Insert into `message_outbox` (with a `dedupe_key`) and let the worker send. **Only exception:** login OTPs, which the `auth` module sends synchronously via `SmsProvider` because the user is waiting on the screen (still rate-limited, never logged).

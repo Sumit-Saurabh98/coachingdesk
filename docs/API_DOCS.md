@@ -114,11 +114,11 @@ Roles are institute-wide in MVP (`memberships.batch_scope` stays null). Fixed pe
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/institutes/{id}/batches` | `?includeArchived=false` |
-| POST | `/institutes/{id}/batches` | see body |
-| GET | `/institutes/{id}/batches/{batchId}` | Includes enrolled students count |
-| PATCH | `/institutes/{id}/batches/{batchId}` | Partial update |
-| POST | `/institutes/{id}/batches/{batchId}/archive` | |
+| GET | `/institutes/{id}/batches` | `?includeArchived=true\|false` (default `false`) → `200 { batches: [...] }`, oldest first |
+| POST | `/institutes/{id}/batches` | Owner, staff. See body → `201 { batch }` |
+| GET | `/institutes/{id}/batches/{batchId}` | `200 { batch }`. Enrolled students count arrives with enrollments |
+| PATCH | `/institutes/{id}/batches/{batchId}` | Owner, staff. Partial update (any body field; `schedule` is replaced whole) → `200 { batch }`. `409 CONFLICT` if archived |
+| POST | `/institutes/{id}/batches/{batchId}/archive` | Owner, staff. No body → `200 { batch }`. Idempotent: a retry returns the same `archivedAt` |
 
 ```json
 {
@@ -130,6 +130,16 @@ Roles are institute-wide in MVP (`memberships.batch_scope` stays null). Fixed pe
 }
 ```
 `defaultFeeCycle` is copied to each new enrollment; changing it later doesn't change existing enrollments.
+
+- `subject` optional; `defaultFeePaise` defaults to `0`, `defaultFeeCycle` to `"monthly"`. Cycles: `monthly`, `quarterly`, `half_yearly`, `yearly`, `one_time`, `none`.
+- `schedule.days` are ISO weekdays (1 = Monday … 7 = Sunday), at least one, no repeats. `start`/`end` are institute-local `"HH:MM"` (24 h), `start < end` (no overnight batches).
+- Name 2–80 characters, subject ≤ 60. Rule violations → `422 VALIDATION_FAILED` with `details.field`.
+- A batch id from another institute, or one that isn't a UUID → `404 NOT_FOUND` (same as an unknown id).
+
+Batch object:
+```json
+{ "id": "…", "name": "Class 10 Maths – Evening", "subject": "Maths", "schedule": { "days": [1, 3, 5], "start": "17:00", "end": "18:00" }, "defaultFeePaise": 150000, "defaultFeeCycle": "monthly", "archivedAt": null }
+```
 
 ## 6. Students & enrollments
 
