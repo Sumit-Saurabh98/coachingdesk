@@ -25,6 +25,7 @@ import { EntitlementsService } from './modules/entitlements/entitlements.service
 import { DrizzleInstituteRepository } from './modules/institutes/drizzle-institute.repository';
 import { InstituteService } from './modules/institutes/institute.service';
 import { InstitutesController } from './modules/institutes/institutes.controller';
+import { MembersController } from './modules/institutes/members.controller';
 import { DrizzleStudentRepository } from './modules/students/drizzle-student.repository';
 import { StudentService } from './modules/students/student.service';
 import { StudentsController } from './modules/students/students.controller';
@@ -82,9 +83,13 @@ export function createContainer(config: Config): Container {
     clock,
   });
   const userService = new UserService(new DrizzleUserRepository(database.db), ids);
+  const entitlements = new EntitlementsService(
+    new SubscriptionService(new DrizzleSubscriptionRepository(database.db), clock),
+  );
   const instituteService = new InstituteService({
     institutes: new DrizzleInstituteRepository(database.db),
     users: userService,
+    entitlements,
     ids,
     clock,
   });
@@ -93,9 +98,6 @@ export function createContainer(config: Config): Container {
     ids,
     clock,
   });
-  const entitlements = new EntitlementsService(
-    new SubscriptionService(new DrizzleSubscriptionRepository(database.db), clock),
-  );
   const studentService = new StudentService({
     students: new DrizzleStudentRepository(database.db),
     entitlements,
@@ -123,6 +125,7 @@ export function createContainer(config: Config): Container {
     authController: new AuthController({ otpService, authService, sessionService }),
     meController: new MeController(userService, instituteService),
     institutesController: new InstitutesController(instituteService),
+    membersController: new MembersController(instituteService),
     batchesController: new BatchesController(batchService, enrollmentService),
     studentsController: new StudentsController(studentService, enrollmentService),
     enrollmentsController: new EnrollmentsController(enrollmentService),

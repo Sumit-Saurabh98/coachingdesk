@@ -1,8 +1,9 @@
 import type { Db } from '@coachingdesk/db';
 import { institutes, memberships, subscriptions } from '@coachingdesk/db/schema';
-import { and, asc, eq, isNull } from 'drizzle-orm';
+import { and, asc, eq, isNull, ne, sql } from 'drizzle-orm';
 import { Institute, INSTITUTE_TYPES, type InstituteType } from './institute';
 import {
+  type AddMemberResult,
   MEMBER_ROLES,
   type InstituteRepository,
   type MemberRole,
@@ -78,6 +79,76 @@ export class DrizzleInstituteRepository implements InstituteRepository {
       .where(and(eq(memberships.userId, userId), isNull(institutes.archivedAt)))
       .orderBy(asc(memberships.createdAt), asc(institutes.id));
     return rows.map((row) => ({ institute: toInstitute(row.institute), role: toRole(row.role) }));
+  }
+
+  async addMemberWithinLimit(
+    membership: Membership,
+    maxMembers: number | null,
+  ): Promise<AddMemberResult> {
+    return this.db.transaction(async (tx) => {
+      // Same pattern as students (decision #28): lock the institute row, then count + insert.
+      const [locked] = await tx
+        .select({ id: institutes.id })
+        .from(institutes)
+        .where(eq(institutes.id, membership.instituteId))
+        .for('update');
+      if (!locked) {
+        throw new Error(`DrizzleInstituteRepository: no institute ${membership.instituteId}`);
+      }
+      const [existing] = await tx
+        .select({ userId: memberships.userId })
+        .from(memberships)
+        .where(
+          and(
+            eq(memberships.instituteId, membership.instituteId),
+            eq(memberships.userId, membership.userId),
+          ),
+        );
+      if (existing) {
+        return 'already_member';
+      }
+      if (maxMembers !== null) {
+        const [row] = await tx
+          .select({ count: sql<number>`count(*)::int` })
+          .from(memberships)
+          .where(
+            and(eq(memberships.instituteId, membership.instituteId), ne(memberships.role, 'owner')),
+          );
+        if ((row?.count ?? 0) + 1 > maxMembers) {
+          return 'limit_reached';
+        }
+      }
+      await tx.insert(memberships).values(membership);
+      return 'added';
+    });
+  }
+
+  async listMembers(instituteId: string): Promise<Membership[]> {
+    const rows = await this.db
+      .select()
+      .from(memberships)
+      .where(eq(memberships.instituteId, instituteId))
+      .orderBy(asc(memberships.createdAt), asc(memberships.userId));
+    return rows.map((row) => ({
+      instituteId: row.instituteId,
+      userId: row.userId,
+      role: toRole(row.role),
+    }));
+  }
+
+  async removeMember(instituteId: string, userId: string): Promise<boolean> {
+    // The owner is never removed here: `role <> 'owner'` is part of the WHERE.
+    const removed = await this.db
+      .delete(memberships)
+      .where(
+        and(
+          eq(memberships.instituteId, instituteId),
+          eq(memberships.userId, userId),
+          ne(memberships.role, 'owner'),
+        ),
+      )
+      .returning({ userId: memberships.userId });
+    return removed.length > 0;
   }
 }
 

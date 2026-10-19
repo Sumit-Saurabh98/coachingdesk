@@ -8,6 +8,8 @@ export interface UserRepository {
    */
   findOrCreateByPhone(phone: PhoneNumber, newId: string): Promise<{ user: User; created: boolean }>;
   findById(id: string): Promise<User | null>;
+  /** The users that exist among these ids (any order; unknown ids are skipped). */
+  findByIds(ids: readonly string[]): Promise<User[]>;
   /** Saves the user's profile fields (name, locale). The phone never changes here. */
   updateProfile(user: User): Promise<void>;
 }
@@ -32,6 +34,10 @@ export class InMemoryUserRepository implements UserRepository {
 
   async findById(id: string): Promise<User | null> {
     return this.byId.get(id) ?? null;
+  }
+
+  async findByIds(ids: readonly string[]): Promise<User[]> {
+    return ids.map((id) => this.byId.get(id)).filter((user): user is User => user !== undefined);
   }
 
   async updateProfile(user: User): Promise<void> {

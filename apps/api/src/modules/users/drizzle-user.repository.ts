@@ -1,7 +1,7 @@
 import type { Db } from '@coachingdesk/db';
 import { users } from '@coachingdesk/db/schema';
 import { PhoneNumber } from '@coachingdesk/shared';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { type Locale, User } from './user';
 import type { UserRepository } from './user.repository';
 
@@ -38,6 +38,18 @@ export class DrizzleUserRepository implements UserRepository {
   async findById(id: string): Promise<User | null> {
     const [row] = await this.db.select().from(users).where(eq(users.id, id));
     return row ? toUser(row) : null;
+  }
+
+  async findByIds(ids: readonly string[]): Promise<User[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+    // ONE query for all of them (WHERE id IN (...)), not one query per member.
+    const rows = await this.db
+      .select()
+      .from(users)
+      .where(inArray(users.id, [...ids]));
+    return rows.map(toUser);
   }
 
   async updateProfile(user: User): Promise<void> {

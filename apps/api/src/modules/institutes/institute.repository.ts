@@ -10,6 +10,8 @@ export interface Membership {
   role: MemberRole;
 }
 
+export type AddMemberResult = 'added' | 'already_member' | 'limit_reached';
+
 /** The trial every new institute starts with (KNOWLEDGE_BASE §3: 30 days of Pro). */
 export interface TrialSubscription {
   plan: 'pro';
@@ -30,6 +32,15 @@ export interface InstituteRepository {
   findMembership(instituteId: string, userId: string): Promise<Membership | null>;
   /** Every non-archived institute the user belongs to, with their role, oldest first. */
   listForUser(userId: string): Promise<Array<{ institute: Institute; role: MemberRole }>>;
+  /**
+   * Adds a teacher/staff member if the institute has room: members besides the owner must stay
+   * within maxMembers (null = unlimited). Count + insert are atomic (row lock), like students.
+   */
+  addMemberWithinLimit(membership: Membership, maxMembers: number | null): Promise<AddMemberResult>;
+  /** The institute's members, oldest first (the owner is always first: created with it). */
+  listMembers(instituteId: string): Promise<Membership[]>;
+  /** Removes a NON-owner member. Returns false if there was no such member. */
+  removeMember(instituteId: string, userId: string): Promise<boolean>;
 }
 
 /** Tests and local dev only. */
@@ -92,7 +103,38 @@ export class InMemoryInstituteRepository implements InstituteRepository {
       });
   }
 
-  /** TEST HELPER ONLY: add a teacher/staff member until the members API exists. */
+  async addMemberWithinLimit(
+    membership: Membership,
+    maxMembers: number | null,
+  ): Promise<AddMemberResult> {
+    const ofInstitute = this.memberships.filter((m) => m.instituteId === membership.instituteId);
+    if (ofInstitute.some((m) => m.userId === membership.userId)) {
+      return 'already_member';
+    }
+    const nonOwners = ofInstitute.filter((m) => m.role !== 'owner').length;
+    if (maxMembers !== null && nonOwners + 1 > maxMembers) {
+      return 'limit_reached';
+    }
+    this.memberships.push({ ...membership });
+    return 'added';
+  }
+
+  async listMembers(instituteId: string): Promise<Membership[]> {
+    return this.memberships.filter((m) => m.instituteId === instituteId).map((m) => ({ ...m }));
+  }
+
+  async removeMember(instituteId: string, userId: string): Promise<boolean> {
+    const index = this.memberships.findIndex(
+      (m) => m.instituteId === instituteId && m.userId === userId && m.role !== 'owner',
+    );
+    if (index === -1) {
+      return false;
+    }
+    this.memberships.splice(index, 1);
+    return true;
+  }
+
+  /** TEST HELPER ONLY: add a member directly, skipping the plan limit. */
   addMember(membership: Membership): void {
     this.memberships.push({ ...membership });
   }

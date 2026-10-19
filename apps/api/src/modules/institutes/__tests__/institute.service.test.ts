@@ -10,7 +10,13 @@ async function setup() {
   const ids = new SequentialIdGenerator();
   const users = new UserService(new InMemoryUserRepository(), ids);
   const repository = new InMemoryInstituteRepository();
-  const service = new InstituteService({ institutes: repository, users, ids, clock });
+  const service = new InstituteService({
+    institutes: repository,
+    users,
+    entitlements: { limitFor: async () => 5 },
+    ids,
+    clock,
+  });
   const { user: owner } = await users.findOrCreateByPhone(PhoneNumber.parse('9876543210'));
   return { service, repository, owner };
 }

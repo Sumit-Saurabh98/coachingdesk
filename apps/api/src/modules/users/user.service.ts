@@ -30,6 +30,10 @@ export class UserService {
    * PATCH /v1/me: load -> change (the entity applies its rules) -> save -> return.
    * The service doesn't validate the name itself: that's User.withProfile's job (9c).
    */
+  async findByIds(ids: readonly string[]): Promise<User[]> {
+    return this.users.findByIds(ids);
+  }
+
   async updateProfile(userId: string, changes: ProfileChanges): Promise<User> {
     const user = await this.requireUser(userId);
     const updated = user.withProfile(changes);

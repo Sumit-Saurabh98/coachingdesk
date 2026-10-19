@@ -11,6 +11,7 @@ import { registerBatchRoutes } from './modules/batches/batches.routes';
 import type { EnrollmentsController } from './modules/enrollments/enrollments.controller';
 import { registerEnrollmentRoutes } from './modules/enrollments/enrollments.routes';
 import type { InstitutesController } from './modules/institutes/institutes.controller';
+import type { MembersController } from './modules/institutes/members.controller';
 import { registerInstituteRoutes } from './modules/institutes/institutes.routes';
 import type { StudentsController } from './modules/students/students.controller';
 import { registerStudentRoutes } from './modules/students/students.routes';
@@ -22,6 +23,7 @@ export interface AppDependencies {
   authController: AuthController;
   meController: MeController;
   institutesController: InstitutesController;
+  membersController: MembersController;
   batchesController: BatchesController;
   studentsController: StudentsController;
   enrollmentsController: EnrollmentsController;
@@ -62,7 +64,10 @@ export function buildApp(deps: AppDependencies, options: AppOptions = {}): Fasti
 
   registerAuthRoutes(app, deps.authController);
   registerUserRoutes(app, deps.meController, requireAuth);
-  registerInstituteRoutes(app, deps.institutesController, { requireAuth, requireMember });
+  registerInstituteRoutes(app, deps.institutesController, deps.membersController, {
+    requireAuth,
+    requireMember,
+  });
   registerBatchRoutes(app, deps.batchesController, { requireAuth, requireMember });
   registerStudentRoutes(app, deps.studentsController, { requireAuth, requireMember });
   registerEnrollmentRoutes(app, deps.enrollmentsController, { requireAuth, requireMember });

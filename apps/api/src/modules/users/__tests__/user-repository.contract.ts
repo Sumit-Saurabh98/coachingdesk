@@ -42,6 +42,17 @@ export function describeUserRepositoryContract(name: string, create: () => UserR
       expect(await users.findById(id2)).toBeNull();
     });
 
+    it('finds several users by id at once, skipping unknown ids', async () => {
+      const users = create();
+      await users.findOrCreateByPhone(phone, id1);
+      await users.findOrCreateByPhone(PhoneNumber.parse('9123456789'), id2);
+
+      const found = await users.findByIds([id2, '00000000-0000-7000-8000-000000000099', id1]);
+
+      expect(found.map((u) => u.id).sort()).toEqual([id1, id2]);
+      expect(await users.findByIds([])).toEqual([]);
+    });
+
     // NEW in 9d
     it('saves profile changes', async () => {
       const users = create();

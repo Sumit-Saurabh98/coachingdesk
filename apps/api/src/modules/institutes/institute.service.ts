@@ -1,4 +1,11 @@
-import { AppError, type Clock, type IdGenerator, TRIAL_DAYS } from '@coachingdesk/shared';
+import {
+  AppError,
+  type Clock,
+  type IdGenerator,
+  type PhoneNumber,
+  TRIAL_DAYS,
+} from '@coachingdesk/shared';
+import { planLimitReached } from '../entitlements/entitlements.service';
 import type { UserService } from '../users/user.service';
 import {
   type BillingSettingsChanges,
@@ -7,14 +14,35 @@ import {
   type NewInstituteInput,
 } from './institute';
 import type { InstituteRepository, MemberRole, Membership } from './institute.repository';
+import type { User } from '../users/user';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** What institutes needs from entitlements: the member limit (ISP). EntitlementsService fits. */
+export interface MemberLimitLookup {
+  limitFor(instituteId: string, limit: 'members'): Promise<number | null>;
+}
 
 export interface InstituteServiceDeps {
   institutes: InstituteRepository;
   users: UserService; // another module: we use its SERVICE, never its repository (rule 12)
+  entitlements: MemberLimitLookup;
   ids: IdGenerator;
   clock: Clock;
+}
+
+/** A member as the owner sees them in the team list. */
+export interface MemberView {
+  userId: string;
+  name: string | null;
+  phone: PhoneNumber;
+  role: MemberRole;
+}
+
+export interface NewMemberRequest {
+  phone: PhoneNumber;
+  name: string;
+  role: 'teacher' | 'staff';
 }
 
 export interface CreatedInstitute {
@@ -79,4 +107,60 @@ export class InstituteService {
     await this.deps.institutes.update(updated);
     return updated;
   }
+
+  /** GET /members (owner): the team, owner first, with names and phones from the users module. */
+  async listMembers(instituteId: string): Promise<MemberView[]> {
+    const members = await this.deps.institutes.listMembers(instituteId);
+    const users = await this.deps.users.findByIds(members.map((m) => m.userId));
+    const byId = new Map(users.map((u) => [u.id, u]));
+    return members.flatMap((m) => {
+      const user = byId.get(m.userId);
+      return user ? [toView(user, m.role)] : [];
+    });
+  }
+
+  /**
+   * POST /members (owner). Adds by phone: the user row is created if the phone is new, and they
+   * get access on their first OTP login (API_DOCS §4). 409 already a member, 402 plan limit.
+   */
+  async addMember(instituteId: string, request: NewMemberRequest): Promise<MemberView> {
+    const { user } = await this.deps.users.findOrCreateByPhone(request.phone);
+    // The name the owner typed is used only if the person hasn't set their own. Validate it
+    // BEFORE adding, so a bad name can't leave a half-done member behind.
+    const named = user.name === null ? user.withProfile({ name: request.name }) : user;
+
+    const limit = await this.deps.entitlements.limitFor(instituteId, 'members');
+    const result = await this.deps.institutes.addMemberWithinLimit(
+      { instituteId, userId: user.id, role: request.role },
+      limit,
+    );
+    if (result === 'already_member') {
+      throw new AppError('CONFLICT', 'This person is already a member of the institute', {
+        userId: user.id,
+      });
+    }
+    if (result === 'limit_reached') {
+      throw planLimitReached('members', limit ?? 0);
+    }
+    if (named !== user) {
+      await this.deps.users.updateProfile(user.id, { name: named.name ?? undefined });
+    }
+    return toView(named, request.role);
+  }
+
+  /** DELETE /members/:userId (owner). The owner can't be removed (409); unknown member: 404. */
+  async removeMember(instituteId: string, userId: string): Promise<void> {
+    if (await this.deps.institutes.removeMember(instituteId, userId)) {
+      return;
+    }
+    const membership = await this.deps.institutes.findMembership(instituteId, userId);
+    if (membership?.role === 'owner') {
+      throw new AppError('CONFLICT', 'The owner cannot be removed from the institute');
+    }
+    throw new AppError('NOT_FOUND', 'Member not found');
+  }
+}
+
+function toView(user: User, role: MemberRole): MemberView {
+  return { userId: user.id, name: user.name, phone: user.phone, role };
 }

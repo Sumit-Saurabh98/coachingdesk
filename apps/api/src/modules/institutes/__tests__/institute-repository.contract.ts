@@ -78,5 +78,58 @@ export function describeInstituteRepositoryContract(
     it('returns null for an unknown institute', async () => {
       expect(await create().findById(instituteId(9))).toBeNull();
     });
+
+    describe('members', () => {
+      const teacher = {
+        instituteId: instituteId(1),
+        userId: CONTRACT_OTHER_USER_ID,
+        role: 'teacher' as const,
+      };
+
+      it('adds a member; the owner stays first in the list', async () => {
+        const repo = create();
+        await repo.createWithOwner(newInstitute(1), trial);
+
+        expect(await repo.addMemberWithinLimit(teacher, 5)).toBe('added');
+
+        expect(await repo.listMembers(instituteId(1))).toEqual([
+          { instituteId: instituteId(1), userId: CONTRACT_OWNER_ID, role: 'owner' },
+          teacher,
+        ]);
+      });
+
+      it('already_member: the same person twice (any role)', async () => {
+        const repo = create();
+        await repo.createWithOwner(newInstitute(1), trial);
+        await repo.addMemberWithinLimit(teacher, 5);
+
+        expect(await repo.addMemberWithinLimit({ ...teacher, role: 'staff' }, 5)).toBe(
+          'already_member',
+        );
+        expect(await repo.addMemberWithinLimit({ ...teacher, userId: CONTRACT_OWNER_ID }, 5)).toBe(
+          'already_member',
+        );
+      });
+
+      it('limit_reached: the owner does not count, members do', async () => {
+        const repo = create();
+        await repo.createWithOwner(newInstitute(1), trial);
+
+        expect(await repo.addMemberWithinLimit(teacher, 0)).toBe('limit_reached');
+        expect(await repo.addMemberWithinLimit(teacher, 1)).toBe('added');
+        expect(await repo.listMembers(instituteId(1))).toHaveLength(2);
+      });
+
+      it('removes a member, never the owner', async () => {
+        const repo = create();
+        await repo.createWithOwner(newInstitute(1), trial);
+        await repo.addMemberWithinLimit(teacher, 5);
+
+        expect(await repo.removeMember(instituteId(1), CONTRACT_OTHER_USER_ID)).toBe(true);
+        expect(await repo.removeMember(instituteId(1), CONTRACT_OTHER_USER_ID)).toBe(false);
+        expect(await repo.removeMember(instituteId(1), CONTRACT_OWNER_ID)).toBe(false);
+        expect(await repo.findMembership(instituteId(1), CONTRACT_OWNER_ID)).not.toBeNull();
+      });
+    });
   });
 }
