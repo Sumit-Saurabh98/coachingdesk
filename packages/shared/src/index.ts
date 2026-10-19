@@ -20,6 +20,7 @@ export {
 export {
   FEATURE_KEYS,
   type FeatureKey,
+  MESSAGE_CAPS,
   type Plan,
   PLAN_IDS,
   type PlanId,

@@ -22,6 +22,7 @@ export class DrizzleSubscriptionRepository implements SubscriptionRepository {
       status: oneOf(SUBSCRIPTION_STATUSES, row.status, 'status'),
       currentPeriodEnd: row.currentPeriodEnd,
       graceUntil: row.graceUntil,
+      createdAt: row.createdAt,
     };
   }
 }

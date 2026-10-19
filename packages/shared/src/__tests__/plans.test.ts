@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PLAN_IDS, PLANS, TRIAL_DAYS, TRIAL_PLAN } from '../index';
+import { MESSAGE_CAPS, PLAN_IDS, PLANS, TRIAL_DAYS, TRIAL_PLAN } from '../index';
 
 describe('PLANS', () => {
   // Deliberately a copy of KNOWLEDGE_BASE §3. If this fails after you changed plans.ts,
@@ -44,6 +44,15 @@ describe('PLANS', () => {
     expect(Object.isFrozen(PLANS)).toBe(true);
     expect(Object.isFrozen(PLANS.free)).toBe(true);
     expect(Object.isFrozen(PLANS.pro.features)).toBe(true);
+  });
+
+  it('messaging caps match KNOWLEDGE_BASE §3', () => {
+    expect(MESSAGE_CAPS).toEqual({
+      trialTotal: 200,
+      trialDaily: 100,
+      newInstituteDays: 7,
+      newInstituteDaily: 100,
+    });
   });
 
   it('the trial is 30 days of Pro', () => {

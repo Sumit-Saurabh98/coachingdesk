@@ -16,6 +16,8 @@ export interface SubscriptionRecord {
   status: SubscriptionStatus;
   currentPeriodEnd: Date | null;
   graceUntil: Date | null;
+  /** When the row was created = when the institute signed up (same transaction, decision #26). */
+  createdAt?: Date;
 }
 
 /**

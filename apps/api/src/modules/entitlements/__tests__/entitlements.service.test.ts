@@ -16,7 +16,7 @@ function setup() {
       currentPeriodEnd: new Date(endsAt),
       graceUntil: null,
     });
-  return { entitlements, trial, clock };
+  return { entitlements, trial, clock, subscriptions };
 }
 
 describe('EntitlementsService', () => {
@@ -54,6 +54,55 @@ describe('EntitlementsService', () => {
     const { entitlements, trial } = setup();
     trial('2026-11-18T10:00:00Z');
     await expect(entitlements.assertFeature('inst-1', 'result_cards')).resolves.toBeUndefined();
+  });
+
+  it('messagingLimits: trial = Pro quota, 100/day, 200 total since the trial began', async () => {
+    const { entitlements, trial } = setup();
+    trial('2026-11-18T10:00:00Z');
+
+    const limits = await entitlements.messagingLimits('inst-1', new Date('2026-10-19T10:00:00Z'));
+
+    expect(limits).toEqual({
+      monthly: 3000,
+      daily: 100,
+      trialTotal: { limit: 200, since: new Date('2026-10-19T10:00:00Z') },
+    });
+  });
+
+  it('messagingLimits: a paid plan has only its monthly quota; Free has 0', async () => {
+    const { entitlements, subscriptions } = setup();
+    subscriptions.put({
+      instituteId: 'inst-1',
+      plan: 'starter',
+      status: 'active',
+      currentPeriodEnd: new Date('2026-11-30T00:00:00Z'),
+      graceUntil: null,
+      createdAt: new Date('2026-01-01T00:00:00Z'),
+    });
+    expect(await entitlements.messagingLimits('inst-1', new Date('2026-10-19T10:00:00Z'))).toEqual({
+      monthly: 1000,
+      daily: null,
+      trialTotal: null,
+    });
+    expect((await entitlements.messagingLimits('other', new Date())).monthly).toBe(0);
+  });
+
+  it('messagingLimits: a paid institute in its first 7 days is capped at 100/day', async () => {
+    const { entitlements, subscriptions } = setup();
+    subscriptions.put({
+      instituteId: 'inst-1',
+      plan: 'academy',
+      status: 'active',
+      currentPeriodEnd: new Date('2026-11-30T00:00:00Z'),
+      graceUntil: null,
+      createdAt: new Date('2026-10-15T00:00:00Z'),
+    });
+    expect(
+      (await entitlements.messagingLimits('inst-1', new Date('2026-10-19T10:00:00Z'))).daily,
+    ).toBe(100);
+    expect(
+      (await entitlements.messagingLimits('inst-1', new Date('2026-10-23T00:00:00Z'))).daily,
+    ).toBeNull();
   });
 
   it('planLimitReached: the documented 402 shape', () => {

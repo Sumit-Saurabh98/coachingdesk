@@ -31,7 +31,7 @@ function describeContract(
       const { subscriptions, createInstitute } = setup();
       await createInstitute();
 
-      expect(await subscriptions.findByInstitute(INSTITUTE_ID)).toEqual({
+      expect(await subscriptions.findByInstitute(INSTITUTE_ID)).toMatchObject({
         instituteId: INSTITUTE_ID,
         plan: 'pro',
         status: 'trialing',

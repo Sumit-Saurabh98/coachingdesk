@@ -71,6 +71,18 @@ export const PLANS: Readonly<Record<PlanId, Readonly<Plan>>> = Object.freeze({
   }),
 });
 
+/**
+ * Messaging caps that protect the shared WhatsApp number (KB §3, FR-5.9; decision #19):
+ * during the trial at most 200 automatic messages in total and 100 a day; any institute in its
+ * first 7 days at most 100 a day.
+ */
+export const MESSAGE_CAPS = Object.freeze({
+  trialTotal: 200,
+  trialDaily: 100,
+  newInstituteDays: 7,
+  newInstituteDaily: 100,
+});
+
 /** The plan every new institute trials (KB §3: 30 days of Pro). */
 export const TRIAL_PLAN: PlanId = 'pro';
 export const TRIAL_DAYS = 30;

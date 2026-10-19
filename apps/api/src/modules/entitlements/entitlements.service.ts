@@ -1,8 +1,18 @@
-import { AppError, type FeatureKey, type PlanId, PLANS } from '@coachingdesk/shared';
+import { AppError, type FeatureKey, MESSAGE_CAPS, type PlanId, PLANS } from '@coachingdesk/shared';
 
 /** What entitlements needs from subscriptions: one question (ISP). SubscriptionService fits. */
 export interface CurrentPlanLookup {
   currentPlan(instituteId: string): Promise<PlanId>;
+  state(
+    instituteId: string,
+  ): Promise<{ plan: PlanId; trialStartedAt: Date | null; signedUpAt: Date | null }>;
+}
+
+/** How many automatic messages an institute may send (FR-5.6, FR-5.9). */
+export interface MessagingLimits {
+  monthly: number; // the plan's monthly quota (0 on Free)
+  daily: number | null; // during the trial / first 7 days; null = no daily cap
+  trialTotal: { limit: number; since: Date } | null; // only during a running trial
 }
 
 export type LimitKey = 'activeStudents' | 'members';
@@ -40,6 +50,28 @@ export class EntitlementsService {
   async limitFor(instituteId: string, limit: LimitKey): Promise<number | null> {
     const entitlements = await this.get(instituteId);
     return limit === 'activeStudents' ? entitlements.maxActiveStudents : entitlements.maxMembers;
+  }
+
+  async messagingLimits(instituteId: string, now: Date): Promise<MessagingLimits> {
+    const state = await this.plans.state(instituteId);
+    const isNew =
+      state.signedUpAt !== null &&
+      now.getTime() - state.signedUpAt.getTime() < MESSAGE_CAPS.newInstituteDays * 86_400_000;
+    const inTrial = state.trialStartedAt !== null;
+    const caps: number[] = [];
+    if (inTrial) {
+      caps.push(MESSAGE_CAPS.trialDaily);
+    }
+    if (isNew) {
+      caps.push(MESSAGE_CAPS.newInstituteDaily);
+    }
+    return {
+      monthly: PLANS[state.plan].monthlyMessages,
+      daily: caps.length > 0 ? Math.min(...caps) : null,
+      trialTotal: inTrial
+        ? { limit: MESSAGE_CAPS.trialTotal, since: state.trialStartedAt as Date }
+        : null,
+    };
   }
 
   /** Throws 402 FEATURE_NOT_IN_PLAN unless the institute's current plan includes the feature. */
