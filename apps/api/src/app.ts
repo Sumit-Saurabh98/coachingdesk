@@ -4,6 +4,8 @@ import { createAuthGuard } from './http/auth-guard';
 import { registerErrorHandler } from './http/error-handler';
 import { createTenancyGuard, type MembershipLookup } from './http/tenancy-guard';
 import type { JwtAccessTokens } from './modules/auth/access-tokens';
+import type { AttendanceController } from './modules/attendance/attendance.controller';
+import { registerAttendanceRoutes } from './modules/attendance/attendance.routes';
 import type { AuthController } from './modules/auth/auth.controller';
 import { registerAuthRoutes } from './modules/auth/auth.routes';
 import type { BatchesController } from './modules/batches/batches.controller';
@@ -27,6 +29,7 @@ export interface AppDependencies {
   batchesController: BatchesController;
   studentsController: StudentsController;
   enrollmentsController: EnrollmentsController;
+  attendanceController: AttendanceController;
   accessTokens: JwtAccessTokens;
   memberships: MembershipLookup;
   isReady: () => Promise<boolean>;
@@ -71,6 +74,7 @@ export function buildApp(deps: AppDependencies, options: AppOptions = {}): Fasti
   registerBatchRoutes(app, deps.batchesController, { requireAuth, requireMember });
   registerStudentRoutes(app, deps.studentsController, { requireAuth, requireMember });
   registerEnrollmentRoutes(app, deps.enrollmentsController, { requireAuth, requireMember });
+  registerAttendanceRoutes(app, deps.attendanceController, { requireAuth, requireMember });
 
   return app;
 }

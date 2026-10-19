@@ -6,6 +6,11 @@ import { Redis } from 'ioredis';
 import type { AppDependencies } from './app';
 import type { Config } from './config';
 import { RedisRateLimiter } from './lib/redis-rate-limiter';
+import { DrizzleAttendanceRepository } from './modules/attendance/drizzle-attendance.repository';
+import { AbsenceAlertsNotEnabled } from './modules/attendance/absence-alerts';
+import { AttendanceWindow } from './modules/attendance/attendance-window';
+import { AttendanceService } from './modules/attendance/attendance.service';
+import { AttendanceController } from './modules/attendance/attendance.controller';
 import { JwtAccessTokens } from './modules/auth/access-tokens';
 import { AuthController } from './modules/auth/auth.controller';
 import { AuthService } from './modules/auth/auth.service';
@@ -115,6 +120,18 @@ export function createContainer(config: Config): Container {
     ids,
     clock,
   });
+  const attendanceService = new AttendanceService({
+    attendance: new DrizzleAttendanceRepository(database.db),
+    batches: batchService,
+    enrollments: enrollmentService,
+    students: studentService,
+    institutes: instituteService,
+    // Absence alerts arrive with the outbox (Step 15); until then they are honestly "off".
+    alerts: new AbsenceAlertsNotEnabled(),
+    window: new AttendanceWindow(7),
+    ids,
+    clock,
+  });
   const authService = new AuthService({
     otp: otpService,
     users: userService,
@@ -129,6 +146,7 @@ export function createContainer(config: Config): Container {
     batchesController: new BatchesController(batchService, enrollmentService),
     studentsController: new StudentsController(studentService, enrollmentService),
     enrollmentsController: new EnrollmentsController(enrollmentService),
+    attendanceController: new AttendanceController(attendanceService),
     memberships: instituteService,
     accessTokens,
     // Ready = BOTH Redis and Postgres answer. Otherwise the load balancer sends traffic elsewhere.
