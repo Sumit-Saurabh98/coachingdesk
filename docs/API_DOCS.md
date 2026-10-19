@@ -142,7 +142,7 @@ Roles are institute-wide in MVP (`memberships.batch_scope` stays null). Fixed pe
 | PATCH | `/institutes/{id}/students/{studentId}` | |
 | POST | `/institutes/{id}/students/{studentId}/leave` | `{ leftOn }` → stops invoices/reminders |
 | POST | `/institutes/{id}/students/{studentId}/erase` | Owner. Irreversibly erases the student's and guardian's personal data (on guardian request); amounts are kept |
-| POST | `/institutes/{id}/enrollments` | `{ studentId, batchId, feePaise?, discountPaise?, feeCycle?, startDate, billNow?: boolean }` — `feePaise`/`feeCycle` default to the batch's. `one_time` is invoiced immediately; `billNow` bills the current monthly/quarterly period now |
+| POST | `/institutes/{id}/enrollments` | `{ studentId, batchId, feePaise?, discountPaise?, feeCycle?, startDate, billNow?: boolean }` — `feePaise`/`feeCycle` default to the batch's. `one_time` is invoiced immediately; `billNow` bills the current monthly/quarterly/half-yearly/yearly period now |
 | PATCH | `/institutes/{id}/enrollments/{enrollmentId}` | Change fee / cycle / end date (applies from the next period) |
 
 Create student:

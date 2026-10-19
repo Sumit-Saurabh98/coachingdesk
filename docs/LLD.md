@@ -80,7 +80,7 @@ batches (
   id uuid pk, institute_id uuid fk, name text not null, subject text,
   schedule jsonb not null,                -- {days:[1,3,5], start:"16:00", end:"17:00"}
   default_fee_paise bigint not null default 0,
-  default_fee_cycle text not null check (default_fee_cycle in ('monthly','quarterly','one_time','none')),
+  default_fee_cycle text not null check (default_fee_cycle in ('monthly','quarterly','half_yearly','yearly','one_time','none')),
                                           -- copied to enrollments; the enrollment's value is what bills
   archived_at, created_at, updated_at
 )
@@ -102,11 +102,12 @@ enrollments (
   id uuid pk, institute_id uuid fk, student_id uuid fk, batch_id uuid fk,
   fee_paise bigint not null,              -- copied from batch, overridable
   discount_paise bigint not null default 0,
-  fee_cycle text not null check (fee_cycle in ('monthly','quarterly','one_time','none')),
+  fee_cycle text not null check (fee_cycle in ('monthly','quarterly','half_yearly','yearly','one_time','none')),
                                           -- copied from batch.default_fee_cycle, overridable
                                           -- (e.g. a student paying quarterly in a monthly batch)
-  cycle_anchor date,                      -- period_start of the first billed cycle; quarterly
-                                          -- cycles repeat every 3 months from here. null until first bill
+  cycle_anchor date,                      -- period_start of the first billed cycle; multi-month
+                                          -- cycles (quarterly 3, half_yearly 6, yearly 12 months)
+                                          -- repeat from here. null until first bill
   start_date date not null, end_date date,
   created_at, updated_at,
   unique (student_id, batch_id, start_date)
@@ -461,8 +462,9 @@ for institute in activeInstitutes():
 for enrollment in activeEnrollments(instituteId, period):   // student active, start_date <= period_end,
                                                              // end_date null or >= period_start
   if enrollment.fee_cycle in ('none','one_time'): continue   // one_time is billed at enrollment only
-  if enrollment.fee_cycle == 'quarterly'
-     and monthsBetween(enrollment.cycle_anchor, period) % 3 != 0: continue
+  months = cycleMonths(enrollment.fee_cycle)                // monthly 1, quarterly 3, half_yearly 6, yearly 12
+  if months > 1 and enrollment.cycle_anchor is not null
+     and monthsBetween(enrollment.cycle_anchor, period) % months != 0: continue
   net = enrollment.fee_paise - enrollment.discount_paise
   if net <= 0: continue                                      // never create ₹0 invoices
   BEGIN
@@ -478,13 +480,13 @@ mark invoice_runs.completed_at = now()
 
 **At enrollment creation** (`POST /enrollments`):
 - `one_time` → create its single invoice immediately (`kind='one_time'`, `period_start = start_date`). The unique index makes a retry safe.
-- `monthly` / `quarterly` with `billNow: true` → create the invoice for the current period now and set `cycle_anchor` to it. With `billNow: false` the first invoice comes from the next scheduled run. No proration in MVP.
+- `monthly` / `quarterly` / `half_yearly` / `yearly` with `billNow: true` → create the invoice for the current period now and set `cycle_anchor` to it. With `billNow: false` the first invoice comes from the next scheduled run. No proration in MVP.
 
 **Manual invoices** (`POST /invoices`): `kind='manual'`, no enrollment or period, `description` required.
 
 Other rules:
 - Changing `billing_day` takes effect from the next period; the current period is not re-billed.
-- Quarterly cycle length = 3 months from `period_start`; monthly = 1 month.
+- Cycle length from `period_start`: monthly 1 month, quarterly 3, half_yearly 6, yearly 12.
 
 ### 6.2 Reminder planning
 
@@ -716,7 +718,7 @@ Codes are stable strings in `packages/shared/src/errors.ts`; mobile maps them to
 
 | Level | Tooling | Must cover |
 |---|---|---|
-| Unit | Vitest | money math, reminder offsets, quiet hours, invoice status recompute, entitlement checks, period/quarterly-cycle math, oldest-first allocation, link fingerprint |
+| Unit | Vitest | money math, reminder offsets, quiet hours, invoice status recompute, entitlement checks, period/multi-month-cycle math, oldest-first allocation, link fingerprint |
 | Integration | Vitest + Testcontainers (Postgres, Redis) | repos, transactions, idempotency, unique constraints, tenancy isolation, invoice catch-up after a missed day, one_time billed once, void → status reopens, payment on cancelled link → credit, reminder skipped when paid during quiet hours, no raw token persisted, global STOP blocks all institutes but not receipts, auto-reply max once/24 h, trial/daily caps, late attendance sync → no alert, attendance conflict uses server receive order, student erasure keeps amounts, institute purge after 30 days |
 | API | `fastify.inject` | every route: auth, role, validation, happy path |
 | Contract | Recorded provider payload fixtures | webhook parsing + signature verification |

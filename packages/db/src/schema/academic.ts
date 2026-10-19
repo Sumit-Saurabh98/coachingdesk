@@ -42,7 +42,7 @@ export const batches = pgTable(
       .where(sql`${t.archivedAt} is null`),
     check(
       'batches_default_fee_cycle_check',
-      sql`${t.defaultFeeCycle} in ('monthly', 'quarterly', 'one_time', 'none')`,
+      sql`${t.defaultFeeCycle} in ('monthly', 'quarterly', 'half_yearly', 'yearly', 'one_time', 'none')`,
     ),
     // Last line of defence: even buggy code can't store a negative fee.
     check('batches_default_fee_paise_check', sql`${t.defaultFeePaise} >= 0`),

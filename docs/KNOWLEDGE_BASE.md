@@ -19,7 +19,7 @@ The "why" behind the product. Read this before changing business logic.
 | Student | A learner. Often a minor. Belongs to one institute. |
 | Guardian | Parent/relative who pays and receives messages. Identified by phone. One guardian may have several students (siblings). |
 | Enrollment | Student ↔ batch link with its own fee. |
-| Fee cycle | `monthly` (most common), `quarterly`, `one_time` (e.g. crash course), `none` (free batch). Set per enrollment; the batch only provides the default. |
+| Fee cycle | `monthly` (most common), `quarterly`, `half_yearly`, `yearly` (e.g. academies billing per term/session), `one_time` (e.g. crash course), `none` (free batch). Set per enrollment; the batch only provides the default. |
 | Pay page | One web page per guardian per institute listing all their open dues (siblings included). The link in every reminder points here. |
 | Credit | Money received that couldn't be applied to an open due (overpayment, or a late payment on an already-paid invoice). |
 | Billing day | Day of month when invoices are generated (default 1st). |
@@ -35,7 +35,7 @@ The "why" behind the product. Read this before changing business logic.
 - Money stored in paise. Display with Indian grouping: ₹1,23,456.
 - Due date default = billing day + 6 days (i.e. 7th).
 - Mid-month joiners: MVP does **not prorate**. Owner chooses "bill now" (full amount) or "start next cycle".
-- `one_time` fees are invoiced once, when the student is enrolled. Quarterly cycles repeat every 3 months from the first billed period.
+- `one_time` fees are invoiced once, when the student is enrolled. Multi-month cycles repeat from the first billed period: quarterly every 3 months, half-yearly every 6, yearly every 12.
 - Never create a ₹0 invoice (fee fully discounted or fee = 0) — it would look like a due to the guardian.
 - If invoice generation misses the billing day (outage), it catches up the next day; the period is never skipped.
 - Partial payments allowed. A payment covering several dues is applied **oldest due date first**. Anything left over is recorded as credit (applied manually in MVP).
@@ -157,6 +157,7 @@ Each needs Hindi version. Template approval takes time — submit early.
 | 24 | 2026-10 | Pay page falls back to the institute's own UPI ID (manual reconciliation) until payouts KYC is active | Tiny tutors may never finish KYC; they still get value |
 | 25 | 2026-10 | OOP + SOLID: value objects/entities, services with constructor-injected interfaces, repository interfaces, hand-written composition root | Founder preference and learning goal; clear seams for testing with fakes |
 | 26 | 2026-10 | `InstituteRepository.createWithOwner` writes institute + owner membership + initial trial subscription in ONE transaction — the only place one module writes another's table (`subscriptions`); the subscriptions module owns every later change | A half-created institute (no owner / no plan) must be impossible; cross-module 2-phase writes would be far more complex |
+| 27 | 2026-10 | Fee cycles add `half_yearly` and `yearly` (6 / 12 months from `cycle_anchor`), alongside monthly, quarterly, one_time, none | Academies, music and sports classes often bill per term or session; same anchor-based billing, so little extra logic |
 
 ## 7. Open questions
 

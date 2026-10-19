@@ -1,0 +1,2 @@
+ALTER TABLE "batches" DROP CONSTRAINT "batches_default_fee_cycle_check";--> statement-breakpoint
+ALTER TABLE "batches" ADD CONSTRAINT "batches_default_fee_cycle_check" CHECK ("batches"."default_fee_cycle" in ('monthly', 'quarterly', 'half_yearly', 'yearly', 'one_time', 'none'));

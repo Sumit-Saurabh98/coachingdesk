@@ -38,7 +38,7 @@ A mobile app for **small offline tuition centers, home tutors, and non-academic 
 | F-05 | Enrollment | Assign students to one or more batches; per-student fee override/discount. |
 | F-06 | Attendance | One-tap present/absent per batch per day. Works offline, syncs later. |
 | F-07 | Absence alerts | Optional automatic WhatsApp message to guardian when a student is absent. |
-| F-08 | Fee invoices | Auto-generate dues per cycle (monthly/quarterly/one-time). |
+| F-08 | Fee invoices | Auto-generate dues per cycle (monthly/quarterly/half-yearly/yearly/one-time). |
 | F-09 | UPI payment links | Each guardian gets one pay page covering all their open dues (siblings included); paying there uses a Razorpay UPI link. Paid status updates automatically. |
 | F-10 | Fee reminders | Automatic WhatsApp reminders on a schedule; manual "remind now". |
 | F-11 | Record offline payment | Mark cash/bank payments manually; partial payments supported. |
