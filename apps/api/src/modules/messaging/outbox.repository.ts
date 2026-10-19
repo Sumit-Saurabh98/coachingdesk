@@ -89,8 +89,8 @@ export interface OutboxRepository {
   releaseStuck(before: Date): Promise<number>;
   findByDedupeKey(dedupeKey: string): Promise<OutboxMessage | null>;
   /**
-   * Erasure: absence alerts about this student lose their text (it holds the name); queued ones
-   * are cancelled. Returns how many rows were touched.
+   * Erasure: absence alerts and result cards about this student lose their text (it holds the
+   * name); queued ones are cancelled. Returns how many rows were touched.
    */
   forgetStudent(instituteId: string, studentId: string): Promise<number>;
   /** Erasure, when no other student uses the phone: delete the institute's messages to it. */
@@ -185,7 +185,8 @@ export class InMemoryOutboxRepository implements OutboxRepository {
     let touched = 0;
     for (const row of this.rows.values()) {
       const aboutStudent =
-        row.dedupeKey.startsWith('absence:') && row.dedupeKey.endsWith(`:${studentId}`);
+        (row.dedupeKey.startsWith('absence:') || row.dedupeKey.startsWith('result:')) &&
+        row.dedupeKey.endsWith(`:${studentId}`);
       if (row.instituteId === instituteId && aboutStudent) {
         row.params = {};
         if (row.status === 'queued' || row.status === 'scheduled') {

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { OTHER_PHONE, tenantHttp } from '../../../test/tenant-http';
 import { buildTestApp } from '../../../test/test-app';
+import { ResultRevalidator } from '../../messaging/result-revalidator';
 
 let app: FastifyInstance;
 let http: ReturnType<typeof tenantHttp>;
@@ -320,5 +321,116 @@ describe('tests: tenancy and plan', () => {
       expect(scores.statusCode).toBe(402);
       expect((await http.call(token, 'GET', testUrl)).json().stats.highest).toBe(30);
     }
+  });
+});
+
+describe('tests: send results', () => {
+  /** Aarav 40, Bhavya absent, Chirag 30 but then left the institute. */
+  async function scored() {
+    const ctx = await setup();
+    await http.call(ctx.token, 'PUT', `${ctx.testUrl}/scores`, {
+      scores: [
+        { studentId: ctx.aarav.id, marks: 40 },
+        { studentId: ctx.bhavya.id, isAbsent: true },
+        { studentId: ctx.chirag.id, marks: 30 },
+      ],
+    });
+    await http.call(ctx.token, 'POST', `${ctx.url}/students/${ctx.chirag.id}/leave`, {});
+    const send = (who = ctx.token) => http.call(who, 'POST', `${ctx.testUrl}/send-results`);
+    return { ...ctx, send };
+  }
+
+  it('queues one result card per student with marks; absent and left students are skipped', async () => {
+    const { send, testApp, instituteId, teacher, testUrl, token } = await scored();
+
+    const response = await send(teacher);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      queued: 1,
+      alreadySent: 0,
+      skipped: 2,
+      resultsSentAt: '2026-10-19T10:00:00.000Z',
+    });
+    const [card, ...rest] = await testApp.outboxRepository.listForInstitute(instituteId, {
+      category: 'result',
+      limit: 10,
+    });
+    expect(rest).toEqual([]);
+    expect(card).toMatchObject({
+      template: 'result_card',
+      priority: 3,
+      status: 'queued',
+      params: {
+        student: 'Aarav',
+        test: 'Unit 3',
+        institute: 'Sharma Classes',
+        marks: '40',
+        max: '50',
+      },
+    });
+    expect(card?.to.toE164()).toBe('+919812345678');
+    expect((await http.call(token, 'GET', testUrl)).json().test.resultsSentAt).toBe(
+      '2026-10-19T10:00:00.000Z',
+    );
+  });
+
+  it('tapping again repeats nothing; a mark entered later is sent on the next tap', async () => {
+    const { send, token, testUrl, bhavya } = await scored();
+    await send();
+
+    expect((await send()).json()).toMatchObject({ queued: 0, alreadySent: 1 });
+
+    await http.call(token, 'PUT', `${testUrl}/scores`, {
+      scores: [{ studentId: bhavya.id, marks: 25 }],
+    });
+    expect((await send()).json()).toMatchObject({ queued: 1, alreadySent: 1, skipped: 1 });
+  });
+
+  it('409 before any marks, or for a test in the future', async () => {
+    const { token, url, createTest } = await setup();
+    const fresh = (await (await createTest()).json()).test;
+    const noMarks = await http.call(token, 'POST', `${url}/tests/${fresh.id}/send-results`);
+    expect(noMarks.statusCode).toBe(409);
+
+    const future = (await (await createTest({ date: '2026-10-25' })).json()).test;
+    const tooEarly = await http.call(token, 'POST', `${url}/tests/${future.id}/send-results`);
+    expect(tooEarly.statusCode).toBe(409);
+    expect(tooEarly.json().error.details).toEqual({ date: '2026-10-25' });
+  });
+
+  it('staff 403; Starter 402; unknown test 404', async () => {
+    const { send, staff, testApp, instituteId, token, url } = await scored();
+    expect((await send(staff)).statusCode).toBe(403);
+    expect(
+      (await http.call(token, 'POST', `${url}/tests/${UNKNOWN}/send-results`)).statusCode,
+    ).toBe(404);
+    testApp.subscriptionRepository.put({
+      instituteId,
+      plan: 'starter',
+      status: 'active',
+      currentPeriodEnd: new Date('2026-11-19T00:00:00Z'),
+      graceUntil: null,
+    });
+    expect((await send()).statusCode).toBe(402);
+  });
+
+  it('at send time the worker uses the CURRENT marks, and skips a deleted test', async () => {
+    const { send, token, testUrl, aarav, testApp, instituteId } = await scored();
+    await send();
+    const [card] = await testApp.outboxRepository.listForInstitute(instituteId, {
+      category: 'result',
+      limit: 1,
+    });
+    if (!card) throw new Error('no card queued');
+    const revalidator = new ResultRevalidator(testApp.testService);
+
+    await http.call(token, 'PUT', `${testUrl}/scores`, {
+      scores: [{ studentId: aarav.id, marks: 45 }],
+    });
+    expect(await revalidator.check(card)).toMatchObject({ kind: 'send', params: { marks: '45' } });
+
+    await http.call(token, 'DELETE', testUrl);
+    expect(await revalidator.check(card)).toEqual({ kind: 'skip', reason: 'stale' });
   });
 });

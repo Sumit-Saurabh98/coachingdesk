@@ -1,7 +1,7 @@
 import type { Db } from '@coachingdesk/db';
 import { messageOutbox } from '@coachingdesk/db/schema';
 import { PhoneNumber } from '@coachingdesk/shared';
-import { and, desc, eq, inArray, like, lt, type SQL, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, like, lt, or, type SQL, sql } from 'drizzle-orm';
 import {
   MESSAGE_CATEGORIES,
   MESSAGE_STATUSES,
@@ -136,7 +136,10 @@ export class DrizzleOutboxRepository implements OutboxRepository {
       .where(
         and(
           eq(messageOutbox.instituteId, instituteId),
-          like(messageOutbox.dedupeKey, `absence:%:${studentId}`),
+          or(
+            like(messageOutbox.dedupeKey, `absence:%:${studentId}`),
+            like(messageOutbox.dedupeKey, `result:%:${studentId}`),
+          ),
         ),
       )
       .returning({ id: messageOutbox.id });

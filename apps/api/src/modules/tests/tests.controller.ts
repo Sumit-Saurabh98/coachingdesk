@@ -98,6 +98,17 @@ export class TestsController {
     await reply.status(200).send(sheetJSON(sheet));
   }
 
+  /** POST .../tests/:testId/send-results -> 200 { queued, alreadySent, skipped, resultsSentAt } */
+  async sendResults(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+    const outcome = await this.tests.sendResults(
+      currentTenant(request).instituteId,
+      uuidParam(request, 'testId', 'Test not found'),
+    );
+    await reply
+      .status(200)
+      .send({ ...outcome, resultsSentAt: outcome.resultsSentAt.toISOString() });
+  }
+
   /** GET .../students/:studentId/tests?limit -> 200 { results } (newest first) */
   async studentResults(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     const { limit } = ListTestsQuery.parse(request.query);

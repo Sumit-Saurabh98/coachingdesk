@@ -3,6 +3,7 @@ import { ConsoleWhatsAppSender, type WhatsAppSender } from '@coachingdesk/provid
 import { SystemClock, UuidV7Generator } from '@coachingdesk/shared';
 import { BillingScheduler } from './modules/fees/billing-scheduler';
 import { AbsenceRevalidator } from './modules/messaging/absence-revalidator';
+import { ResultRevalidator } from './modules/messaging/result-revalidator';
 import { FeeReminderRenderer } from './modules/messaging/fee-reminder-renderer';
 import { ReminderPlanner, ReminderScheduler } from './modules/messaging/reminder-planner';
 import { OutboxDispatcher } from './modules/messaging/outbox-dispatcher';
@@ -30,9 +31,10 @@ export function createWorkerContainer(config: WorkerConfig): WorkerContainer {
     consents: services.consentRepository,
     sender: createWhatsAppSender(config),
     institutes: services.instituteService,
-    // Per category: "is this message still true?" (LLD §6.3). More arrive with fees/results.
+    // Per category: "is this message still true?" (LLD §6.3). Receipts arrive with payments.
     revalidators: {
       absence: new AbsenceRevalidator(services.attendanceService),
+      result: new ResultRevalidator(services.testService),
       fee_reminder: new FeeReminderRenderer(
         services.studentService,
         services.invoiceService,

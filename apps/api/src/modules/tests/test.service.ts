@@ -4,7 +4,9 @@ import {
   type CreateTestBody,
   type FeatureKey,
   type IdGenerator,
+  InstituteClock,
   type LocalDate,
+  type PhoneNumber,
   type SaveScoresBody,
   type UpdateTestBody,
 } from '@coachingdesk/shared';
@@ -23,7 +25,28 @@ export interface TestStudentLookup {
   findByIds(
     instituteId: string,
     ids: readonly string[],
-  ): Promise<Array<{ id: string; name: string }>>;
+  ): Promise<
+    Array<{ id: string; name: string; isActive: boolean; guardianPhone: PhoneNumber | null }>
+  >;
+}
+export interface TestInstituteLookup {
+  get(instituteId: string): Promise<{ timezone: string }>;
+}
+
+/** One student's result card, ready to queue. */
+export interface ResultCard {
+  testId: string;
+  testName: string;
+  maxMarks: number;
+  studentId: string;
+  studentName: string;
+  guardianPhone: PhoneNumber;
+  marks: number;
+}
+/** Implemented by the messaging module (OutboxResultCards): queues, never sends (rule 4). */
+export interface ResultCardQueue {
+  /** Returns how many were NEW (a card already queued for that student is not repeated). */
+  queue(instituteId: string, cards: readonly ResultCard[]): Promise<number>;
 }
 /** EntitlementsService fits: tests and result cards are a Pro feature (KB §3). */
 export interface TestFeatureCheck {
@@ -36,6 +59,8 @@ export interface TestServiceDeps {
   enrollments: TestEnrollmentLookup;
   students: TestStudentLookup;
   entitlements: TestFeatureCheck;
+  institutes: TestInstituteLookup;
+  results: ResultCardQueue;
   ids: IdGenerator;
   clock: Clock;
 }
@@ -61,6 +86,13 @@ export interface MarksSheet {
   test: ClassTest;
   rows: SheetRow[];
   stats: SheetStats;
+}
+
+export interface SendResultsOutcome {
+  queued: number; // new messages
+  alreadySent: number; // students whose card was queued before (not repeated)
+  skipped: number; // in the test but no card: absent, no marks yet, left, or no guardian phone
+  resultsSentAt: Date;
 }
 
 /** The public face of the tests module (F-14). */
@@ -108,6 +140,11 @@ export class TestService {
    * anyone who already has a score (e.g. moved batch since), sorted by name.
    */
   async sheet(instituteId: string, testId: string): Promise<MarksSheet> {
+    return (await this.loadSheet(instituteId, testId)).sheet;
+  }
+
+  /** The sheet, plus the students behind it (sendResults needs their phones). */
+  private async loadSheet(instituteId: string, testId: string) {
     const test = await this.get(instituteId, testId);
     const [enrolled, scores] = await Promise.all([
       this.deps.enrollments.studentIdsInBatchOn(instituteId, test.batchId, test.date),
@@ -128,7 +165,7 @@ export class TestService {
         };
       })
       .sort((a, b) => a.name.localeCompare(b.name));
-    return { test, rows, stats: statsOf(rows) };
+    return { sheet: { test, rows, stats: statsOf(rows) }, students };
   }
 
   /** PATCH /tests/:testId (owner, teacher). The maximum can't drop below a mark already given. */
@@ -194,6 +231,71 @@ export class TestService {
       throw new AppError('NOT_FOUND', 'Test not found'); // deleted in between
     }
     return this.sheet(instituteId, testId);
+  }
+
+  /**
+   * POST /tests/:testId/send-results (owner, teacher). One WhatsApp card per student with
+   * marks, to their guardian. Safe to tap twice: a student's card is queued at most once.
+   */
+  async sendResults(instituteId: string, testId: string): Promise<SendResultsOutcome> {
+    await this.deps.entitlements.assertFeature(instituteId, 'result_cards');
+    const test = await this.get(instituteId, testId); // 404
+    const { timezone } = await this.deps.institutes.get(instituteId);
+    if (test.date.isAfter(new InstituteClock(this.deps.clock, timezone).today())) {
+      throw new AppError('CONFLICT', "This test hasn't happened yet", {
+        date: test.date.toString(),
+      });
+    }
+    const { sheet, students: found } = await this.loadSheet(instituteId, testId);
+    if (sheet.stats.scored === 0) {
+      throw new AppError('CONFLICT', 'Enter marks before sending results');
+    }
+    const students = new Map(found.map((s) => [s.id, s]));
+    const cards: ResultCard[] = [];
+    for (const row of sheet.rows) {
+      const student = students.get(row.studentId);
+      // Students who left get no messages (like fee reminders); erased ones have no phone.
+      if (row.marks === null || !student?.isActive || !student.guardianPhone) {
+        continue;
+      }
+      cards.push({
+        testId: test.id,
+        testName: test.name,
+        maxMarks: test.maxMarks,
+        studentId: row.studentId,
+        studentName: row.name,
+        guardianPhone: student.guardianPhone,
+        marks: row.marks,
+      });
+    }
+    const queued = await this.deps.results.queue(instituteId, cards);
+    const now = this.deps.clock.now();
+    await this.deps.tests.markResultsSent(instituteId, testId, now);
+    return {
+      queued,
+      alreadySent: cards.length - queued,
+      skipped: sheet.rows.length - cards.length,
+      resultsSentAt: test.resultsSentAt ?? now,
+    };
+  }
+
+  /** The worker's re-check before sending a card: the score as it is NOW (null = gone). */
+  async currentResult(instituteId: string, testId: string, studentId: string) {
+    const result = await this.deps.tests.resultOf(instituteId, testId, studentId);
+    if (!result) {
+      return null;
+    }
+    const [student] = await this.deps.students.findByIds(instituteId, [studentId]);
+    if (!student) {
+      return null;
+    }
+    return {
+      studentName: student.name,
+      testName: result.test.name,
+      marks: result.score.marks,
+      isAbsent: result.score.isAbsent,
+      maxMarks: result.test.maxMarks,
+    };
   }
 
   /** GET /students/:studentId/tests : one student's results, newest first. */

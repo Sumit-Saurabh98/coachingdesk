@@ -32,6 +32,7 @@ import { StudentService } from './modules/students/student.service';
 import { DrizzleSubscriptionRepository } from './modules/subscriptions/drizzle-subscription.repository';
 import { SubscriptionService } from './modules/subscriptions/subscription.service';
 import { DrizzleTestRepository } from './modules/tests/drizzle-test.repository';
+import { OutboxResultCards } from './modules/messaging/outbox-result-cards';
 import { TestService } from './modules/tests/test.service';
 import { DrizzleUserRepository } from './modules/users/drizzle-user.repository';
 import { UserService } from './modules/users/user.service';
@@ -169,6 +170,14 @@ export function createDomainServices(db: Db, clock: Clock, ids: IdGenerator) {
     enrollments: enrollmentService,
     students: studentService,
     entitlements,
+    institutes: instituteService,
+    // Result cards are QUEUED in the outbox; the worker sends them (AGENTS rule 4).
+    results: new OutboxResultCards({
+      outbox: outboxRepository,
+      institutes: instituteService,
+      ids,
+      clock,
+    }),
     ids,
     clock,
   });

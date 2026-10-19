@@ -118,7 +118,7 @@ export function describeOutboxRepositoryContract(
       ).toEqual([b.id, a.id]);
     });
 
-    it("erasure: forgetStudent clears that student's absence alerts and cancels queued ones", async () => {
+    it("erasure: forgetStudent clears that student's absence alerts and result cards, cancels queued ones", async () => {
       const repo = create();
       const queued = message({
         dedupeKey: 'absence:sess-1:student-x',
@@ -129,12 +129,23 @@ export function describeOutboxRepositoryContract(
         dedupeKey: 'absence:sess-1:student-y',
         params: { student: 'Bhavya' },
       });
+      const resultCard = message({
+        dedupeKey: 'result:test-1:student-x',
+        params: { student: 'Aarav', marks: '42' },
+      });
       await repo.enqueueAll([queued, sent, other]);
       await repo.claimDue(t(10), 10);
+      await repo.enqueueAll([resultCard]); // still queued
       await repo.markSent(sent.id, 'wamid-9');
       await repo.reschedule(queued.id, t(5), { kind: 'quiet_hours' });
 
-      expect(await repo.forgetStudent(CONTRACT.instituteA, 'student-x')).toBe(2);
+      expect(await repo.forgetStudent(CONTRACT.instituteA, 'student-x')).toBe(3);
+
+      expect(await repo.findByDedupeKey(resultCard.dedupeKey)).toMatchObject({
+        params: {},
+        status: 'skipped',
+        skipReason: 'stale',
+      });
 
       expect(await repo.findByDedupeKey(queued.dedupeKey)).toMatchObject({
         params: {},

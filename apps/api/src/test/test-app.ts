@@ -21,6 +21,7 @@ import { MessagesController } from '../modules/messaging/messages.controller';
 import { InMemoryNoticeRepository } from '../modules/messaging/notice.repository';
 import { NoticeService } from '../modules/messaging/notice.service';
 import { InMemoryTestRepository } from '../modules/tests/test.repository';
+import { OutboxResultCards } from '../modules/messaging/outbox-result-cards';
 import { TestService } from '../modules/tests/test.service';
 import { TestsController } from '../modules/tests/tests.controller';
 import { NoticesController } from '../modules/messaging/notices.controller';
@@ -214,6 +215,13 @@ export function buildTestApp() {
     enrollments: enrollmentService,
     students: studentService,
     entitlements,
+    institutes: instituteService,
+    results: new OutboxResultCards({
+      outbox: outboxRepository,
+      institutes: instituteService,
+      ids,
+      clock,
+    }),
     ids,
     clock,
   });
@@ -272,6 +280,7 @@ export function buildTestApp() {
     messageQuota,
     auditRepository,
     testRepository,
+    testService,
   };
 }
 

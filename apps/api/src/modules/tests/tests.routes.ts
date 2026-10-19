@@ -36,6 +36,9 @@ export function registerTestRoutes(
   app.put(`${INSTITUTE}/tests/:testId/scores`, { preHandler: write }, (req, reply) =>
     controller.saveScores(req, reply),
   );
+  app.post(`${INSTITUTE}/tests/:testId/send-results`, { preHandler: write }, (req, reply) =>
+    controller.sendResults(req, reply),
+  );
   app.get(`${INSTITUTE}/students/:studentId/tests`, { preHandler: member }, (req, reply) =>
     controller.studentResults(req, reply),
   );
