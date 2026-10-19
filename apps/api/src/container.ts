@@ -18,6 +18,9 @@ import { SessionService } from './modules/auth/session.service';
 import { BatchService } from './modules/batches/batch.service';
 import { BatchesController } from './modules/batches/batches.controller';
 import { DrizzleBatchRepository } from './modules/batches/drizzle-batch.repository';
+import { DrizzleEnrollmentRepository } from './modules/enrollments/drizzle-enrollment.repository';
+import { EnrollmentService } from './modules/enrollments/enrollment.service';
+import { EnrollmentsController } from './modules/enrollments/enrollments.controller';
 import { EntitlementsService } from './modules/entitlements/entitlements.service';
 import { DrizzleInstituteRepository } from './modules/institutes/drizzle-institute.repository';
 import { InstituteService } from './modules/institutes/institute.service';
@@ -100,6 +103,16 @@ export function createContainer(config: Config): Container {
     ids,
     clock,
   });
+  // Enrollments uses the student, batch and institute SERVICES (rule 12). Built after them,
+  // and handed to the batches/students controllers through their own small interfaces.
+  const enrollmentService = new EnrollmentService({
+    enrollments: new DrizzleEnrollmentRepository(database.db),
+    students: studentService,
+    batches: batchService,
+    institutes: instituteService,
+    ids,
+    clock,
+  });
   const authService = new AuthService({
     otp: otpService,
     users: userService,
@@ -110,8 +123,9 @@ export function createContainer(config: Config): Container {
     authController: new AuthController({ otpService, authService, sessionService }),
     meController: new MeController(userService, instituteService),
     institutesController: new InstitutesController(instituteService),
-    batchesController: new BatchesController(batchService),
-    studentsController: new StudentsController(studentService),
+    batchesController: new BatchesController(batchService, enrollmentService),
+    studentsController: new StudentsController(studentService, enrollmentService),
+    enrollmentsController: new EnrollmentsController(enrollmentService),
     memberships: instituteService,
     accessTokens,
     // Ready = BOTH Redis and Postgres answer. Otherwise the load balancer sends traffic elsewhere.

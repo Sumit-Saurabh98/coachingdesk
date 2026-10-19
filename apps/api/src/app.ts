@@ -8,6 +8,8 @@ import type { AuthController } from './modules/auth/auth.controller';
 import { registerAuthRoutes } from './modules/auth/auth.routes';
 import type { BatchesController } from './modules/batches/batches.controller';
 import { registerBatchRoutes } from './modules/batches/batches.routes';
+import type { EnrollmentsController } from './modules/enrollments/enrollments.controller';
+import { registerEnrollmentRoutes } from './modules/enrollments/enrollments.routes';
 import type { InstitutesController } from './modules/institutes/institutes.controller';
 import { registerInstituteRoutes } from './modules/institutes/institutes.routes';
 import type { StudentsController } from './modules/students/students.controller';
@@ -22,6 +24,7 @@ export interface AppDependencies {
   institutesController: InstitutesController;
   batchesController: BatchesController;
   studentsController: StudentsController;
+  enrollmentsController: EnrollmentsController;
   accessTokens: JwtAccessTokens;
   memberships: MembershipLookup;
   isReady: () => Promise<boolean>;
@@ -62,6 +65,7 @@ export function buildApp(deps: AppDependencies, options: AppOptions = {}): Fasti
   registerInstituteRoutes(app, deps.institutesController, { requireAuth, requireMember });
   registerBatchRoutes(app, deps.batchesController, { requireAuth, requireMember });
   registerStudentRoutes(app, deps.studentsController, { requireAuth, requireMember });
+  registerEnrollmentRoutes(app, deps.enrollmentsController, { requireAuth, requireMember });
 
   return app;
 }

@@ -15,6 +15,9 @@ import { SessionService } from '../modules/auth/session.service';
 import { InMemoryBatchRepository } from '../modules/batches/batch.repository';
 import { BatchService } from '../modules/batches/batch.service';
 import { BatchesController } from '../modules/batches/batches.controller';
+import { InMemoryEnrollmentRepository } from '../modules/enrollments/enrollment.repository';
+import { EnrollmentService } from '../modules/enrollments/enrollment.service';
+import { EnrollmentsController } from '../modules/enrollments/enrollments.controller';
 import { EntitlementsService } from '../modules/entitlements/entitlements.service';
 import { InMemoryInstituteRepository } from '../modules/institutes/institute.repository';
 import { InstituteService } from '../modules/institutes/institute.service';
@@ -74,6 +77,14 @@ export function buildTestApp() {
     ids,
     clock,
   });
+  const enrollmentService = new EnrollmentService({
+    enrollments: new InMemoryEnrollmentRepository(),
+    students: studentService,
+    batches: batchService,
+    institutes: instituteService,
+    ids,
+    clock,
+  });
   const authService = new AuthService({
     otp: otpService,
     users: userService,
@@ -84,8 +95,9 @@ export function buildTestApp() {
     authController: new AuthController({ otpService, authService, sessionService }),
     meController: new MeController(userService, instituteService),
     institutesController: new InstitutesController(instituteService),
-    batchesController: new BatchesController(batchService),
-    studentsController: new StudentsController(studentService),
+    batchesController: new BatchesController(batchService, enrollmentService),
+    studentsController: new StudentsController(studentService, enrollmentService),
+    enrollmentsController: new EnrollmentsController(enrollmentService),
     memberships: instituteService,
     accessTokens,
     isReady: async () => true,

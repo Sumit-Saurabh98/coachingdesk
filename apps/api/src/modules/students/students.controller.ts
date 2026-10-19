@@ -6,16 +6,39 @@ import {
   UpdateStudentBody,
 } from '@coachingdesk/shared';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import { canSeeFees, withoutFees } from '../../http/fee-visibility';
 import { uuidParam } from '../../http/route-params';
 import { currentTenant } from '../../http/tenancy-guard';
 import type { StudentService } from './student.service';
+
+/** The money-free part of an enrollment is shown to everyone; fees only to owner/staff. */
+interface EnrollmentView {
+  toPublicJSON(): {
+    feePaise: number;
+    discountPaise: number;
+    netFeePaise: number;
+    feeCycle: string;
+  } & Record<string, unknown>;
+}
+
+/**
+ * What students needs from enrollments, defined HERE and implemented by EnrollmentService
+ * (dependency inversion, like UserInstitutesLookup in Step 9): students never imports
+ * enrollments, so the modules can't form an import cycle.
+ */
+export interface StudentEnrollments {
+  listForStudent(instituteId: string, studentId: string): Promise<EnrollmentView[]>;
+}
 
 const studentIdOf = (request: FastifyRequest) =>
   uuidParam(request, 'studentId', 'Student not found');
 
 /** HTTP <-> StudentService. Institute id only from currentTenant(); roles on the routes. */
 export class StudentsController {
-  constructor(private readonly students: StudentService) {}
+  constructor(
+    private readonly students: StudentService,
+    private readonly enrollments: StudentEnrollments,
+  ) {}
 
   /** GET .../students?q=&status=&limit=&cursor= (any member) -> 200 { students, nextCursor } */
   async list(request: FastifyRequest, reply: FastifyReply): Promise<void> {
@@ -53,13 +76,20 @@ export class StudentsController {
     });
   }
 
-  /** GET .../students/:studentId (any member) -> 200 { student } */
+  /** GET .../students/:studentId (any member) -> 200 { student, enrollments } */
   async get(request: FastifyRequest, reply: FastifyReply): Promise<void> {
-    const student = await this.students.get(
-      currentTenant(request).instituteId,
-      studentIdOf(request),
-    );
-    await reply.status(200).send({ student: student.toPublicJSON() });
+    const tenant = currentTenant(request);
+    const student = await this.students.get(tenant.instituteId, studentIdOf(request));
+    const enrollments = await this.enrollments.listForStudent(tenant.instituteId, student.id);
+    const showFees = canSeeFees(tenant.role);
+    await reply.status(200).send({
+      student: student.toPublicJSON(),
+      enrollments: enrollments.map((e) =>
+        showFees
+          ? e.toPublicJSON()
+          : withoutFees(e.toPublicJSON(), ['feePaise', 'discountPaise', 'netFeePaise', 'feeCycle']),
+      ),
+    });
   }
 
   /** PATCH .../students/:studentId (owner, staff) -> 200 { student } */
