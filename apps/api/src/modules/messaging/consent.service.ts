@@ -13,6 +13,10 @@ export class ConsentService {
     await this.consents.setConsent(instituteId, phone, 'opted_out', source);
   }
 
+  async forget(instituteId: string, phone: PhoneNumber): Promise<void> {
+    await this.consents.forget(instituteId, phone);
+  }
+
   /** "Guardian agreed" checkbox when adding students: one opt-in per distinct phone. */
   async optInAll(instituteId: string, phones: PhoneNumber[]): Promise<void> {
     const unique = new Map(phones.map((p) => [p.toE164(), p]));

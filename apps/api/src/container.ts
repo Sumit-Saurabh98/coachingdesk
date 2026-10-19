@@ -27,6 +27,7 @@ import { ConsentController } from './modules/messaging/consent.controller';
 import { MessagesController } from './modules/messaging/messages.controller';
 import { RemindersController } from './modules/messaging/reminders.controller';
 import { StudentsController } from './modules/students/students.controller';
+import { PrivacyController } from './modules/privacy/privacy.controller';
 import { SubscriptionsController } from './modules/subscriptions/subscriptions.controller';
 import { MeController } from './modules/users/me.controller';
 import { createDomainServices } from './services';
@@ -93,6 +94,7 @@ export function createContainer(config: Config): Container {
       services.entitlements,
     ),
     auditController: new AuditController(services.auditLog),
+    privacyController: new PrivacyController(services.erasureService),
     subscriptionsController: new SubscriptionsController(services.subscriptionService, {
       entitlements: services.entitlements,
       students: services.studentService,

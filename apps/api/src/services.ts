@@ -24,6 +24,7 @@ import { DrizzleOutboxRepository } from './modules/messaging/drizzle-outbox.repo
 import { FeeReminders } from './modules/messaging/fee-reminders';
 import { MessageQuota } from './modules/messaging/message-quota';
 import { OutboxAbsenceAlerts } from './modules/messaging/outbox-absence-alerts';
+import { ErasureService } from './modules/privacy/erasure.service';
 import { DrizzleStudentRepository } from './modules/students/drizzle-student.repository';
 import { StudentService } from './modules/students/student.service';
 import { DrizzleSubscriptionRepository } from './modules/subscriptions/drizzle-subscription.repository';
@@ -136,7 +137,16 @@ export function createDomainServices(db: Db, clock: Clock, ids: IdGenerator) {
     clock,
   });
 
+  const erasureService = new ErasureService({
+    students: studentService,
+    payments: paymentService,
+    consent: consentService,
+    messages: outboxRepository,
+    audit: auditLog,
+  });
+
   return {
+    erasureService,
     auditLog,
     subscriptionService,
     messageQuota,

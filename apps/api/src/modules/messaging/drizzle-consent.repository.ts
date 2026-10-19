@@ -36,6 +36,17 @@ export class DrizzleConsentRepository implements ConsentRepository {
     return status === 'opted_in' || status === 'opted_out' ? status : 'unknown';
   }
 
+  async forget(instituteId: string, phone: PhoneNumber): Promise<void> {
+    await this.db
+      .delete(guardianContacts)
+      .where(
+        and(
+          eq(guardianContacts.instituteId, instituteId),
+          eq(guardianContacts.phone, phone.toE164()),
+        ),
+      );
+  }
+
   async isGloballyOptedOut(phone: PhoneNumber): Promise<boolean> {
     return (await this.db.$count(whatsappOptOuts, eq(whatsappOptOuts.phone, phone.toE164()))) > 0;
   }

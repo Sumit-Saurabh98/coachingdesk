@@ -14,6 +14,8 @@ export interface ConsentRepository {
   ): Promise<void>;
   /** 'unknown' when the institute never recorded anything for this phone. */
   consentOf(instituteId: string, phone: PhoneNumber): Promise<ConsentStatus>;
+  /** Erasure: removes this institute's consent record for the phone. */
+  forget(instituteId: string, phone: PhoneNumber): Promise<void>;
   /** Replied STOP (or asked support): no automatic messages from ANY institute. */
   isGloballyOptedOut(phone: PhoneNumber): Promise<boolean>;
   optOutGlobally(phone: PhoneNumber, source: 'stop_reply' | 'support', at: Date): Promise<void>;
@@ -35,6 +37,10 @@ export class InMemoryConsentRepository implements ConsentRepository {
 
   async consentOf(instituteId: string, phone: PhoneNumber): Promise<ConsentStatus> {
     return this.consents.get(`${instituteId}|${phone.toE164()}`) ?? 'unknown';
+  }
+
+  async forget(instituteId: string, phone: PhoneNumber): Promise<void> {
+    this.consents.delete(`${instituteId}|${phone.toE164()}`);
   }
 
   async isGloballyOptedOut(phone: PhoneNumber): Promise<boolean> {

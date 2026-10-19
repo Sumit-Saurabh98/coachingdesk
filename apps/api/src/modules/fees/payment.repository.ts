@@ -1,9 +1,9 @@
-import type { LocalDate } from '@coachingdesk/shared';
+import type { LocalDate, PhoneNumber } from '@coachingdesk/shared';
 import { Money } from '@coachingdesk/shared';
 import { oldestFirst } from './allocation';
 import type { Invoice } from './invoice';
 import type { InMemoryInvoiceRepository } from './invoice.repository';
-import type { Payment, PaymentMethod, PaymentStatus } from './payment';
+import { Payment, type PaymentMethod, type PaymentStatus } from './payment';
 
 export type RecordOutcome =
   | { outcome: 'recorded'; payment: Payment; invoice: Invoice; allocated: Money; credit: Money }
@@ -60,6 +60,8 @@ export interface PaymentRepository {
   ): Promise<Array<{ payment: Payment; amount: Money }>>;
   /** Newest first. */
   list(instituteId: string, query: PaymentListQuery): Promise<Payment[]>;
+  /** Erasure: removes this guardian's phone from the institute's payments (amounts stay). */
+  forgetGuardianPhone(instituteId: string, phone: PhoneNumber): Promise<number>;
   /** Active payments with paid_at in [from, to). */
   collectedBetween(instituteId: string, from: Date, to: Date): Promise<CollectedTotals>;
   /** Open invoices: pending total, overdue count, overdue per student (largest first, top N). */
@@ -157,6 +159,17 @@ export class InMemoryPaymentRepository implements PaymentRepository {
       .map((a) => ({ payment: this.payments.get(a.paymentId)!, amount: a.amount }))
       .filter((row) => row.payment.instituteId === instituteId)
       .sort((a, b) => b.payment.paidAt.getTime() - a.payment.paidAt.getTime());
+  }
+
+  async forgetGuardianPhone(instituteId: string, phone: PhoneNumber): Promise<number> {
+    let changed = 0;
+    for (const [id, p] of this.payments) {
+      if (p.instituteId === instituteId && p.guardianPhone?.equals(phone)) {
+        this.payments.set(id, Payment.restore({ ...p.toProps(), guardianPhone: null }));
+        changed += 1;
+      }
+    }
+    return changed;
   }
 
   async list(instituteId: string, query: PaymentListQuery): Promise<Payment[]> {

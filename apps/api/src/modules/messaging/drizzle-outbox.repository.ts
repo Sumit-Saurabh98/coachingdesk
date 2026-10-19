@@ -1,7 +1,7 @@
 import type { Db } from '@coachingdesk/db';
 import { messageOutbox } from '@coachingdesk/db/schema';
 import { PhoneNumber } from '@coachingdesk/shared';
-import { and, desc, eq, inArray, lt, type SQL, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, like, lt, type SQL, sql } from 'drizzle-orm';
 import {
   MESSAGE_CATEGORIES,
   MESSAGE_STATUSES,
@@ -121,6 +121,36 @@ export class DrizzleOutboxRepository implements OutboxRepository {
       .from(messageOutbox)
       .where(eq(messageOutbox.dedupeKey, dedupeKey));
     return row ? toMessage(row) : null;
+  }
+
+  async forgetStudent(instituteId: string, studentId: string): Promise<number> {
+    const queuedOrScheduled = sql`${messageOutbox.status} in ('queued', 'scheduled')`;
+    const touched = await this.db
+      .update(messageOutbox)
+      .set({
+        params: {},
+        status: sql`case when ${queuedOrScheduled} then 'skipped' else ${messageOutbox.status} end`,
+        skipReason: sql`case when ${queuedOrScheduled} then 'stale' else ${messageOutbox.skipReason} end`,
+        updatedAt: sql`now()`,
+      })
+      .where(
+        and(
+          eq(messageOutbox.instituteId, instituteId),
+          like(messageOutbox.dedupeKey, `absence:%:${studentId}`),
+        ),
+      )
+      .returning({ id: messageOutbox.id });
+    return touched.length;
+  }
+
+  async forgetPhone(instituteId: string, phone: PhoneNumber): Promise<number> {
+    const removed = await this.db
+      .delete(messageOutbox)
+      .where(
+        and(eq(messageOutbox.instituteId, instituteId), eq(messageOutbox.toPhone, phone.toE164())),
+      )
+      .returning({ id: messageOutbox.id });
+    return removed.length;
   }
 
   async listForInstitute(instituteId: string, query: OutboxLogQuery): Promise<OutboxMessage[]> {

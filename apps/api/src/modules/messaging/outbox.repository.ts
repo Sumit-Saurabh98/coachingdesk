@@ -88,6 +88,13 @@ export interface OutboxRepository {
   /** Crash recovery: 'sending' rows not touched since `before` go back to 'queued'. Returns how many. */
   releaseStuck(before: Date): Promise<number>;
   findByDedupeKey(dedupeKey: string): Promise<OutboxMessage | null>;
+  /**
+   * Erasure: absence alerts about this student lose their text (it holds the name); queued ones
+   * are cancelled. Returns how many rows were touched.
+   */
+  forgetStudent(instituteId: string, studentId: string): Promise<number>;
+  /** Erasure, when no other student uses the phone: delete the institute's messages to it. */
+  forgetPhone(instituteId: string, phone: PhoneNumber): Promise<number>;
   /** The institute's message log, newest first. */
   listForInstitute(instituteId: string, query: OutboxLogQuery): Promise<OutboxMessage[]>;
 }
@@ -172,6 +179,34 @@ export class InMemoryOutboxRepository implements OutboxRepository {
   async findByDedupeKey(dedupeKey: string): Promise<OutboxMessage | null> {
     const row = [...this.rows.values()].find((r) => r.dedupeKey === dedupeKey);
     return row ? strip(row) : null;
+  }
+
+  async forgetStudent(instituteId: string, studentId: string): Promise<number> {
+    let touched = 0;
+    for (const row of this.rows.values()) {
+      const aboutStudent =
+        row.dedupeKey.startsWith('absence:') && row.dedupeKey.endsWith(`:${studentId}`);
+      if (row.instituteId === instituteId && aboutStudent) {
+        row.params = {};
+        if (row.status === 'queued' || row.status === 'scheduled') {
+          row.status = 'skipped';
+          row.skipReason = 'stale';
+        }
+        touched += 1;
+      }
+    }
+    return touched;
+  }
+
+  async forgetPhone(instituteId: string, phone: PhoneNumber): Promise<number> {
+    let removed = 0;
+    for (const [id, row] of this.rows) {
+      if (row.instituteId === instituteId && row.to.equals(phone)) {
+        this.rows.delete(id);
+        removed += 1;
+      }
+    }
+    return removed;
   }
 
   async listForInstitute(instituteId: string, query: OutboxLogQuery): Promise<OutboxMessage[]> {

@@ -118,6 +118,50 @@ export function describeOutboxRepositoryContract(
       ).toEqual([b.id, a.id]);
     });
 
+    it("erasure: forgetStudent clears that student's absence alerts and cancels queued ones", async () => {
+      const repo = create();
+      const queued = message({
+        dedupeKey: 'absence:sess-1:student-x',
+        params: { student: 'Aarav' },
+      });
+      const sent = message({ dedupeKey: 'absence:sess-0:student-x', params: { student: 'Aarav' } });
+      const other = message({
+        dedupeKey: 'absence:sess-1:student-y',
+        params: { student: 'Bhavya' },
+      });
+      await repo.enqueueAll([queued, sent, other]);
+      await repo.claimDue(t(10), 10);
+      await repo.markSent(sent.id, 'wamid-9');
+      await repo.reschedule(queued.id, t(5), { kind: 'quiet_hours' });
+
+      expect(await repo.forgetStudent(CONTRACT.instituteA, 'student-x')).toBe(2);
+
+      expect(await repo.findByDedupeKey(queued.dedupeKey)).toMatchObject({
+        params: {},
+        status: 'skipped',
+        skipReason: 'stale',
+      });
+      expect(await repo.findByDedupeKey(sent.dedupeKey)).toMatchObject({
+        params: {},
+        status: 'sent',
+      });
+      expect((await repo.findByDedupeKey(other.dedupeKey))?.params).toEqual({ student: 'Bhavya' });
+    });
+
+    it('erasure: forgetPhone deletes the institute messages to that phone only', async () => {
+      const repo = create();
+      const mine = message();
+      const otherPhone = message({ to: PhoneNumber.parse('9123456789') });
+      const otherInstitute = message({ instituteId: CONTRACT.instituteB });
+      await repo.enqueueAll([mine, otherPhone, otherInstitute]);
+
+      expect(await repo.forgetPhone(CONTRACT.instituteA, phone)).toBe(1);
+
+      expect(await repo.findByDedupeKey(mine.dedupeKey)).toBeNull();
+      expect(await repo.findByDedupeKey(otherPhone.dedupeKey)).not.toBeNull();
+      expect(await repo.findByDedupeKey(otherInstitute.dedupeKey)).not.toBeNull();
+    });
+
     it('reschedule: quiet hours keep attempts; a retry counts one more attempt', async () => {
       const repo = create();
       const [a, b] = [message(), message()];
@@ -157,6 +201,13 @@ export function describeConsentRepositoryContract(
 
       await repo.setConsent(CONTRACT.instituteA, phone, 'opted_out', 'verbal');
       expect(await repo.consentOf(CONTRACT.instituteA, phone)).toBe('opted_out');
+    });
+
+    it('forget removes the consent record (back to unknown)', async () => {
+      const repo = create();
+      await repo.setConsent(CONTRACT.instituteA, phone, 'opted_in', 'add_student');
+      await repo.forget(CONTRACT.instituteA, phone);
+      expect(await repo.consentOf(CONTRACT.instituteA, phone)).toBe('unknown');
     });
 
     it('a global opt-out applies to the phone everywhere (and is idempotent)', async () => {

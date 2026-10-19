@@ -27,6 +27,8 @@ import type { ConsentController } from './modules/messaging/consent.controller';
 import type { MessagesController } from './modules/messaging/messages.controller';
 import type { RemindersController } from './modules/messaging/reminders.controller';
 import { registerMessagingRoutes } from './modules/messaging/messaging.routes';
+import type { PrivacyController } from './modules/privacy/privacy.controller';
+import { registerPrivacyRoutes } from './modules/privacy/privacy.routes';
 import type { SubscriptionsController } from './modules/subscriptions/subscriptions.controller';
 import { registerSubscriptionRoutes } from './modules/subscriptions/subscriptions.routes';
 import type { MeController } from './modules/users/me.controller';
@@ -47,6 +49,7 @@ export interface AppDependencies {
   messagesController: MessagesController;
   subscriptionsController: SubscriptionsController;
   auditController: AuditController;
+  privacyController: PrivacyController;
   invoicesController: InvoicesController;
   paymentsController: PaymentsController;
   accessTokens: JwtAccessTokens;
@@ -111,6 +114,7 @@ export function buildApp(deps: AppDependencies, options: AppOptions = {}): Fasti
     },
   );
   registerAuditRoutes(app, deps.auditController, { requireAuth, requireMember });
+  registerPrivacyRoutes(app, deps.privacyController, { requireAuth, requireMember });
   registerSubscriptionRoutes(app, deps.subscriptionsController, { requireAuth, requireMember });
   registerFeeRoutes(app, deps.invoicesController, deps.paymentsController, {
     requireAuth,

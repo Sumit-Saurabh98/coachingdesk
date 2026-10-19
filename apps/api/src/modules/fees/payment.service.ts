@@ -152,6 +152,11 @@ export class PaymentService {
     return found;
   }
 
+  /** Erasure: the guardian's phone leaves the payment history; amounts stay (LLD §6.9). */
+  async forgetGuardianPhone(instituteId: string, phone: PhoneNumber): Promise<void> {
+    await this.deps.payments.forgetGuardianPhone(instituteId, phone);
+  }
+
   async forInvoice(instituteId: string, invoiceId: string) {
     return this.deps.payments.listForInvoice(instituteId, invoiceId);
   }

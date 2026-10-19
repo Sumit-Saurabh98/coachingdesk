@@ -52,6 +52,8 @@ import { StudentService } from '../modules/students/student.service';
 import { StudentsController } from '../modules/students/students.controller';
 import { InMemorySubscriptionRepository } from '../modules/subscriptions/subscription.repository';
 import { SubscriptionService } from '../modules/subscriptions/subscription.service';
+import { ErasureService } from '../modules/privacy/erasure.service';
+import { PrivacyController } from '../modules/privacy/privacy.controller';
 import { SubscriptionsController } from '../modules/subscriptions/subscriptions.controller';
 import { MeController } from '../modules/users/me.controller';
 import { InMemoryUserRepository } from '../modules/users/user.repository';
@@ -180,6 +182,13 @@ export function buildTestApp() {
     ids,
     clock,
   });
+  const erasureService = new ErasureService({
+    students: studentService,
+    payments: paymentService,
+    consent: consentService,
+    messages: outboxRepository,
+    audit: auditLog,
+  });
   const authService = new AuthService({
     otp: otpService,
     users: userService,
@@ -191,6 +200,7 @@ export function buildTestApp() {
     meController: new MeController(userService, instituteService, sessionService),
     institutesController: new InstitutesController(instituteService, entitlements),
     auditController: new AuditController(auditLog),
+    privacyController: new PrivacyController(erasureService),
     subscriptionsController: new SubscriptionsController(subscriptionService, {
       entitlements,
       students: studentService,

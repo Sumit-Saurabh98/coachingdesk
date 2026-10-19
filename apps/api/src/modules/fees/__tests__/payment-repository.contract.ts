@@ -130,6 +130,24 @@ export function describePaymentRepositoryContract(
       expect(await fixture.payments.void(instituteB, recorded.payment.id, (p) => p)).toBeNull();
     });
 
+    it('erasure: forgetGuardianPhone clears the phone, keeps the amount; only this institute', async () => {
+      const fixture = create();
+      const invoice = await withInvoice(fixture);
+      const recorded = await fixture.payments.recordForInvoice(offlinePayment(500), invoice.id);
+      if (recorded.outcome !== 'recorded') throw new Error(recorded.outcome);
+
+      expect(
+        await fixture.payments.forgetGuardianPhone(instituteB, PhoneNumber.parse('9812345678')),
+      ).toBe(0);
+      expect(
+        await fixture.payments.forgetGuardianPhone(instituteA, PhoneNumber.parse('9812345678')),
+      ).toBe(1);
+
+      const found = await fixture.payments.findById(instituteA, recorded.payment.id);
+      expect(found?.payment.guardianPhone).toBeNull();
+      expect(found?.payment.amount.toPaise()).toBe(50000);
+    });
+
     it('lists payments of an invoice, and payments by date / method / status', async () => {
       const fixture = create();
       const invoice = await withInvoice(fixture);

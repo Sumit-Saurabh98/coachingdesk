@@ -133,6 +133,21 @@ export class StudentService {
     return this.deps.students.countActive(instituteId);
   }
 
+  /** Erases the student's personal data (idempotent). Returns the erased student. */
+  async erase(instituteId: string, studentId: string): Promise<Student> {
+    const student = await this.get(instituteId, studentId);
+    const erased = student.erase(await this.todayAt(instituteId), this.deps.clock.now());
+    if (erased !== student) {
+      await this.deps.students.update(erased);
+    }
+    return erased;
+  }
+
+  /** Every student of this guardian here, any status (erased ones no longer have the phone). */
+  async byGuardianPhone(instituteId: string, phone: PhoneNumber): Promise<Student[]> {
+    return this.deps.students.listByGuardianPhone(instituteId, phone);
+  }
+
   /** This guardian's ACTIVE students here (siblings): who a fee reminder is about. */
   async activeByGuardianPhone(instituteId: string, phone: PhoneNumber): Promise<Student[]> {
     const siblings = await this.deps.students.listByGuardianPhone(instituteId, phone);

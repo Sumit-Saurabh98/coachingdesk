@@ -200,6 +200,15 @@ export class DrizzlePaymentRepository implements PaymentRepository {
     return rows.map(toPayment);
   }
 
+  async forgetGuardianPhone(instituteId: string, phone: PhoneNumber): Promise<number> {
+    const changed = await this.db
+      .update(payments)
+      .set({ guardianPhone: null, updatedAt: sql`now()` })
+      .where(and(eq(payments.instituteId, instituteId), eq(payments.guardianPhone, phone.toE164())))
+      .returning({ id: payments.id });
+    return changed.length;
+  }
+
   async collectedBetween(instituteId: string, from: Date, to: Date): Promise<CollectedTotals> {
     const rows = await this.db
       .select({ method: payments.method, total: sql<string>`sum(${payments.amountPaise})` })

@@ -127,6 +127,28 @@ export class Student {
     return new Student({ ...this.toProps(), status: 'left', leftOn: on });
   }
 
+  /**
+   * LLD §6.9 erasure (a guardian's request, owner action): personal data is removed for good;
+   * the record stays so invoices and payments keep their amounts. An active student is marked
+   * left (on `today`, or the join date if that is later) so billing stops. Idempotent.
+   */
+  erase(today: LocalDate, at: Date): Student {
+    if (this.erasedAt) {
+      return this;
+    }
+    const leftOn = this.leftOn ?? (today.isBefore(this.joinedOn) ? this.joinedOn : today);
+    return new Student({
+      ...this.toProps(),
+      name: 'Erased student',
+      guardianName: null,
+      guardianPhone: null,
+      notes: null,
+      status: 'left',
+      leftOn,
+      erasedAt: at,
+    });
+  }
+
   toPublicJSON() {
     return {
       id: this.id,

@@ -128,3 +128,26 @@ describe('an erased student', () => {
     expect(erased.toPublicJSON().guardianPhone).toBeNull();
   });
 });
+
+describe('Student.erase', () => {
+  const now = new Date('2026-10-19T10:00:00Z');
+
+  it('removes personal data, marks the student left, and is idempotent', () => {
+    const erased = create({ notes: 'Weak in algebra' }).erase(day('2026-10-19'), now);
+    expect(erased.toPublicJSON()).toMatchObject({
+      name: 'Erased student',
+      guardianName: null,
+      guardianPhone: null,
+      notes: null,
+      status: 'left',
+      leftOn: '2026-10-19',
+    });
+    expect(erased.erasedAt).toEqual(now);
+    expect(erased.erase(day('2026-12-01'), new Date())).toBe(erased);
+  });
+
+  it('keeps an earlier leave date', () => {
+    const left = create().leave(day('2026-10-10'));
+    expect(left.erase(day('2026-10-19'), now).leftOn?.toString()).toBe('2026-10-10');
+  });
+});
