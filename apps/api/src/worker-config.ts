@@ -17,6 +17,12 @@ const WorkerConfigSchema = z.object({
     .int()
     .min(1000)
     .default(15 * 60_000),
+  // How often fee reminders are planned. Repeats within a day queue nothing (one per guardian per day).
+  REMINDER_POLL_MS: z.coerce
+    .number()
+    .int()
+    .min(1000)
+    .default(15 * 60_000),
 });
 
 export type WorkerConfig = z.infer<typeof WorkerConfigSchema>;

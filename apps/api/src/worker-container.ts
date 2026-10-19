@@ -3,6 +3,8 @@ import { ConsoleWhatsAppSender, type WhatsAppSender } from '@coachingdesk/provid
 import { SystemClock, UuidV7Generator } from '@coachingdesk/shared';
 import { BillingScheduler } from './modules/fees/billing-scheduler';
 import { AbsenceRevalidator } from './modules/messaging/absence-revalidator';
+import { FeeReminderRenderer } from './modules/messaging/fee-reminder-renderer';
+import { ReminderPlanner, ReminderScheduler } from './modules/messaging/reminder-planner';
 import { OutboxDispatcher } from './modules/messaging/outbox-dispatcher';
 import { createDomainServices } from './services';
 import type { WorkerConfig } from './worker-config';
@@ -10,6 +12,7 @@ import type { WorkerConfig } from './worker-config';
 export interface WorkerContainer {
   dispatcher: OutboxDispatcher;
   billing: BillingScheduler;
+  reminders: ReminderScheduler;
   close: () => Promise<void>;
 }
 
@@ -28,13 +31,33 @@ export function createWorkerContainer(config: WorkerConfig): WorkerContainer {
     sender: createWhatsAppSender(config),
     institutes: services.instituteService,
     // Per category: "is this message still true?" (LLD §6.3). More arrive with fees/results.
-    revalidators: { absence: new AbsenceRevalidator(services.attendanceService) },
+    revalidators: {
+      absence: new AbsenceRevalidator(services.attendanceService),
+      fee_reminder: new FeeReminderRenderer(
+        services.studentService,
+        services.invoiceService,
+        services.instituteService,
+      ),
+    },
     clock,
   });
 
   const billing = new BillingScheduler(services.instituteService, services.invoiceGenerator);
 
-  return { dispatcher, billing, close: () => database.close() };
+  const reminders = new ReminderScheduler(
+    services.instituteService,
+    new ReminderPlanner({
+      outbox: services.outboxRepository,
+      institutes: services.instituteService,
+      entitlements: services.entitlements,
+      invoices: services.invoiceService,
+      students: services.studentService,
+      ids,
+      clock,
+    }),
+  );
+
+  return { dispatcher, billing, reminders, close: () => database.close() };
 }
 
 function createWhatsAppSender(config: WorkerConfig): WhatsAppSender {

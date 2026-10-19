@@ -116,6 +116,15 @@ export class InvoiceService {
     });
   }
 
+  /** Open invoices due on any of these days (the reminder planner's question). */
+  async openDueOn(instituteId: string, dates: LocalDate[]): Promise<Invoice[]> {
+    return this.deps.invoices.list(instituteId, {
+      statuses: ['due', 'partially_paid'],
+      dueDates: dates,
+      limit: 10_000,
+    });
+  }
+
   async get(instituteId: string, invoiceId: string): Promise<Invoice> {
     const invoice = await this.deps.invoices.findById(instituteId, invoiceId);
     if (!invoice) {

@@ -13,6 +13,7 @@ describe('loadWorkerConfig', () => {
       WHATSAPP_PROVIDER: 'console',
       OUTBOX_POLL_MS: 5000,
       INVOICE_POLL_MS: 900_000,
+      REMINDER_POLL_MS: 900_000,
     });
   });
 

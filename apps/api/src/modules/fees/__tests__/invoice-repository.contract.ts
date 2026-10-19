@@ -126,6 +126,17 @@ export function describeInvoiceRepositoryContract(
         [sep.id, oct.id, bhavya.id],
       );
       expect(await repo.list(instituteA, { limit: 2 })).toHaveLength(2);
+      expect(
+        ids(
+          await repo.list(instituteA, {
+            dueDates: [day('2026-09-07'), day('2026-10-30')],
+            limit: 50,
+          }),
+        ),
+      ).toEqual([sep.id, exam.id]);
+      expect(ids(await repo.list(instituteA, { studentIds: [s2], limit: 50 }))).toEqual([
+        bhavya.id,
+      ]);
     });
 
     it('saveStatus: writes only if the status is still the expected one', async () => {

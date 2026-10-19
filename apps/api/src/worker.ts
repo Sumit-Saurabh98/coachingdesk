@@ -33,6 +33,17 @@ const billingPoller = new Poller(
   (error) => log('error', 'billing run failed', { error: String(error) }),
 );
 
+const reminderPoller = new Poller(
+  async () => {
+    const summary = await container.reminders.runOnce();
+    if (summary.queued > 0 || summary.failed.length > 0) {
+      log(summary.failed.length > 0 ? 'error' : 'info', 'reminders planned', { ...summary });
+    }
+  },
+  config.REMINDER_POLL_MS,
+  (error) => log('error', 'reminder planning failed', { error: String(error) }),
+);
+
 // Graceful shutdown, like server.ts: finish the current runs, close the database, exit.
 let shuttingDown = false;
 async function shutdown(signal: string): Promise<void> {
@@ -41,7 +52,7 @@ async function shutdown(signal: string): Promise<void> {
   }
   shuttingDown = true;
   log('info', 'worker shutting down', { signal });
-  await Promise.all([poller.stop(), billingPoller.stop()]);
+  await Promise.all([poller.stop(), billingPoller.stop(), reminderPoller.stop()]);
   await container.close();
   process.exit(0);
 }
@@ -51,7 +62,9 @@ process.on('SIGINT', () => void shutdown('SIGINT'));
 log('info', 'worker started', {
   outboxPollMs: config.OUTBOX_POLL_MS,
   invoicePollMs: config.INVOICE_POLL_MS,
+  reminderPollMs: config.REMINDER_POLL_MS,
   provider: config.WHATSAPP_PROVIDER,
 });
 poller.start();
 billingPoller.start();
+reminderPoller.start();
