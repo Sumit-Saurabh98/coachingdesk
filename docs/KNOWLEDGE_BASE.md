@@ -158,6 +158,8 @@ Each needs Hindi version. Template approval takes time — submit early.
 | 25 | 2026-10 | OOP + SOLID: value objects/entities, services with constructor-injected interfaces, repository interfaces, hand-written composition root | Founder preference and learning goal; clear seams for testing with fakes |
 | 26 | 2026-10 | `InstituteRepository.createWithOwner` writes institute + owner membership + initial trial subscription in ONE transaction — the only place one module writes another's table (`subscriptions`); the subscriptions module owns every later change | A half-created institute (no owner / no plan) must be impossible; cross-module 2-phase writes would be far more complex |
 | 27 | 2026-10 | Fee cycles add `half_yearly` and `yearly` (6 / 12 months from `cycle_anchor`), alongside monthly, quarterly, one_time, none | Academies, music and sports classes often bill per term or session; same anchor-based billing, so little extra logic |
+| 28 | 2026-10 | Plan limits are enforced in the repository: count + insert in one transaction holding a row lock on the institute (`SELECT … FOR UPDATE`). The effective plan is computed from the subscription row's dates (an expired trial is Free immediately, no job needed) | Several API instances run; a read-then-write check lets two requests both take the last slot. Dates-not-status means a late background job can't extend a trial |
+| 29 | 2026-10 | Bulk student import: rows validated one by one (bad rows reported, good rows created), but the plan limit is all-or-nothing for the good rows | Owners fix a typo and resend; a half-imported list is harder to reason about than a clear "you can add 5 more" |
 
 ## 7. Open questions
 

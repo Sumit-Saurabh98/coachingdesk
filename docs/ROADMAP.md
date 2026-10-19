@@ -14,7 +14,7 @@ Solo developer, ~12 weeks to a paid MVP. Each milestone ends with something demo
 ## Phase 1 — Core data (Weeks 2–3)
 - [ ] Auth: OTP request/verify, refresh rotation
 - [ ] Institutes, memberships, tenancy plugin, role checks
-- [ ] Batches, students, enrollments, bulk import  _(API: batches ✅; students, enrollments, bulk import next)_
+- [ ] Batches, students, enrollments, bulk import  _(API: batches ✅, students + bulk import ✅; enrollments next)_
 - [ ] Mobile: login, onboarding wizard, batches & students screens, EN/HI
 - **Demo:** sign up and add 20 students in under 5 minutes
 

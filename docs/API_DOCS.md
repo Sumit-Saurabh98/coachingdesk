@@ -145,12 +145,12 @@ Batch object:
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/institutes/{id}/students` | `?q=&batchId=&status=active&limit&cursor` |
-| POST | `/institutes/{id}/students` | Single student (+ optional `batchIds`) |
-| POST | `/institutes/{id}/students/bulk` | Up to 500 rows; returns per-row result |
-| GET | `/institutes/{id}/students/{studentId}` | Profile, enrollments, fee summary, attendance % |
-| PATCH | `/institutes/{id}/students/{studentId}` | |
-| POST | `/institutes/{id}/students/{studentId}/leave` | `{ leftOn }` → stops invoices/reminders |
+| GET | `/institutes/{id}/students` | `?q=&status=active\|left\|all&limit=1–100 (50)&cursor=` → `200 { students, nextCursor }`, sorted by name (case-insensitive). `q` matches student/guardian name, or 3+ digits of the guardian phone. `?batchId=` arrives with enrollments |
+| POST | `/institutes/{id}/students` | Owner, staff. Single student → `201 { student }` (+ optional `batchIds` with enrollments) |
+| POST | `/institutes/{id}/students/bulk` | Owner, staff. Up to 500 rows → `200 { created, students, failed }` |
+| GET | `/institutes/{id}/students/{studentId}` | `200 { student }`. Enrollments, fee summary and attendance % are added as those modules land |
+| PATCH | `/institutes/{id}/students/{studentId}` | Owner, staff. `{ name?, guardianName?, guardianPhone?, joinedOn?, notes? }` → `200 { student }`. `409` if erased |
+| POST | `/institutes/{id}/students/{studentId}/leave` | Owner, staff. `{ leftOn? }` (default: today at the institute) → `200 { student }`. Stops invoices/reminders; frees a plan slot. Idempotent: a retry keeps the first date |
 | POST | `/institutes/{id}/students/{studentId}/erase` | Owner. Irreversibly erases the student's and guardian's personal data (on guardian request); amounts are kept |
 | POST | `/institutes/{id}/enrollments` | `{ studentId, batchId, feePaise?, discountPaise?, feeCycle?, startDate, billNow?: boolean }` — `feePaise`/`feeCycle` default to the batch's. `one_time` is invoiced immediately; `billNow` bills the current monthly/quarterly/half-yearly/yearly period now |
 | PATCH | `/institutes/{id}/enrollments/{enrollmentId}` | Change fee / cycle / end date (applies from the next period) |
@@ -166,12 +166,27 @@ Create student:
 }
 ```
 
-Bulk response:
+- `guardianPhone`: any common Indian format (`98765 43210`, `+91…`); stored and returned as E.164. Siblings may share it.
+- `joinedOn` default: today in the institute's time zone. `leftOn` ≥ `joinedOn`.
+- Name 2–80 chars, guardian name ≤ 80, notes ≤ 1000. `status` is never sent: only `/leave` changes it.
+
+Student object:
 ```json
-{ "created": 18, "failed": [ { "row": 4, "code": "INVALID_PHONE", "input": "Ravi, 98765" } ] }
+{ "id": "…", "name": "Aarav Sharma", "guardianName": "Neha Sharma", "guardianPhone": "+919876543210", "status": "active", "joinedOn": "2026-10-18", "leftOn": null, "notes": null }
 ```
 
-Errors: `PLAN_LIMIT_REACHED` when active students exceed plan.
+List: `nextCursor` is opaque — send it back as `?cursor=` for the next page; `null` = last page. A tampered cursor → `422` (`details.field = "cursor"`).
+
+Bulk request (the app parses pasted "Name, Phone" lines into rows; one `joinedOn` for all, optional):
+```json
+{ "rows": [ { "name": "Aarav", "guardianPhone": "9876543210", "guardianName": "Neha" }, { "name": "Ravi", "guardianPhone": "98765" } ], "joinedOn": "2026-10-01" }
+```
+Bulk response — every row is validated on its own; bad rows are reported, never silently dropped (FR-2.2):
+```json
+{ "created": 1, "students": [ { "id": "…", "name": "Aarav", … } ], "failed": [ { "row": 2, "field": "guardianPhone", "message": "…", "input": { "name": "Ravi", "guardianPhone": "98765" } } ] }
+```
+
+Errors: `402 PLAN_LIMIT_REACHED` (`details.limit`) when the new **active** students would exceed the plan. For bulk, all valid rows must fit or none are created. The count and the insert run under a lock, so two phones can't both take the last slot.
 
 ## 7. Attendance
 

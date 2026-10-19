@@ -96,7 +96,8 @@ students (
   created_at, updated_at,
   check (erased_at is not null or guardian_phone is not null)
 )
-index (institute_id, status), index (institute_id, guardian_phone)
+index (institute_id, status), index (institute_id, guardian_phone),
+index (institute_id, (lower(name) collate "C"), id)   -- name-sorted keyset paging; "C" = same order as JS
 
 enrollments (
   id uuid pk, institute_id uuid fk, student_id uuid fk, batch_id uuid fk,
@@ -429,12 +430,13 @@ export interface Entitlements {
   monthlyMessages: number; features: Set<FeatureKey>;
 }
 export interface EntitlementsService {
-  get(instituteId: string): Promise<Entitlements>;          // cached 60 s
-  // throws AppError PLAN_LIMIT_REACHED / FEATURE_NOT_IN_PLAN (402)
-  assert(instituteId: string, check:
-    | { feature: FeatureKey }
-    | { limit: 'students' | 'members'; adding: number }): Promise<void>;
+  get(instituteId: string): Promise<Entitlements>;          // plan from subscriptions (dates decide); cache 60 s later
+  limitFor(instituteId: string, limit: 'activeStudents' | 'members'): Promise<number | null>;
+  assertFeature(instituteId: string, feature: FeatureKey): Promise<void>;   // 402 FEATURE_NOT_IN_PLAN
 }
+// Limits are ENFORCED by the repository that inserts, atomically: e.g.
+// StudentRepository.createWithinLimit(instituteId, students, max) counts + inserts under
+// SELECT … FOR UPDATE on the institute row; the service turns 'limit_reached' into 402.
 export interface Clock { now(): Date }
 ```
 
