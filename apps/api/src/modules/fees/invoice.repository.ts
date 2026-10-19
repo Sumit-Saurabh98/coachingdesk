@@ -121,6 +121,21 @@ export class InMemoryInvoiceRepository implements InvoiceRepository {
     return first;
   }
 
+  /** FAKES ONLY: the in-memory payment repository updates invoices in the same "database". */
+  peek(invoiceId: string): Invoice | undefined {
+    return this.invoices.get(invoiceId);
+  }
+
+  /** FAKES ONLY: see peek(). */
+  put(invoice: Invoice): void {
+    this.invoices.set(invoice.id, invoice);
+  }
+
+  /** FAKES ONLY: every stored invoice (dashboard totals). */
+  all(): Invoice[] {
+    return [...this.invoices.values()];
+  }
+
   async isRunCompleted(instituteId: string, periodStart: LocalDate): Promise<boolean> {
     return (this.runs.get(`${instituteId}|${periodStart}`)?.completedAt ?? null) !== null;
   }

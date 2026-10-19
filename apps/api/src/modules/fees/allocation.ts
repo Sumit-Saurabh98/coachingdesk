@@ -1,4 +1,4 @@
-import { Money } from '@coachingdesk/shared';
+import type { Money } from '@coachingdesk/shared';
 import type { Invoice } from './invoice';
 
 export interface Allocation {

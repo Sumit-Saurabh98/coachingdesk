@@ -189,7 +189,7 @@ function toColumns(invoice: Invoice) {
   };
 }
 
-function toInvoice(row: InvoiceRow): Invoice {
+export function toInvoice(row: InvoiceRow): Invoice {
   return Invoice.restore({
     id: row.id,
     instituteId: row.instituteId,
