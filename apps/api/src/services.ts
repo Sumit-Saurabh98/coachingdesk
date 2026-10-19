@@ -17,7 +17,10 @@ import { DrizzleInstituteRepository } from './modules/institutes/drizzle-institu
 import { InstituteService } from './modules/institutes/institute.service';
 import { ConsentService } from './modules/messaging/consent.service';
 import { DrizzleConsentRepository } from './modules/messaging/drizzle-consent.repository';
+import { DrizzleMessageUsageRepository } from './modules/messaging/drizzle-message-usage.repository';
 import { DrizzleOutboxRepository } from './modules/messaging/drizzle-outbox.repository';
+import { FeeReminders } from './modules/messaging/fee-reminders';
+import { MessageQuota } from './modules/messaging/message-quota';
 import { OutboxAbsenceAlerts } from './modules/messaging/outbox-absence-alerts';
 import { DrizzleStudentRepository } from './modules/students/drizzle-student.repository';
 import { StudentService } from './modules/students/student.service';
@@ -117,7 +120,20 @@ export function createDomainServices(db: Db, clock: Clock, ids: IdGenerator) {
     clock,
   });
 
+  const messageQuota = new MessageQuota(new DrizzleMessageUsageRepository(db), entitlements, clock);
+  const feeReminders = new FeeReminders({
+    outbox: outboxRepository,
+    invoices: invoiceService,
+    students: studentService,
+    institutes: instituteService,
+    entitlements,
+    ids,
+    clock,
+  });
+
   return {
+    messageQuota,
+    feeReminders,
     paymentService,
     invoiceGenerator,
     invoiceService,

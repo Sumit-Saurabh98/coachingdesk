@@ -1,5 +1,6 @@
 import { type WhatsAppSender, WhatsAppSendError } from '@coachingdesk/providers';
-import { type Clock, InstituteClock, zonedInstant } from '@coachingdesk/shared';
+import type { Clock } from '@coachingdesk/shared';
+import { DEFAULT_QUIET_HOURS, quietHoursEnd } from './quiet-hours';
 import type { ConsentRepository } from './consent.repository';
 import type { MessageCategory, OutboxMessage, OutboxRepository } from './outbox.repository';
 
@@ -20,12 +21,19 @@ export interface DispatcherInstituteLookup {
   get(instituteId: string): Promise<{ timezone: string }>;
 }
 
+/** MessageQuota fits: the plan quota and daily/trial caps (FR-5.6, FR-5.9). */
+export interface SendQuota {
+  tryConsume(instituteId: string, timezone: string): Promise<boolean>;
+  release(instituteId: string, timezone: string): Promise<void>;
+}
+
 export interface OutboxDispatcherDeps {
   outbox: OutboxRepository;
   consents: ConsentRepository;
   sender: WhatsAppSender;
   institutes: DispatcherInstituteLookup;
   revalidators: Partial<Record<MessageCategory, Revalidator>>;
+  quota: SendQuota;
   clock: Clock;
 }
 
@@ -42,7 +50,7 @@ export const DEFAULT_DISPATCHER_OPTIONS: DispatcherOptions = {
   maxAttempts: 3,
   retryBaseMs: 60_000,
   stuckAfterMs: 5 * 60_000,
-  quietHours: { start: '21:00', end: '08:00' },
+  quietHours: DEFAULT_QUIET_HOURS,
 };
 
 export interface DispatchSummary {
@@ -120,7 +128,7 @@ export class OutboxDispatcher {
     }
 
     const timezone = await this.timezoneOf(message.instituteId, timezones);
-    const quietUntil = this.quietHoursEnd(timezone);
+    const quietUntil = quietHoursEnd(this.deps.clock, timezone, this.options.quietHours);
     if (quietUntil) {
       await outbox.reschedule(message.id, quietUntil, { kind: 'quiet_hours' });
       return 'rescheduled';
@@ -133,6 +141,11 @@ export class OutboxDispatcher {
       return 'skipped';
     }
 
+    // Last check before spending: the institute's message limits. Atomic across workers.
+    if (!(await this.deps.quota.tryConsume(message.instituteId, timezone))) {
+      await outbox.markSkipped(message.id, 'over_quota');
+      return 'skipped';
+    }
     try {
       const { providerMessageId } = await this.deps.sender.sendTemplate({
         to: message.to,
@@ -143,6 +156,8 @@ export class OutboxDispatcher {
       await outbox.markSent(message.id, providerMessageId);
       return 'sent';
     } catch (error) {
+      // Not delivered, not charged: the unit goes back to the quota.
+      await this.deps.quota.release(message.instituteId, timezone);
       return this.retryOrFail(message, now, error);
     }
   }
@@ -171,23 +186,6 @@ export class OutboxDispatcher {
     return 'rescheduled';
   }
 
-  /** null = not quiet now. Otherwise the instant quiet hours end (next 08:00 local). */
-  private quietHoursEnd(timezone: string): Date | null {
-    const local = new InstituteClock(this.deps.clock, timezone);
-    const minutes = local.minutesSinceMidnight();
-    const start = toMinutes(this.options.quietHours.start);
-    const end = toMinutes(this.options.quietHours.end);
-    const quiet =
-      start > end ? minutes >= start || minutes < end : minutes >= start && minutes < end;
-    if (!quiet) {
-      return null;
-    }
-    // Before midnight -> tomorrow's 08:00; after midnight -> today's 08:00.
-    const today = local.today();
-    const endDay = minutes >= start && start > end ? today.addDays(1) : today;
-    return zonedInstant(endDay, this.options.quietHours.end, timezone);
-  }
-
   private async timezoneOf(instituteId: string, cache: Map<string, string>): Promise<string> {
     const cached = cache.get(instituteId);
     if (cached) {
@@ -197,9 +195,4 @@ export class OutboxDispatcher {
     cache.set(instituteId, timezone);
     return timezone;
   }
-}
-
-function toMinutes(time: string): number {
-  const [hours, minutes] = time.split(':').map(Number);
-  return (hours ?? 0) * 60 + (minutes ?? 0);
 }

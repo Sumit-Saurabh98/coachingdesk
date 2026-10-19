@@ -22,6 +22,7 @@ import { registerInstituteRoutes } from './modules/institutes/institutes.routes'
 import type { StudentsController } from './modules/students/students.controller';
 import { registerStudentRoutes } from './modules/students/students.routes';
 import type { ConsentController } from './modules/messaging/consent.controller';
+import type { RemindersController } from './modules/messaging/reminders.controller';
 import { registerMessagingRoutes } from './modules/messaging/messaging.routes';
 import type { MeController } from './modules/users/me.controller';
 import { registerUserRoutes } from './modules/users/users.routes';
@@ -37,6 +38,7 @@ export interface AppDependencies {
   enrollmentsController: EnrollmentsController;
   attendanceController: AttendanceController;
   consentController: ConsentController;
+  remindersController: RemindersController;
   invoicesController: InvoicesController;
   paymentsController: PaymentsController;
   accessTokens: JwtAccessTokens;
@@ -90,7 +92,10 @@ export function buildApp(deps: AppDependencies, options: AppOptions = {}): Fasti
   registerStudentRoutes(app, deps.studentsController, { requireAuth, requireMember });
   registerEnrollmentRoutes(app, deps.enrollmentsController, { requireAuth, requireMember });
   registerAttendanceRoutes(app, deps.attendanceController, { requireAuth, requireMember });
-  registerMessagingRoutes(app, deps.consentController, { requireAuth, requireMember });
+  registerMessagingRoutes(app, deps.consentController, deps.remindersController, {
+    requireAuth,
+    requireMember,
+  });
   registerFeeRoutes(app, deps.invoicesController, deps.paymentsController, {
     requireAuth,
     requireMember,

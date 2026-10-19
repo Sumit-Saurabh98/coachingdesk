@@ -12,7 +12,9 @@ const guardian = PhoneNumber.parse('9812345678');
 // 12:00 UTC = 17:30 IST: outside quiet hours.
 const DAYTIME = '2026-10-19T12:00:00Z';
 
-async function setup(options: { now?: string; consent?: boolean; status?: string } = {}) {
+async function setup(
+  options: { now?: string; consent?: boolean; status?: string; quota?: number } = {},
+) {
   const clock = new FixedClock(new Date(options.now ?? DAYTIME));
   const outbox = new InMemoryOutboxRepository(() => clock.now());
   const consents = new InMemoryConsentRepository();
@@ -21,6 +23,8 @@ async function setup(options: { now?: string; consent?: boolean; status?: string
   }
   const sender = new FakeWhatsAppSender();
   let currentStatus: string | null = options.status ?? 'absent';
+  let quotaLeft = options.quota ?? 1000;
+  let released = 0;
   const dispatcher = new OutboxDispatcher(
     {
       outbox,
@@ -36,6 +40,17 @@ async function setup(options: { now?: string; consent?: boolean; status?: string
             return currentStatus as 'absent' | null;
           },
         }),
+      },
+      quota: {
+        tryConsume: async () => {
+          if (quotaLeft <= 0) return false;
+          quotaLeft -= 1;
+          return true;
+        },
+        release: async () => {
+          quotaLeft += 1;
+          released += 1;
+        },
       },
       clock,
     },
@@ -72,6 +87,8 @@ async function setup(options: { now?: string; consent?: boolean; status?: string
     enqueue,
     statusOf,
     setStatus: (s: string | null) => (currentStatus = s),
+    quotaLeft: () => quotaLeft,
+    released: () => released,
   };
 }
 
@@ -219,5 +236,28 @@ describe('OutboxDispatcher.runOnce', () => {
 
     expect(summary).toMatchObject({ released: 1, sent: 1 });
     expect(await statusOf(message)).toMatchObject({ status: 'sent' });
+  });
+
+  it('over the quota -> skipped (over_quota), nothing sent', async () => {
+    const { dispatcher, sender, enqueue, statusOf } = await setup({ quota: 1 });
+    const first = await enqueue();
+    const second = await enqueue();
+
+    await dispatcher.runOnce();
+
+    expect(await statusOf(first)).toMatchObject({ status: 'sent' });
+    expect(await statusOf(second)).toMatchObject({ status: 'skipped', skipReason: 'over_quota' });
+    expect(sender.sent).toHaveLength(1);
+  });
+
+  it('a failed send gives its quota unit back', async () => {
+    const { dispatcher, sender, enqueue, quotaLeft, released } = await setup({ quota: 5 });
+    await enqueue();
+    sender.failNext(new WhatsAppSendError('timeout', true, 'TIMEOUT'));
+
+    await dispatcher.runOnce();
+
+    expect(released()).toBe(1);
+    expect(quotaLeft()).toBe(5);
   });
 });

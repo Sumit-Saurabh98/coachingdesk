@@ -39,6 +39,7 @@ export function createWorkerContainer(config: WorkerConfig): WorkerContainer {
         services.instituteService,
       ),
     },
+    quota: services.messageQuota,
     clock,
   });
 

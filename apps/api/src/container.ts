@@ -23,6 +23,7 @@ import { PaymentsController } from './modules/fees/payments.controller';
 import { InstitutesController } from './modules/institutes/institutes.controller';
 import { MembersController } from './modules/institutes/members.controller';
 import { ConsentController } from './modules/messaging/consent.controller';
+import { RemindersController } from './modules/messaging/reminders.controller';
 import { StudentsController } from './modules/students/students.controller';
 import { MeController } from './modules/users/me.controller';
 import { createDomainServices } from './services';
@@ -96,6 +97,11 @@ export function createContainer(config: Config): Container {
     invoicesController: new InvoicesController(services.invoiceService, services.paymentService),
     paymentsController: new PaymentsController(services.paymentService),
     consentController: new ConsentController(services.consentService),
+    remindersController: new RemindersController(
+      services.feeReminders,
+      services.messageQuota,
+      services.instituteService,
+    ),
     enrollmentsController: new EnrollmentsController(
       services.enrollmentService,
       services.invoiceService,

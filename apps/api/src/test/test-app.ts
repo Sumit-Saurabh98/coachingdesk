@@ -11,6 +11,10 @@ import { InMemoryConsentRepository } from '../modules/messaging/consent.reposito
 import { ConsentController } from '../modules/messaging/consent.controller';
 import { ConsentService } from '../modules/messaging/consent.service';
 import { InMemoryOutboxRepository } from '../modules/messaging/outbox.repository';
+import { FeeReminders } from '../modules/messaging/fee-reminders';
+import { MessageQuota } from '../modules/messaging/message-quota';
+import { InMemoryMessageUsageRepository } from '../modules/messaging/message-usage.repository';
+import { RemindersController } from '../modules/messaging/reminders.controller';
 import { OutboxAbsenceAlerts } from '../modules/messaging/outbox-absence-alerts';
 import { JwtAccessTokens } from '../modules/auth/access-tokens';
 import { AuthController } from '../modules/auth/auth.controller';
@@ -156,6 +160,17 @@ export function buildTestApp() {
     ids,
     clock,
   });
+  const messageUsageRepository = new InMemoryMessageUsageRepository();
+  const messageQuota = new MessageQuota(messageUsageRepository, entitlements, clock);
+  const feeReminders = new FeeReminders({
+    outbox: outboxRepository,
+    invoices: invoiceService,
+    students: studentService,
+    institutes: instituteService,
+    entitlements,
+    ids,
+    clock,
+  });
   const authService = new AuthService({
     otp: otpService,
     users: userService,
@@ -177,6 +192,7 @@ export function buildTestApp() {
     invoicesController: new InvoicesController(invoiceService, paymentService),
     paymentsController: new PaymentsController(paymentService),
     consentController: new ConsentController(consentService),
+    remindersController: new RemindersController(feeReminders, messageQuota, instituteService),
     enrollmentsController: new EnrollmentsController(enrollmentService, invoiceService),
     attendanceController: new AttendanceController(attendanceService),
     memberships: instituteService,
@@ -195,6 +211,7 @@ export function buildTestApp() {
     outboxRepository,
     invoiceRepository,
     invoiceGenerator,
+    messageQuota,
   };
 }
 
