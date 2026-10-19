@@ -31,6 +31,8 @@ import { DrizzleStudentRepository } from './modules/students/drizzle-student.rep
 import { StudentService } from './modules/students/student.service';
 import { DrizzleSubscriptionRepository } from './modules/subscriptions/drizzle-subscription.repository';
 import { SubscriptionService } from './modules/subscriptions/subscription.service';
+import { DrizzleTestRepository } from './modules/tests/drizzle-test.repository';
+import { TestService } from './modules/tests/test.service';
 import { DrizzleUserRepository } from './modules/users/drizzle-user.repository';
 import { UserService } from './modules/users/user.service';
 
@@ -160,7 +162,19 @@ export function createDomainServices(db: Db, clock: Clock, ids: IdGenerator) {
     clock,
   });
 
+  // Tests use the batch, enrollment and student SERVICES (rule 12).
+  const testService = new TestService({
+    tests: new DrizzleTestRepository(db),
+    batches: batchService,
+    enrollments: enrollmentService,
+    students: studentService,
+    entitlements,
+    ids,
+    clock,
+  });
+
   return {
+    testService,
     noticeService,
     erasureService,
     auditLog,

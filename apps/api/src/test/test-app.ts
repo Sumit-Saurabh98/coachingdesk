@@ -20,6 +20,9 @@ import { InMemoryMessageUsageRepository } from '../modules/messaging/message-usa
 import { MessagesController } from '../modules/messaging/messages.controller';
 import { InMemoryNoticeRepository } from '../modules/messaging/notice.repository';
 import { NoticeService } from '../modules/messaging/notice.service';
+import { InMemoryTestRepository } from '../modules/tests/test.repository';
+import { TestService } from '../modules/tests/test.service';
+import { TestsController } from '../modules/tests/tests.controller';
 import { NoticesController } from '../modules/messaging/notices.controller';
 import { RemindersController } from '../modules/messaging/reminders.controller';
 import { OutboxAbsenceAlerts } from '../modules/messaging/outbox-absence-alerts';
@@ -204,6 +207,16 @@ export function buildTestApp() {
     ids,
     clock,
   });
+  const testRepository = new InMemoryTestRepository();
+  const testService = new TestService({
+    tests: testRepository,
+    batches: batchService,
+    enrollments: enrollmentService,
+    students: studentService,
+    entitlements,
+    ids,
+    clock,
+  });
   const authService = new AuthService({
     otp: otpService,
     users: userService,
@@ -236,6 +249,7 @@ export function buildTestApp() {
     consentController: new ConsentController(consentService),
     messagesController: new MessagesController(outboxRepository),
     noticesController: new NoticesController(noticeService),
+    testsController: new TestsController(testService),
     remindersController: new RemindersController(feeReminders, messageQuota, instituteService),
     enrollmentsController: new EnrollmentsController(enrollmentService, invoiceService),
     attendanceController: new AttendanceController(attendanceService),
@@ -257,6 +271,7 @@ export function buildTestApp() {
     invoiceGenerator,
     messageQuota,
     auditRepository,
+    testRepository,
   };
 }
 

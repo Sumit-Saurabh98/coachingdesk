@@ -32,6 +32,8 @@ import type { PrivacyController } from './modules/privacy/privacy.controller';
 import { registerPrivacyRoutes } from './modules/privacy/privacy.routes';
 import type { SubscriptionsController } from './modules/subscriptions/subscriptions.controller';
 import { registerSubscriptionRoutes } from './modules/subscriptions/subscriptions.routes';
+import type { TestsController } from './modules/tests/tests.controller';
+import { registerTestRoutes } from './modules/tests/tests.routes';
 import type { MeController } from './modules/users/me.controller';
 import { registerUserRoutes } from './modules/users/users.routes';
 
@@ -54,6 +56,7 @@ export interface AppDependencies {
   privacyController: PrivacyController;
   invoicesController: InvoicesController;
   paymentsController: PaymentsController;
+  testsController: TestsController;
   accessTokens: JwtAccessTokens;
   memberships: MembershipLookup;
   isReady: () => Promise<boolean>;
@@ -116,6 +119,7 @@ export function buildApp(deps: AppDependencies, options: AppOptions = {}): Fasti
       requireMember,
     },
   );
+  registerTestRoutes(app, deps.testsController, { requireAuth, requireMember });
   registerAuditRoutes(app, deps.auditController, { requireAuth, requireMember });
   registerPrivacyRoutes(app, deps.privacyController, { requireAuth, requireMember });
   registerSubscriptionRoutes(app, deps.subscriptionsController, { requireAuth, requireMember });
