@@ -20,6 +20,15 @@ export const UpdateInstituteBody = z
     city: z.string().max(200).nullable().optional(),
     billingDay: z.number().int().optional(),
     dueAfterDays: z.number().int().optional(),
+    // Partial: send only the settings that change. Rules (offsets range etc.) live in the entity.
+    settings: z
+      .object({
+        absenceAlerts: z.boolean().optional(),
+        messageLanguage: z.enum(['en', 'hi']).optional(),
+        reminderOffsets: z.array(z.number().int()).max(10).optional(),
+      })
+      .strict()
+      .optional(),
   })
   .strict()
   .refine((body) => Object.keys(body).length > 0, { message: 'Send at least one field to change' });

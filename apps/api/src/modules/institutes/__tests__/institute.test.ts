@@ -22,6 +22,7 @@ describe('Institute.create', () => {
       timezone: 'Asia/Kolkata',
       billingDay: 1,
       dueAfterDays: 6,
+      settings: { absenceAlerts: true, messageLanguage: 'en', reminderOffsets: [3, 0, -3, -7] },
     });
     expect(create().createdBy).toBe('owner-1');
   });
@@ -141,4 +142,24 @@ describe('settings', () => {
   ])('parseSettings(%j) -> %j (lenient, with defaults)', (json, expected) => {
     expect(parseSettings(json)).toEqual(expected);
   });
+});
+
+describe('Institute.withSettings', () => {
+  it('changes only what is sent', () => {
+    const changed = create().withSettings({ messageLanguage: 'hi', reminderOffsets: [] });
+    expect(changed.settings).toEqual({
+      absenceAlerts: true,
+      messageLanguage: 'hi',
+      reminderOffsets: [],
+    });
+  });
+
+  it.each([[[1, 1]], [[99]], [[1.5]], [[1, 2, 3, 4, 5, 6, 7]]])(
+    'rejects offsets %j (422)',
+    (offsets) => {
+      expect(() => create().withSettings({ reminderOffsets: offsets })).toThrow(
+        fieldError('settings.reminderOffsets'),
+      );
+    },
+  );
 });

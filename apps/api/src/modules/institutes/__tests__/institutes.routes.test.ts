@@ -180,6 +180,26 @@ describe('tenancy: /v1/institutes/:instituteId', () => {
     expect(bad.json().error.details).toEqual({ field: 'billingDay' });
   });
 
+  it('the owner changes settings (absence alerts, language, reminder days); bad days -> 422', async () => {
+    setup();
+    const { owner, instituteId } = await ownerWithInstitute();
+    const token = owner.accessToken;
+
+    const changed = await patch(token, instituteId, {
+      settings: { absenceAlerts: false, reminderOffsets: [2, 0] },
+    });
+    const bad = await patch(token, instituteId, { settings: { reminderOffsets: [1, 1] } });
+
+    expect(changed.statusCode).toBe(200);
+    expect(changed.json().institute.settings).toEqual({
+      absenceAlerts: false,
+      messageLanguage: 'en',
+      reminderOffsets: [2, 0],
+    });
+    expect(bad.statusCode).toBe(422);
+    expect(bad.json().error.details).toEqual({ field: 'settings.reminderOffsets' });
+  });
+
   it('lets a teacher read but not change settings (403)', async () => {
     const { instituteRepository } = setup();
     const { instituteId } = await ownerWithInstitute();

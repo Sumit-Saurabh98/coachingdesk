@@ -164,6 +164,34 @@ export class Institute {
   }
 
   /**
+   * Returns a new Institute with changed settings (owner, PATCH). Unlike parseSettings (lenient,
+   * for stored data), this is STRICT: a bad value is the owner's mistake and gets a 422.
+   */
+  withSettings(changes: Partial<InstituteSettings>): Institute {
+    const offsets = changes.reminderOffsets;
+    if (offsets !== undefined) {
+      const valid =
+        offsets.length <= 6 &&
+        offsets.every((n) => Number.isInteger(n) && n >= -30 && n <= 30) &&
+        new Set(offsets).size === offsets.length;
+      if (!valid) {
+        throw invalid(
+          'settings.reminderOffsets',
+          'Reminder days must be up to 6 different whole numbers from -30 to 30',
+        );
+      }
+    }
+    return new Institute({
+      ...this.toProps(),
+      settings: {
+        absenceAlerts: changes.absenceAlerts ?? this.settings.absenceAlerts,
+        messageLanguage: changes.messageLanguage ?? this.settings.messageLanguage,
+        reminderOffsets: offsets ? [...offsets] : [...this.settings.reminderOffsets],
+      },
+    });
+  }
+
+  /**
    * Which billing period does `date` fall in? Returns that period's first day:
    * the latest billing day on or before `date`. With billing day 5:
    *   4 Oct -> 5 Sep  (October's period hasn't started yet)
@@ -189,6 +217,7 @@ export class Institute {
       timezone: this.timezone,
       billingDay: this.billingDay,
       dueAfterDays: this.dueAfterDays,
+      settings: this.settings,
     };
   }
 

@@ -71,6 +71,20 @@ export function describeInstituteRepositoryContract(
       });
     });
 
+    it('saves settings', async () => {
+      const repo = create();
+      const institute = newInstitute(1);
+      await repo.createWithOwner(institute, trial);
+
+      await repo.update(institute.withSettings({ absenceAlerts: false, reminderOffsets: [1, -2] }));
+
+      expect((await repo.findById(institute.id))?.settings).toEqual({
+        absenceAlerts: false,
+        messageLanguage: 'en',
+        reminderOffsets: [1, -2],
+      });
+    });
+
     it('refuses to update an institute that does not exist', async () => {
       await expect(create().update(newInstitute(9))).rejects.toThrow();
     });

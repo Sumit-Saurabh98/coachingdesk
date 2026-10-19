@@ -11,6 +11,7 @@ import {
   type BillingSettingsChanges,
   type DetailsChanges,
   Institute,
+  type InstituteSettings,
   type NewInstituteInput,
 } from './institute';
 import type { InstituteRepository, MemberRole, Membership } from './institute.repository';
@@ -99,11 +100,14 @@ export class InstituteService {
   /** PATCH /v1/institutes/:id (owner only). The entity applies the rules; we load, change, save. */
   async update(
     instituteId: string,
-    changes: DetailsChanges & BillingSettingsChanges,
+    changes: DetailsChanges & BillingSettingsChanges & { settings?: Partial<InstituteSettings> },
   ): Promise<Institute> {
-    const updated = (await this.get(instituteId))
+    let updated = (await this.get(instituteId))
       .withDetails({ name: changes.name, city: changes.city })
       .withBillingSettings({ billingDay: changes.billingDay, dueAfterDays: changes.dueAfterDays });
+    if (changes.settings) {
+      updated = updated.withSettings(changes.settings);
+    }
     await this.deps.institutes.update(updated);
     return updated;
   }

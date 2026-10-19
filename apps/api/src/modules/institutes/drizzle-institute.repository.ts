@@ -53,7 +53,15 @@ export class DrizzleInstituteRepository implements InstituteRepository {
     const p = institute.toProps();
     const updated = await this.db
       .update(institutes)
-      .set({ name: p.name, city: p.city, billingDay: p.billingDay, dueAfterDays: p.dueAfterDays })
+      .set({
+        name: p.name,
+        city: p.city,
+        billingDay: p.billingDay,
+        dueAfterDays: p.dueAfterDays,
+        // MERGE into the stored JSON (||): keys this code doesn't know yet are kept, not wiped.
+        settings: sql`${institutes.settings} || ${JSON.stringify(p.settings)}::jsonb`,
+        updatedAt: sql`now()`,
+      })
       .where(eq(institutes.id, p.id))
       .returning({ id: institutes.id });
     if (updated.length === 0) {
