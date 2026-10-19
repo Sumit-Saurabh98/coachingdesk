@@ -1,6 +1,6 @@
 import type { AttendanceStatus } from '@coachingdesk/shared';
 import { parseAbsenceDedupeKey } from './absence-messages';
-import type { Revalidator } from './outbox-dispatcher';
+import type { Revalidation, Revalidator } from './outbox-dispatcher';
 import type { OutboxMessage } from './outbox.repository';
 
 /** AttendanceService.statusOf fits. */
@@ -19,16 +19,16 @@ export interface CurrentMarkLookup {
 export class AbsenceRevalidator implements Revalidator {
   constructor(private readonly attendance: CurrentMarkLookup) {}
 
-  async check(message: OutboxMessage): Promise<'send' | 'stale'> {
+  async check(message: OutboxMessage): Promise<Revalidation> {
     const key = parseAbsenceDedupeKey(message.dedupeKey);
     if (!key) {
-      return 'stale';
+      return { kind: 'skip', reason: 'stale' };
     }
     const status = await this.attendance.statusOf(
       message.instituteId,
       key.sessionId,
       key.studentId,
     );
-    return status === 'absent' ? 'send' : 'stale';
+    return status === 'absent' ? { kind: 'send' } : { kind: 'skip', reason: 'stale' };
   }
 }

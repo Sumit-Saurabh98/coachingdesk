@@ -76,6 +76,12 @@ export class DrizzleInvoiceRepository implements InvoiceRepository {
     if (query.studentId) {
       conditions.push(eq(invoices.studentId, query.studentId));
     }
+    if (query.studentIds) {
+      if (query.studentIds.length === 0) {
+        return [];
+      }
+      conditions.push(inArray(invoices.studentId, query.studentIds));
+    }
     if (query.batchId) {
       conditions.push(eq(invoices.batchId, query.batchId));
     }

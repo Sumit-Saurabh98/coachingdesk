@@ -1,3 +1,4 @@
+import type { PhoneNumber } from '@coachingdesk/shared';
 import type { Student } from './student';
 
 /**
@@ -42,6 +43,8 @@ export interface StudentRepository {
   findById(instituteId: string, studentId: string): Promise<Student | null>;
   /** Sorted by name (case-insensitive), then id. Keyset paging: pass page.next as `after`. */
   list(instituteId: string, query: StudentListQuery): Promise<StudentPage>;
+  /** Every student of this guardian at this institute (siblings), any status. */
+  listByGuardianPhone(instituteId: string, phone: PhoneNumber): Promise<Student[]>;
   /** Saves every editable field + status/leftOn. Matches id AND instituteId; throws if none. */
   update(student: Student): Promise<void>;
 }
@@ -102,6 +105,12 @@ export class InMemoryStudentRepository implements StudentRepository {
       students: page,
       next: matches.length > query.limit && last ? { nameKey: nameKeyOf(last), id: last.id } : null,
     };
+  }
+
+  async listByGuardianPhone(instituteId: string, phone: PhoneNumber): Promise<Student[]> {
+    return [...this.students.values()]
+      .filter((s) => s.instituteId === instituteId && (s.guardianPhone?.equals(phone) ?? false))
+      .sort(compareByName);
   }
 
   async update(student: Student): Promise<void> {

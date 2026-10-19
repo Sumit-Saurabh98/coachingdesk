@@ -104,6 +104,18 @@ export class InvoiceService {
     });
   }
 
+  /** Open invoices (due / partially paid) of these students, oldest due first. */
+  async openForStudents(instituteId: string, studentIds: string[]): Promise<Invoice[]> {
+    if (studentIds.length === 0) {
+      return [];
+    }
+    return this.deps.invoices.list(instituteId, {
+      statuses: ['due', 'partially_paid'],
+      studentIds,
+      limit: 500,
+    });
+  }
+
   async get(instituteId: string, invoiceId: string): Promise<Invoice> {
     const invoice = await this.deps.invoices.findById(instituteId, invoiceId);
     if (!invoice) {

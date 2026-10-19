@@ -204,6 +204,24 @@ export function describeStudentRepositoryContract(
       });
     });
 
+    it("lists a guardian's students (siblings), only in this institute", async () => {
+      const repo = create();
+      await seed(
+        repo,
+        newStudent(1, 'Bhavya', { phone: '9812345678' }),
+        newStudent(2, 'Aarav', { phone: '9812345678' }),
+        newStudent(3, 'Chirag', { phone: '9123456789' }),
+        newStudent(4, 'Other', { phone: '9812345678', instituteId: CONTRACT_INSTITUTE_B }),
+      );
+
+      const siblings = await repo.listByGuardianPhone(
+        CONTRACT_INSTITUTE_A,
+        PhoneNumber.parse('9812345678'),
+      );
+
+      expect(names(siblings)).toEqual(['Aarav', 'Bhavya']);
+    });
+
     it('saves edits and leaving', async () => {
       const repo = create();
       const student = newStudent(1, 'Aarav');

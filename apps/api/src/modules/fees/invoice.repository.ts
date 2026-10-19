@@ -4,6 +4,7 @@ import { Invoice, type InvoiceStatus } from './invoice';
 export interface InvoiceListQuery {
   statuses?: InvoiceStatus[];
   studentId?: string;
+  studentIds?: string[]; // any of these students
   batchId?: string;
   /** Only open invoices whose due date is before this day. */
   overdueOn?: LocalDate;
@@ -75,6 +76,7 @@ export class InMemoryInvoiceRepository implements InvoiceRepository {
       .filter((i) => i.instituteId === instituteId)
       .filter((i) => !query.statuses || query.statuses.includes(i.status))
       .filter((i) => !query.studentId || i.studentId === query.studentId)
+      .filter((i) => !query.studentIds || query.studentIds.includes(i.studentId))
       .filter((i) => !query.batchId || i.batchId === query.batchId)
       .filter((i) => !query.overdueOn || i.isOverdueOn(query.overdueOn))
       .sort(byDueDateThenNumber)

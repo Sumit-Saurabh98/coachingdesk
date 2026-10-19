@@ -3,9 +3,17 @@ import { type Clock, InstituteClock, zonedInstant } from '@coachingdesk/shared';
 import type { ConsentRepository } from './consent.repository';
 import type { MessageCategory, OutboxMessage, OutboxRepository } from './outbox.repository';
 
-/** "Is this message still true right now?" One per category (LLD §6.3 revalidate table). */
+/**
+ * "Is this message still true right now, and what exactly does it say?" One per category
+ * (LLD §6.3 revalidate table). Content is decided at SEND time: a fee reminder that waited
+ * through the night shows what is due in the morning, not what was due when it was planned.
+ */
+export type Revalidation =
+  | { kind: 'send'; template?: string; params?: Record<string, string> }
+  | { kind: 'skip'; reason: 'stale' | 'nothing_due' };
+
 export interface Revalidator {
-  check(message: OutboxMessage): Promise<'send' | 'stale'>;
+  check(message: OutboxMessage): Promise<Revalidation>;
 }
 
 export interface DispatcherInstituteLookup {
@@ -119,17 +127,18 @@ export class OutboxDispatcher {
     }
 
     const revalidator = this.deps.revalidators[message.category];
-    if (revalidator && (await revalidator.check(message)) === 'stale') {
-      await outbox.markSkipped(message.id, 'stale');
+    const content: Revalidation = revalidator ? await revalidator.check(message) : { kind: 'send' };
+    if (content.kind === 'skip') {
+      await outbox.markSkipped(message.id, content.reason);
       return 'skipped';
     }
 
     try {
       const { providerMessageId } = await this.deps.sender.sendTemplate({
         to: message.to,
-        template: message.template,
+        template: content.template ?? message.template,
         locale: message.locale,
-        params: message.params,
+        params: content.params ?? message.params,
       });
       await outbox.markSent(message.id, providerMessageId);
       return 'sent';

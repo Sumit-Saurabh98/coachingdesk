@@ -106,6 +106,15 @@ export class DrizzleStudentRepository implements StudentRepository {
     };
   }
 
+  async listByGuardianPhone(instituteId: string, phone: PhoneNumber): Promise<Student[]> {
+    const rows = await this.db
+      .select()
+      .from(students)
+      .where(and(eq(students.instituteId, instituteId), eq(students.guardianPhone, phone.toE164())))
+      .orderBy(nameKey, asc(students.id));
+    return rows.map(toStudent);
+  }
+
   async update(student: Student): Promise<void> {
     const updated = await this.db
       .update(students)

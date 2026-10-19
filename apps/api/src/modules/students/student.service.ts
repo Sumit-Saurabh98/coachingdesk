@@ -129,6 +129,12 @@ export class StudentService {
     return page.students;
   }
 
+  /** This guardian's ACTIVE students here (siblings): who a fee reminder is about. */
+  async activeByGuardianPhone(instituteId: string, phone: PhoneNumber): Promise<Student[]> {
+    const siblings = await this.deps.students.listByGuardianPhone(instituteId, phone);
+    return siblings.filter((s) => s.isActive);
+  }
+
   /** 404 for an unknown id AND for another institute's student. */
   async get(instituteId: string, studentId: string): Promise<Student> {
     const student = await this.deps.students.findById(instituteId, studentId);
