@@ -38,3 +38,11 @@ export {
   UpdateStudentBody,
 } from './schemas/students';
 export { CreateEnrollmentBody, UpdateEnrollmentBody } from './schemas/enrollments';
+export {
+  ATTENDANCE_STATUSES,
+  type AttendanceStatus,
+  AttendanceSummaryQuery,
+  BatchAttendanceQuery,
+  StudentAttendanceQuery,
+  SyncAttendanceBody,
+} from './schemas/attendance';
