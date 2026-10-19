@@ -15,6 +15,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { batches, enrollments, students } from './academic';
 import { timestamps } from './columns';
+import { users } from './identity';
 import { institutes } from './institutes';
 
 /**
@@ -120,5 +121,75 @@ export const invoices = pgTable(
       'invoices_period_check',
       sql`${t.periodEnd} is null or ${t.periodEnd} >= ${t.periodStart}`,
     ),
+  ],
+);
+
+/**
+ * Money received: one row per provider payment or offline entry (docs/LLD.md §2.1, §6.4).
+ * Never deleted: a mistake is VOIDED (kept for history, stops counting).
+ */
+export const payments = pgTable(
+  'payments',
+  {
+    id: uuid().primaryKey(),
+    instituteId: uuid()
+      .notNull()
+      .references(() => institutes.id),
+    guardianPhone: text().notNull(), // E.164, snapshot of who paid
+    amountPaise: bigint({ mode: 'number' }).notNull(),
+    method: text().notNull(), // upi_link | cash | bank | other
+    provider: text(), // null for offline
+    providerPaymentId: text().unique('payments_provider_payment_id_unique'),
+    paymentLinkId: uuid(), // FK added with payment_links (pay page step)
+    // AGENTS rule 6: the Idempotency-Key of the request that recorded it. A double tap on
+    // "Record payment" finds this row instead of recording the money twice.
+    idempotencyKey: text(),
+    status: text().notNull().default('active'),
+    voidedAt: timestamp({ withTimezone: true }),
+    voidedBy: uuid().references(() => users.id, { onDelete: 'set null' }),
+    voidReason: text(),
+    recordedBy: uuid().references(() => users.id, { onDelete: 'set null' }),
+    note: text(),
+    paidAt: timestamp({ withTimezone: true }).notNull(),
+    ...timestamps,
+  },
+  (t) => [
+    unique('payments_institute_id_id_unique').on(t.instituteId, t.id),
+    unique('payments_institute_idempotency_key_unique').on(t.instituteId, t.idempotencyKey),
+    index('payments_institute_paid_at_idx').on(t.instituteId, t.paidAt),
+    check('payments_amount_check', sql`${t.amountPaise} > 0`),
+    check('payments_method_check', sql`${t.method} in ('upi_link', 'cash', 'bank', 'other')`),
+    check('payments_status_check', sql`${t.status} in ('active', 'voided', 'refunded')`),
+    // Voided <-> voided_at set: no half-voided payment.
+    check('payments_voided_check', sql`(${t.status} = 'voided') = (${t.voidedAt} is not null)`),
+  ],
+);
+
+/**
+ * How a payment is split across invoices. payment.amount - sum(allocations) = guardian credit.
+ * Kept even after a void (history); invoices.paid_paise counts only ACTIVE payments.
+ */
+export const paymentAllocations = pgTable(
+  'payment_allocations',
+  {
+    paymentId: uuid().notNull(),
+    invoiceId: uuid().notNull(),
+    instituteId: uuid().notNull(),
+    amountPaise: bigint({ mode: 'number' }).notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.paymentId, t.invoiceId] }),
+    index('payment_allocations_institute_invoice_idx').on(t.instituteId, t.invoiceId),
+    foreignKey({
+      name: 'payment_allocations_payment_same_institute_fk',
+      columns: [t.instituteId, t.paymentId],
+      foreignColumns: [payments.instituteId, payments.id],
+    }),
+    foreignKey({
+      name: 'payment_allocations_invoice_same_institute_fk',
+      columns: [t.instituteId, t.invoiceId],
+      foreignColumns: [invoices.instituteId, invoices.id],
+    }),
+    check('payment_allocations_amount_check', sql`${t.amountPaise} > 0`),
   ],
 );
