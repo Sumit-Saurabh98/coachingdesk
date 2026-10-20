@@ -55,6 +55,14 @@ describe('Session.restore', () => {
     expect(await store.load()).toBe('refresh-0');
   });
 
+  it('an unreadable store at start: signed out (log in again), no crash', async () => {
+    const store = new InMemoryTokenStore();
+    store.load = () => Promise.reject(new Error('keystore reset'));
+    const session = new Session(fakeServer(() => newPair(1)).api, store);
+    await session.restore();
+    expect(session.status).toBe('signedOut');
+  });
+
   it('the server rejects the saved token (revoked / expired): signed out, token wiped', async () => {
     const store = new InMemoryTokenStore('refresh-0');
     const server = fakeServer(() =>

@@ -3,6 +3,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack, ThemeProvider } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
@@ -10,8 +11,13 @@ import { PaperProvider } from 'react-native-paper';
 import { queryClient, session } from '@/api';
 // Importing it runs the i18next setup, before any screen renders.
 import i18n, { resolveLanguage } from '@/i18n';
+import { useSessionStatus } from '@/auth/use-session-status';
 import { usePreferences } from '@/stores/preferences';
 import { darkTheme, lightTheme, navigationThemeFor } from '@/theme/theme';
+
+// Keep the splash screen up until we know whether someone is logged in: otherwise a
+// logged-in user would see the login screen flash for a moment on every start.
+void SplashScreen.preventAutoHideAsync();
 
 // The names the icon font knows ("whatsapp", "check", ...). Paper hands us a plain string.
 type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
@@ -28,6 +34,14 @@ export default function RootLayout() {
   useEffect(() => {
     void session.restore();
   }, []);
+
+  // 'restoring' -> 'signedIn' / 'signedOut'. Hide the splash as soon as we know.
+  const status = useSessionStatus((state) => state.status);
+  useEffect(() => {
+    if (status !== 'restoring') {
+      void SplashScreen.hideAsync();
+    }
+  }, [status]);
 
   // When the user picks another language, tell i18next. Every screen using
   // useTranslation() then re-renders in the new language by itself.
@@ -54,7 +68,18 @@ export default function RootLayout() {
         <ThemeProvider value={navigationThemeFor(theme)}>
           {/* Status bar text: light on a dark app, dark on a light one. */}
           <StatusBar style={theme.dark ? 'light' : 'dark'} />
-          <Stack />
+          {/* Which screens exist depends on the login: Stack.Protected hides a group when
+              its guard is false, and the app moves to the other group by itself. Logging in
+              or out anywhere (or the session expiring) switches screens with no navigate code.
+              While 'restoring', the login group is behind the splash screen. */}
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Protected guard={status === 'signedIn'}>
+              <Stack.Screen name="(app)" />
+            </Stack.Protected>
+            <Stack.Protected guard={status !== 'signedIn'}>
+              <Stack.Screen name="(auth)" />
+            </Stack.Protected>
+          </Stack>
         </ThemeProvider>
       </PaperProvider>
     </QueryClientProvider>

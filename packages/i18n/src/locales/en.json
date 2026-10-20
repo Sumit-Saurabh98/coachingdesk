@@ -28,5 +28,33 @@
     "sessionRestoring": "Checking saved login…",
     "sessionSignedIn": "Logged in",
     "sessionSignedOut": "Not logged in"
+  },
+  "auth": {
+    "title": "Log in",
+    "subtitle": "Fees, attendance and reminders for your institute",
+    "phoneLabel": "Mobile number",
+    "phoneInvalid": "Enter a valid 10-digit mobile number",
+    "sendCode": "Send code",
+    "verifyTitle": "Enter the code",
+    "verifySubtitle": "We sent a 6-digit code by SMS to {{phone}}",
+    "codeLabel": "6-digit code",
+    "verify": "Verify",
+    "resend": "Resend code",
+    "resendIn": "Resend code in {{seconds}} s",
+    "codeSent": "A new code is on its way",
+    "changeNumber": "Change number"
+  },
+  "errors": {
+    "network": "No internet connection. Check it and try again.",
+    "timeout": "The server is taking too long. Please try again.",
+    "generic": "Something went wrong. Please try again.",
+    "validation": "Please check what you entered.",
+    "unavailable": "Login codes are unavailable right now. Please try again later.",
+    "rateLimited_one": "Too many attempts. Try again in {{count}} minute.",
+    "rateLimited_other": "Too many attempts. Try again in {{count}} minutes.",
+    "otpInvalid_one": "That code is not correct. {{count}} attempt left.",
+    "otpInvalid_other": "That code is not correct. {{count}} attempts left.",
+    "otpLocked": "Too many wrong attempts. Please request a new code.",
+    "otpExpired": "This code has expired. Please request a new one."
   }
 }

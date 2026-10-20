@@ -53,7 +53,9 @@ export class Session {
    * count as signed in, and the first request renews the access token once there's a network.
    */
   async restore(): Promise<void> {
-    const saved = await this.store.load();
+    // An unreadable store (e.g. the phone's Keystore was reset by a backup restore) means
+    // "log in again", never a crash on the splash screen.
+    const saved = await this.store.load().catch(() => null);
     if (!saved) {
       this.setStatus('signedOut');
       return;
