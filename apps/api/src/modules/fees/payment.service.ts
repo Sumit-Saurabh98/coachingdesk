@@ -197,6 +197,53 @@ export class PaymentService {
     return found;
   }
 
+  /** The guardian's unapplied money at this institute (shown on each of their students). */
+  async creditForGuardian(instituteId: string, phone: PhoneNumber): Promise<Money> {
+    return this.deps.payments.creditForGuardian(instituteId, phone);
+  }
+
+  /**
+   * POST /invoices/:id/apply-credit (owner, staff). The guardian of the invoice's student pays
+   * it from their credit, as far as the credit goes (KB: credit is applied by hand in MVP).
+   */
+  async applyCredit(
+    instituteId: string,
+    userId: string,
+    invoiceId: string,
+  ): Promise<{ invoice: Invoice; applied: Money; creditLeft: Money }> {
+    const invoice = await this.deps.invoices.findById(instituteId, invoiceId);
+    if (!invoice) {
+      throw new AppError('NOT_FOUND', 'Invoice not found');
+    }
+    const { guardianPhone } = await this.deps.students.get(instituteId, invoice.studentId);
+    if (!guardianPhone) {
+      throw new AppError('CONFLICT', "This student's data was erased");
+    }
+    const result = await this.deps.payments.applyCredit(instituteId, guardianPhone, invoiceId);
+    switch (result.outcome) {
+      case 'invoice_not_found':
+        throw new AppError('NOT_FOUND', 'Invoice not found');
+      case 'no_credit':
+        throw new AppError('CONFLICT', 'This guardian has no credit to apply');
+      case 'invoice_closed':
+        throw new AppError('CONFLICT', `This invoice is ${result.status}: nothing is left to pay`);
+      case 'applied':
+        await (this.deps.audit ?? NO_AUDIT).record({
+          instituteId,
+          actorUserId: userId,
+          action: 'credit.apply',
+          entityType: 'invoice',
+          entityId: invoiceId,
+          after: {
+            appliedPaise: result.applied.toPaise(),
+            status: result.invoice.status,
+            creditLeftPaise: result.creditLeft.toPaise(),
+          },
+        });
+        return { invoice: result.invoice, applied: result.applied, creditLeft: result.creditLeft };
+    }
+  }
+
   /**
    * GET /payments/:id/receipt (owner, staff): the receipt of one payment, in the shape it is
    * shared. A voided payment still has one (status 'voided': the app shows it cancelled).

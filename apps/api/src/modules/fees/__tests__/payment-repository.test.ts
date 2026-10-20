@@ -13,7 +13,8 @@ import { DrizzleInvoiceRepository } from '../drizzle-invoice.repository';
 import { DrizzlePaymentRepository } from '../drizzle-payment.repository';
 import { InMemoryInvoiceRepository } from '../invoice.repository';
 import { InMemoryPaymentRepository } from '../payment.repository';
-import { CONTRACT, cycleInvoice } from './invoice-repository.contract';
+import { PhoneNumber } from '@coachingdesk/shared';
+import { CONTRACT, cycleInvoice, manualInvoice } from './invoice-repository.contract';
 import {
   CONTRACT_USER,
   describePaymentRepositoryContract,
@@ -128,5 +129,57 @@ describe('DrizzlePaymentRepository (Postgres only)', () => {
 
     expect(results.map((r) => r.outcome).sort()).toEqual(['recorded', 'replayed']);
     expect(await db.$count(payments)).toBe(1);
+  });
+
+  it('CONCURRENCY: 8 applies of the same Rs 500 credit at once spend it ONCE', async () => {
+    const invoiceRepo = new DrizzleInvoiceRepository(db);
+    const repo = new DrizzlePaymentRepository(db);
+    const guardian = PhoneNumber.parse('9812345678');
+    // Several rounds: each round leaves Rs 500 credit and races 8 applies for it.
+    for (let round = 0; round < 5; round++) {
+      const overpaid = (await invoiceRepo.create(manualInvoice(CONTRACT.s1)))!; // Rs 500
+      await repo.recordForInvoice(offlinePayment(1000), overpaid.id); // Rs 500 credit
+      const credit = (await repo.creditForGuardian(CONTRACT.instituteA, guardian)).toPaise();
+      const targets = await Promise.all(
+        Array.from(
+          { length: 8 },
+          async (_, k) =>
+            (await invoiceRepo.create(manualInvoice(k % 2 ? CONTRACT.s1 : CONTRACT.s2)))!,
+        ),
+      );
+
+      const results = await Promise.all(
+        targets.map((t) => repo.applyCredit(CONTRACT.instituteA, guardian, t.id)),
+      );
+
+      const applied = results.reduce(
+        (sum, r) => sum + (r.outcome === 'applied' ? r.applied.toPaise() : 0),
+        0,
+      );
+      expect(credit).toBe(50000);
+      expect(applied).toBe(credit); // never more than there was
+      expect((await repo.creditForGuardian(CONTRACT.instituteA, guardian)).toPaise()).toBe(0);
+    }
+  });
+
+  it('CONCURRENCY: apply credit and void the same payment at once: no deadlock, books balance', async () => {
+    const invoiceRepo = new DrizzleInvoiceRepository(db);
+    const repo = new DrizzlePaymentRepository(db);
+    const invoice = (await invoiceRepo.create(cycleInvoice()))!;
+    const result = await repo.recordForInvoice(offlinePayment(2000), invoice.id);
+    if (result.outcome !== 'recorded') throw new Error(result.outcome);
+    const due = (await invoiceRepo.create(manualInvoice(CONTRACT.s2)))!;
+
+    const [applied] = await Promise.all([
+      repo.applyCredit(CONTRACT.instituteA, PhoneNumber.parse('9812345678'), due.id),
+      repo.void(CONTRACT.instituteA, result.payment.id, (p) =>
+        p.void(CONTRACT_USER, 'wrong', new Date('2026-10-21T00:00:00Z')),
+      ),
+    ]);
+
+    // Either order is fine; what matters: the voided payment pays nothing any more.
+    const dueAfter = (await invoiceRepo.findById(CONTRACT.instituteA, due.id))!;
+    expect(dueAfter.paid.toPaise()).toBe(0);
+    expect(['applied', 'no_credit']).toContain(applied.outcome);
   });
 });

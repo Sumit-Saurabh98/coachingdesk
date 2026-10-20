@@ -67,6 +67,20 @@ export class PaymentsController {
     });
   }
 
+  /** POST .../invoices/:invoiceId/apply-credit (owner, staff) -> 200 { invoice, appliedPaise, creditPaise } */
+  async applyCredit(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+    const result = await this.payments.applyCredit(
+      currentTenant(request).instituteId,
+      currentUserId(request),
+      uuidParam(request, 'invoiceId', 'Invoice not found'),
+    );
+    await reply.status(200).send({
+      invoice: result.invoice.toPublicJSON(),
+      appliedPaise: result.applied.toPaise(),
+      creditPaise: result.creditLeft.toPaise(),
+    });
+  }
+
   /** GET .../payments/:paymentId/receipt (owner, staff) -> 200 { receipt } */
   async receipt(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     const receipt = await this.payments.receipt(

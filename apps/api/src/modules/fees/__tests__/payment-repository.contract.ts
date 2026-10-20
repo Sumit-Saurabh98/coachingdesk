@@ -134,6 +134,78 @@ export function describePaymentRepositoryContract(
       expect(found?.payment.receiptNumber).toBe('RCT-000003');
     });
 
+    describe('guardian credit', () => {
+      const guardian = PhoneNumber.parse('9812345678');
+      const credit = async (fixture: PaymentFixture) =>
+        (await fixture.payments.creditForGuardian(instituteA, guardian)).toPaise();
+
+      it('overpaying leaves credit; a voided payment has none', async () => {
+        const fixture = create();
+        const invoice = await withInvoice(fixture); // Rs 1500
+        const result = await fixture.payments.recordForInvoice(offlinePayment(2000), invoice.id);
+        expect(await credit(fixture)).toBe(50000);
+        expect((await fixture.payments.creditForGuardian(instituteB, guardian)).toPaise()).toBe(0);
+        expect(
+          (
+            await fixture.payments.creditForGuardian(instituteA, PhoneNumber.parse('9123456789'))
+          ).toPaise(),
+        ).toBe(0);
+
+        if (result.outcome !== 'recorded') throw new Error(result.outcome);
+        await fixture.payments.void(instituteA, result.payment.id, (p) =>
+          p.void(CONTRACT_USER, 'x', new Date('2026-10-21T00:00:00Z')),
+        );
+        expect(await credit(fixture)).toBe(0);
+      });
+
+      it('apply: oldest payment first, up to what is due; the rest stays credit', async () => {
+        const fixture = create();
+        const invoice = await withInvoice(fixture); // Rs 1500
+        await fixture.payments.recordForInvoice(
+          offlinePayment(1600, { paidAt: '2026-10-01T10:00:00Z' }),
+          invoice.id,
+        ); // credit 100
+        const second = (await fixture.invoices.create(manualInvoice(s1, '2026-10-20')))!; // Rs 500
+        await fixture.payments.recordForInvoice(
+          offlinePayment(900, { paidAt: '2026-10-02T10:00:00Z' }),
+          second.id,
+        ); // credit 400
+        expect(await credit(fixture)).toBe(50000);
+        const third = (await fixture.invoices.create(manualInvoice(s2, '2026-10-25')))!; // Rs 500, due
+
+        const result = await fixture.payments.applyCredit(instituteA, guardian, third.id);
+
+        expect(result).toMatchObject({ outcome: 'applied', invoice: { status: 'paid' } });
+        if (result.outcome !== 'applied') throw new Error(result.outcome);
+        expect([result.applied.toPaise(), result.creditLeft.toPaise()]).toEqual([50000, 0]);
+        expect(await credit(fixture)).toBe(0);
+        // Both payments now list the invoice: Rs 100 + Rs 400.
+        const parts = await fixture.payments.listForInvoice(instituteA, third.id);
+        expect(parts.map((p) => p.amount.toPaise()).sort((a, b) => a - b)).toEqual([10000, 40000]);
+        expect(await fixture.payments.applyCredit(instituteA, guardian, third.id)).toEqual({
+          outcome: 'no_credit',
+        });
+      });
+
+      it('partly: credit smaller than the due -> partially_paid; closed or foreign invoices refused', async () => {
+        const fixture = create();
+        const invoice = await withInvoice(fixture);
+        await fixture.payments.recordForInvoice(offlinePayment(1700), invoice.id); // credit 200
+        const due = (await fixture.invoices.create(manualInvoice(s2)))!; // Rs 500
+
+        expect(await fixture.payments.applyCredit(instituteA, guardian, invoice.id)).toEqual({
+          outcome: 'invoice_closed',
+          status: 'paid',
+        });
+        expect(await fixture.payments.applyCredit(instituteB, guardian, due.id)).toEqual({
+          outcome: 'invoice_not_found',
+        });
+        const result = await fixture.payments.applyCredit(instituteA, guardian, due.id);
+        expect(result).toMatchObject({ outcome: 'applied', invoice: { status: 'partially_paid' } });
+        expect((await fixture.invoices.findById(instituteA, due.id))?.paid.toPaise()).toBe(20000);
+      });
+    });
+
     it('void: the payment stops counting and the invoice reopens', async () => {
       const fixture = create();
       const invoice = await withInvoice(fixture);

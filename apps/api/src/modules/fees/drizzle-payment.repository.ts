@@ -18,6 +18,7 @@ import type {
   PaymentListQuery,
   PaymentRepository,
   RecordOutcome,
+  ApplyCreditOutcome,
 } from './payment.repository';
 import { formatReceiptNumber } from './payment.repository';
 
@@ -99,6 +100,114 @@ export class DrizzlePaymentRepository implements PaymentRepository {
       }
       throw error;
     }
+  }
+
+  async creditForGuardian(instituteId: string, phone: PhoneNumber): Promise<Money> {
+    const [row] = await this.db.execute<{ credit: string | null }>(sql`
+      select coalesce(sum(p.amount_paise - coalesce(a.allocated, 0)), 0) as credit
+      from ${payments} p
+      left join (
+        select payment_id, sum(amount_paise) as allocated
+        from ${paymentAllocations}
+        where institute_id = ${instituteId}
+        group by payment_id
+      ) a on a.payment_id = p.id
+      where p.institute_id = ${instituteId}
+        and p.guardian_phone = ${phone.toE164()}
+        and p.status = 'active'`);
+    return Money.ofPaise(Number(row?.credit ?? 0));
+  }
+
+  async applyCredit(
+    instituteId: string,
+    phone: PhoneNumber,
+    invoiceId: string,
+  ): Promise<ApplyCreditOutcome> {
+    return this.db.transaction(async (tx) => {
+      // Lock order: payments, THEN the invoice. A void locks a payment then its invoices, so
+      // the same order here means the two can wait for each other but never deadlock.
+      const paymentRows = await tx
+        .select()
+        .from(payments)
+        .where(
+          and(
+            eq(payments.instituteId, instituteId),
+            eq(payments.guardianPhone, phone.toE164()),
+            eq(payments.status, 'active'),
+          ),
+        )
+        .orderBy(asc(payments.paidAt), asc(payments.id))
+        .for('update');
+      const [invoiceRow] = await tx
+        .select()
+        .from(invoices)
+        .where(and(eq(invoices.id, invoiceId), eq(invoices.instituteId, instituteId)))
+        .for('update');
+      if (!invoiceRow) {
+        return { outcome: 'invoice_not_found' } as const;
+      }
+      const allocatedRows = paymentRows.length
+        ? await tx
+            .select({
+              paymentId: paymentAllocations.paymentId,
+              allocated: sql<string>`sum(${paymentAllocations.amountPaise})`,
+            })
+            .from(paymentAllocations)
+            .where(
+              inArray(
+                paymentAllocations.paymentId,
+                paymentRows.map((p) => p.id),
+              ),
+            )
+            .groupBy(paymentAllocations.paymentId)
+        : [];
+      const allocated = new Map(allocatedRows.map((r) => [r.paymentId, Number(r.allocated)]));
+      const credits = paymentRows
+        .map((p) => ({
+          id: p.id,
+          credit: Money.ofPaise(p.amountPaise - (allocated.get(p.id) ?? 0)),
+        }))
+        .filter((c) => !c.credit.isZero());
+      if (credits.length === 0) {
+        return { outcome: 'no_credit' } as const;
+      }
+      const invoice = toInvoice(invoiceRow);
+      if (!invoice.isOpen || invoice.remaining.isZero()) {
+        return { outcome: 'invoice_closed', status: invoice.status } as const;
+      }
+
+      let left = invoice.remaining;
+      let applied = Money.zero();
+      for (const { id, credit } of credits) {
+        if (left.isZero()) {
+          break;
+        }
+        const share = credit.min(left);
+        await tx
+          .insert(paymentAllocations)
+          .values({ paymentId: id, invoiceId, instituteId, amountPaise: share.toPaise() })
+          // The same payment may already have paid part of this invoice before a void
+          // reopened it: add to that allocation.
+          .onConflictDoUpdate({
+            target: [paymentAllocations.paymentId, paymentAllocations.invoiceId],
+            set: { amountPaise: sql`${paymentAllocations.amountPaise} + excluded.amount_paise` },
+          });
+        left = left.subtract(share);
+        applied = applied.add(share);
+      }
+      const updated = invoice.withPaid(invoice.paid.add(applied));
+      await tx
+        .update(invoices)
+        .set({ paidPaise: updated.paid.toPaise(), status: updated.status, updatedAt: sql`now()` })
+        .where(eq(invoices.id, invoiceId));
+      const total = credits.reduce((sum, c) => sum.add(c.credit), Money.zero());
+      return {
+        outcome: 'applied',
+        invoice: updated,
+        applied,
+        creditLeft: total.subtract(applied),
+      } as const;
+    });
   }
 
   async void(instituteId: string, paymentId: string, apply: (payment: Payment) => Payment) {

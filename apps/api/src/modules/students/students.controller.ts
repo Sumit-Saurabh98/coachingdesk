@@ -38,6 +38,11 @@ interface NewEnrollment extends EnrollmentView {
   startDate: LocalDate;
 }
 
+/** The guardian's unapplied money (shown on the student). PaymentService fits. */
+export interface GuardianCreditLookup {
+  creditForGuardian(instituteId: string, phone: PhoneNumber): Promise<{ toPaise(): number }>;
+}
+
 /** Billing for enrollments made with the student (one_time fees). InvoiceService fits. */
 export interface StudentBilling {
   billAtEnrollment(
@@ -75,6 +80,7 @@ export class StudentsController {
     private readonly enrollments: StudentEnrollments,
     private readonly consent: GuardianConsentRecorder,
     private readonly billing: StudentBilling,
+    private readonly credit: GuardianCreditLookup,
   ) {}
 
   /** GET .../students?q=&status=&limit=&cursor= (any member) -> 200 { students, nextCursor } */
@@ -157,8 +163,14 @@ export class StudentsController {
     const student = await this.students.get(tenant.instituteId, studentIdOf(request));
     const enrollments = await this.enrollments.listForStudent(tenant.instituteId, student.id);
     const showFees = canSeeFees(tenant.role);
+    // Credit is money: teachers never see it (KB #31). Shared by siblings (same guardian).
+    const credit =
+      showFees && student.guardianPhone
+        ? (await this.credit.creditForGuardian(tenant.instituteId, student.guardianPhone)).toPaise()
+        : 0;
     await reply.status(200).send({
       student: student.toPublicJSON(),
+      ...(showFees ? { guardianCreditPaise: credit } : {}),
       enrollments: enrollments.map((e) =>
         showFees
           ? e.toPublicJSON()

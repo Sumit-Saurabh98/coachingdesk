@@ -271,6 +271,7 @@ export function buildTestApp() {
       enrollmentService,
       consentService,
       invoiceService,
+      paymentService,
     ),
     invoicesController: new InvoicesController(invoiceService, paymentService),
     paymentsController: new PaymentsController(paymentService),

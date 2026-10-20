@@ -348,3 +348,50 @@ describe('payment receipts on WhatsApp', () => {
     ).toEqual({ kind: 'skip', reason: 'stale' });
   });
 });
+
+describe('guardian credit', () => {
+  it('shows on the student for owner/staff (not teachers), and is applied to another due', async () => {
+    const { token, url, invoice, pay, bill, student, instituteId } = await setup();
+    await pay(invoice.id, { amountPaise: 200000, method: 'cash' }); // Rs 500 over
+    const teacher = await http.memberWithRole(instituteId, 'teacher');
+
+    const asOwner = (await http.call(token, 'GET', `${url}/students/${student.id}`)).json();
+    expect(asOwner.guardianCreditPaise).toBe(50000);
+    const asTeacher = (await http.call(teacher, 'GET', `${url}/students/${student.id}`)).json();
+    expect(asTeacher).not.toHaveProperty('guardianCreditPaise');
+
+    const next = await bill(300, '2026-11-07');
+    const applied = await http.call(token, 'POST', `${url}/invoices/${next.id}/apply-credit`);
+
+    expect(applied.statusCode).toBe(200);
+    expect(applied.json()).toMatchObject({
+      appliedPaise: 30000,
+      creditPaise: 20000,
+      invoice: { id: next.id, status: 'paid' },
+    });
+    expect(
+      (await http.call(token, 'GET', `${url}/students/${student.id}`)).json().guardianCreditPaise,
+    ).toBe(20000);
+    const [entry] = (await http.call(token, 'GET', `${url}/audit-log`)).json().entries;
+    expect(entry).toMatchObject({
+      action: 'credit.apply',
+      entityId: next.id,
+      after: { appliedPaise: 30000, status: 'paid', creditLeftPaise: 20000 },
+    });
+    expect(
+      (await http.call(teacher, 'POST', `${url}/invoices/${next.id}/apply-credit`)).statusCode,
+    ).toBe(403);
+  });
+
+  it('409 with no credit or for a paid invoice; 404 for another institute', async () => {
+    const { token, url, invoice } = await setup();
+    const none = await http.call(token, 'POST', `${url}/invoices/${invoice.id}/apply-credit`);
+    expect(none.statusCode).toBe(409);
+    expect(none.json().error.message).toBe('This guardian has no credit to apply');
+    const other = await http.ownerWithInstitute(OTHER_PHONE);
+    expect(
+      (await http.call(other.token, 'POST', `${other.url}/invoices/${invoice.id}/apply-credit`))
+        .statusCode,
+    ).toBe(404);
+  });
+});

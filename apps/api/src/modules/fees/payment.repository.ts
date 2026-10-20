@@ -32,6 +32,12 @@ export interface OpenDueTotals {
   overdueByStudent: Array<{ studentId: string; overdue: Money; oldestDueDate: LocalDate }>;
 }
 
+export type ApplyCreditOutcome =
+  | { outcome: 'applied'; invoice: Invoice; applied: Money; creditLeft: Money }
+  | { outcome: 'no_credit' }
+  | { outcome: 'invoice_not_found' }
+  | { outcome: 'invoice_closed'; status: string };
+
 export function formatReceiptNumber(n: number): string {
   return `RCT-${String(n).padStart(6, '0')}`;
 }
@@ -64,6 +70,21 @@ export interface PaymentRepository {
   ): Promise<Array<{ payment: Payment; amount: Money }>>;
   /** Newest first. */
   list(instituteId: string, query: PaymentListQuery): Promise<Payment[]>;
+  /**
+   * Guardian credit: on this guardian's ACTIVE payments, what was paid but not allocated to
+   * any invoice (overpayment, or money for a due that was closed meanwhile).
+   */
+  creditForGuardian(instituteId: string, phone: PhoneNumber): Promise<Money>;
+  /**
+   * Applies the guardian's credit to one open invoice, oldest payment first, up to what is
+   * left on it. Locks the payments FIRST, then the invoice (the same order as void: no
+   * deadlock), so two applies can't spend the same credit twice.
+   */
+  applyCredit(
+    instituteId: string,
+    phone: PhoneNumber,
+    invoiceId: string,
+  ): Promise<ApplyCreditOutcome>;
   /** Erasure: removes this guardian's phone from the institute's payments (amounts stay). */
   forgetGuardianPhone(instituteId: string, phone: PhoneNumber): Promise<number>;
   /** Active payments with paid_at in [from, to). */
@@ -122,6 +143,74 @@ export class InMemoryPaymentRepository implements PaymentRepository {
       allocated,
       credit: payment.amount.subtract(allocated),
     };
+  }
+
+  async creditForGuardian(instituteId: string, phone: PhoneNumber): Promise<Money> {
+    return this.creditsOf(instituteId, phone).reduce((sum, c) => sum.add(c.credit), Money.zero());
+  }
+
+  async applyCredit(
+    instituteId: string,
+    phone: PhoneNumber,
+    invoiceId: string,
+  ): Promise<ApplyCreditOutcome> {
+    const invoice = this.invoices.peek(invoiceId);
+    if (!invoice || invoice.instituteId !== instituteId) {
+      return { outcome: 'invoice_not_found' };
+    }
+    const credits = this.creditsOf(instituteId, phone);
+    if (credits.length === 0) {
+      return { outcome: 'no_credit' };
+    }
+    if (!invoice.isOpen || invoice.remaining.isZero()) {
+      return { outcome: 'invoice_closed', status: invoice.status };
+    }
+    let left = invoice.remaining;
+    let applied = Money.zero();
+    for (const { payment, credit } of credits) {
+      if (left.isZero()) {
+        break;
+      }
+      const share = credit.min(left);
+      const existing = this.allocations.find(
+        (a) => a.paymentId === payment.id && a.invoiceId === invoiceId,
+      );
+      if (existing) {
+        existing.amount = existing.amount.add(share);
+      } else {
+        this.allocations.push({ paymentId: payment.id, invoiceId, amount: share });
+      }
+      left = left.subtract(share);
+      applied = applied.add(share);
+    }
+    const updated = invoice.withPaid(invoice.paid.add(applied));
+    this.invoices.put(updated);
+    return {
+      outcome: 'applied',
+      invoice: updated,
+      applied,
+      creditLeft: await this.creditForGuardian(instituteId, phone),
+    };
+  }
+
+  /** Active payments of this guardian with credit left, oldest first. */
+  private creditsOf(instituteId: string, phone: PhoneNumber) {
+    return [...this.payments.values()]
+      .filter(
+        (p) =>
+          p.instituteId === instituteId &&
+          p.status === 'active' &&
+          p.guardianPhone !== null &&
+          p.guardianPhone.equals(phone),
+      )
+      .sort((a, b) => a.paidAt.getTime() - b.paidAt.getTime() || (a.id < b.id ? -1 : 1))
+      .map((payment) => {
+        const allocated = this.allocations
+          .filter((a) => a.paymentId === payment.id)
+          .reduce((sum, a) => sum.add(a.amount), Money.zero());
+        return { payment, credit: payment.amount.subtract(allocated) };
+      })
+      .filter((c) => !c.credit.isZero());
   }
 
   async void(instituteId: string, paymentId: string, apply: (payment: Payment) => Payment) {

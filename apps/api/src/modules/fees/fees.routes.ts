@@ -36,6 +36,9 @@ export function registerFeeRoutes(
   app.post(`${INVOICES}/:invoiceId/payments`, { preHandler: read }, (req, reply) =>
     payments.record(req, reply),
   );
+  app.post(`${INVOICES}/:invoiceId/apply-credit`, { preHandler: read }, (req, reply) =>
+    payments.applyCredit(req, reply),
+  );
   app.get(PAYMENTS, { preHandler: read }, (req, reply) => payments.list(req, reply));
   app.get(`${PAYMENTS}/:paymentId`, { preHandler: read }, (req, reply) => payments.get(req, reply));
   app.get(`${PAYMENTS}/:paymentId/receipt`, { preHandler: read }, (req, reply) =>
