@@ -62,6 +62,7 @@ import { InMemorySubscriptionRepository } from '../modules/subscriptions/subscri
 import { SubscriptionService } from '../modules/subscriptions/subscription.service';
 import { ErasureService } from '../modules/privacy/erasure.service';
 import { DeletionService } from '../modules/privacy/deletion.service';
+import { ApiRateLimit, type ApiRateLimitPolicy } from '../http/api-rate-limit';
 import { InMemoryDataExportRepository } from '../modules/privacy/data-export.repository';
 import { ExportService } from '../modules/privacy/export.service';
 import { ExportsController } from '../modules/privacy/exports.controller';
@@ -79,7 +80,7 @@ export const TEST_OTP = '482913';
  * a FixedClock and a fixed OTP. Every HTTP test builds its app here, so the wiring
  * lives in one place instead of being copied into each test file (DRY).
  */
-export function buildTestApp() {
+export function buildTestApp(options: { apiRateLimits?: ApiRateLimitPolicy } = {}) {
   const clock = new FixedClock(new Date('2026-10-19T10:00:00Z'));
   const ids = new SequentialIdGenerator();
   const sms = new FakeSmsProvider();
@@ -284,6 +285,8 @@ export function buildTestApp() {
     attendanceController: new AttendanceController(attendanceService),
     memberships: instituteService,
     accessTokens,
+    // Same limiter as OTPs (in memory). Tests that check the limits pass their own app.
+    rateLimit: new ApiRateLimit(new InMemoryRateLimiter(clock), options.apiRateLimits),
     isReady: async () => true,
   });
 

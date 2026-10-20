@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { createAuthGuard } from './http/auth-guard';
+import type { ApiRateLimit } from './http/api-rate-limit';
 import { registerErrorHandler } from './http/error-handler';
 import { serializeRequest } from './http/log-redaction';
 import { createTenancyGuard, type MembershipLookup } from './http/tenancy-guard';
@@ -62,6 +63,8 @@ export interface AppDependencies {
   accessTokens: JwtAccessTokens;
   memberships: MembershipLookup;
   isReady: () => Promise<boolean>;
+  /** Request limits (KB #46). Optional: unit-style tests of single routes may leave it out. */
+  rateLimit?: ApiRateLimit;
 }
 
 export interface AppOptions {
@@ -90,7 +93,17 @@ export function buildApp(deps: AppDependencies, options: AppOptions = {}): Fasti
   registerErrorHandler(app);
 
   // ONE guard instance, created here and handed to every module that has protected routes.
-  const requireAuth = createAuthGuard(deps.accessTokens);
+  const requireAuth = createAuthGuard(deps.accessTokens, deps.rateLimit);
+
+  // Per IP, before anything else runs (health checks excepted: the load balancer polls them).
+  const rateLimit = deps.rateLimit;
+  if (rateLimit) {
+    app.addHook('onRequest', async (request) => {
+      if (request.url !== '/health' && request.url !== '/ready') {
+        await rateLimit.checkIp(request.ip);
+      }
+    });
+  }
   const requireMember = createTenancyGuard(deps.memberships);
 
   // /health = "is the process alive?"; /ready = "can it serve traffic?" (Redis + Postgres reachable).

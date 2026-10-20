@@ -21,6 +21,9 @@ const ConfigSchema = z.object({
     .string()
     .regex(/^\d{6}$/, 'must be 6 digits')
     .optional(),
+  // Request limits per minute (KB #46). Generous: they stop scripts and runaway loops, not people.
+  API_RATE_LIMIT_PER_IP: z.coerce.number().int().positive().default(600),
+  API_RATE_LIMIT_PER_USER: z.coerce.number().int().positive().default(300),
   ...FileStoreConfig,
 });
 

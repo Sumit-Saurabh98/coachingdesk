@@ -1,6 +1,7 @@
 import { AppError } from '@coachingdesk/shared';
 import type { FastifyRequest } from 'fastify';
 import type { JwtAccessTokens } from '../modules/auth/access-tokens';
+import type { ApiRateLimit } from './api-rate-limit';
 
 export interface AuthContext {
   userId: string;
@@ -23,7 +24,7 @@ const BEARER = /^Bearer ([A-Za-z0-9._~+/-]+=*)$/;
  * (dependency injection, the same idea as constructors) instead of importing a global.
  * Usage on a route: app.get('/v1/me', { preHandler: requireAuth }, handler)
  */
-export function createAuthGuard(accessTokens: JwtAccessTokens) {
+export function createAuthGuard(accessTokens: JwtAccessTokens, rateLimit?: ApiRateLimit) {
   return async function requireAuth(request: FastifyRequest): Promise<void> {
     const match = BEARER.exec(request.headers.authorization ?? '');
     if (!match?.[1]) {
@@ -31,6 +32,8 @@ export function createAuthGuard(accessTokens: JwtAccessTokens) {
     }
     // verify() throws UNAUTHENTICATED for expired, forged or garbage tokens (Step 8).
     request.auth = await accessTokens.verify(match[1]);
+    // Per user, not per IP: a whole coaching center often shares one IP (one Wi-Fi).
+    await rateLimit?.checkUser(request.auth.userId);
   };
 }
 

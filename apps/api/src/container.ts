@@ -30,6 +30,7 @@ import { NoticesController } from './modules/messaging/notices.controller';
 import { RemindersController } from './modules/messaging/reminders.controller';
 import { StudentsController } from './modules/students/students.controller';
 import { DeletionService } from './modules/privacy/deletion.service';
+import { ApiRateLimit } from './http/api-rate-limit';
 import { createFileStore } from './file-store-config';
 import { DrizzleDataExportRepository } from './modules/privacy/drizzle-data-export.repository';
 import { ExportService } from './modules/privacy/export.service';
@@ -66,10 +67,11 @@ export function createContainer(config: Config): Container {
       ? { phone: PhoneNumber.parse(config.REVIEW_LOGIN_PHONE), code: config.REVIEW_LOGIN_OTP }
       : null;
 
+  const rateLimiter = new RedisRateLimiter(redis, clock);
   const otpService = new OtpService(
     {
       store: new RedisOtpStore(redis, clock),
-      rateLimiter: new RedisRateLimiter(redis, clock),
+      rateLimiter,
       sms: createSmsProvider(config),
       codeGenerator: new RandomOtpCodeGenerator(),
       hasher: new OtpHasher(config.OTP_HASH_SECRET),
@@ -152,6 +154,18 @@ export function createContainer(config: Config): Container {
     memberships: services.instituteService,
     accessTokens,
     // Ready = BOTH Redis and Postgres answer. Otherwise the load balancer sends traffic elsewhere.
+    rateLimit: new ApiRateLimit(
+      rateLimiter,
+      {
+        perIpPerMinute: config.API_RATE_LIMIT_PER_IP,
+        perUserPerMinute: config.API_RATE_LIMIT_PER_USER,
+      },
+      // Fail open, but never silently: one line per failure (no request data in it).
+      (error) =>
+        console.warn(
+          JSON.stringify({ level: 'warn', msg: 'rate limiter unavailable', error: String(error) }),
+        ),
+    ),
     isReady: async () => {
       try {
         const [redisReply] = await Promise.all([redis.ping(), database.db.execute(sql`select 1`)]);
