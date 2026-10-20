@@ -30,6 +30,11 @@ export function errorMessage(t: TFunction, error: unknown): string {
       const seconds = numberDetail(error, 'retryAfterSeconds') ?? 60;
       return t('errors.rateLimited', { count: Math.max(1, Math.ceil(seconds / 60)) });
     }
+    case 'PLAN_LIMIT_REACHED': {
+      // details.limit: how many the plan allows (e.g. 25 active students on Free).
+      const limit = numberDetail(error, 'limit');
+      return limit === null ? t('errors.generic') : t('errors.planLimit', { limit });
+    }
     case 'VALIDATION_FAILED':
       return t('errors.validation');
     case 'SERVICE_UNAVAILABLE':

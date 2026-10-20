@@ -1,5 +1,6 @@
 // Students tab: everyone at the institute, searchable, sorted by name, loaded page by page.
 import { useInfiniteQuery } from '@tanstack/react-query';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
@@ -8,6 +9,7 @@ import {
   Button,
   Chip,
   Divider,
+  FAB,
   List,
   Searchbar,
   SegmentedButtons,
@@ -139,12 +141,22 @@ export default function StudentsTab() {
           }
         />
       )}
+      {/* "Add student": owner and staff only. */}
+      {canManage && (
+        <FAB
+          icon="account-plus"
+          label={t('students.add')}
+          style={styles.fab}
+          onPress={() => router.push('/students/new')}
+        />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  fab: { position: 'absolute', right: 16, bottom: 16 },
   controls: { padding: 16, paddingBottom: 8, gap: 12 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 },
   badges: { justifyContent: 'center', gap: 4 },

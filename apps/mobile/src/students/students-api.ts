@@ -1,5 +1,6 @@
 import type { StudentStatus } from '@coachingdesk/shared';
 import { api } from '@/api';
+import type { CreateStudentRequest } from './student-form-rules';
 
 /** A student as the API returns them (Student.toPublicJSON + readOnly on lists). */
 export interface Student {
@@ -29,6 +30,18 @@ export const studentKeys = {
 export interface StudentPage {
   students: Student[];
   nextCursor: string | null; // null = this was the last page
+}
+
+/** POST .../students (owner, staff): the student, enrolled in the chosen batches. */
+export async function createStudent(
+  instituteId: string,
+  body: CreateStudentRequest,
+): Promise<Student> {
+  const result = await api.post<{ student: Student }>(
+    `/v1/institutes/${instituteId}/students`,
+    body,
+  );
+  return result.student;
 }
 
 /** GET .../students?q&status&limit&cursor -> one page, sorted by name. */

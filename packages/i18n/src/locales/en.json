@@ -52,7 +52,8 @@
     "otpInvalid_one": "That code is not correct. {{count}} attempt left.",
     "otpInvalid_other": "That code is not correct. {{count}} attempts left.",
     "otpLocked": "Too many wrong attempts. Please request a new code.",
-    "otpExpired": "This code has expired. Please request a new one."
+    "otpExpired": "This code has expired. Please request a new one.",
+    "planLimit": "Your plan allows {{limit}} active students. Upgrade, or mark students who left as left."
   },
   "me": {
     "title": "Me",
@@ -189,6 +190,41 @@
     "emptyOwner": "Add your students to take attendance and send fee reminders.",
     "emptyMember": "The owner hasn’t added any students yet.",
     "noResults": "No students match “{{q}}”",
-    "noLeft": "No students have left"
+    "noLeft": "No students have left",
+    "add": "Add student"
+  },
+  "months": {
+    "jan": "Jan",
+    "feb": "Feb",
+    "mar": "Mar",
+    "apr": "Apr",
+    "may": "May",
+    "jun": "Jun",
+    "jul": "Jul",
+    "aug": "Aug",
+    "sep": "Sep",
+    "oct": "Oct",
+    "nov": "Nov",
+    "dec": "Dec"
+  },
+  "studentForm": {
+    "title": "Add student",
+    "nameLabel": "Student name",
+    "nameInvalid": "The name must be 2 to 80 characters",
+    "guardianNameLabel": "Parent / guardian name (optional)",
+    "guardianNameInvalid": "The guardian name can be at most 80 characters",
+    "phoneLabel": "Parent / guardian mobile",
+    "phoneInvalid": "Enter a valid 10-digit mobile number",
+    "phoneHelp": "Fee reminders and absence alerts go to this number on WhatsApp.",
+    "joinedOn": "Joined on",
+    "today": "Today",
+    "pickJoined": "Joining date",
+    "notesLabel": "Notes (optional)",
+    "notesInvalid": "Notes can be at most 1000 characters",
+    "batches": "Batches",
+    "noBatches": "No batches yet. You can add the student to batches later.",
+    "consent": "The parent agreed to receive updates on WhatsApp",
+    "consentHelp": "Without this, no automatic WhatsApp messages are sent to this number.",
+    "create": "Add student"
   }
 }
