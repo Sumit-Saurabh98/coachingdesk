@@ -71,12 +71,15 @@ export default function RootLayout() {
           {/* Which screens exist depends on the login: Stack.Protected hides a group when
               its guard is false, and the app moves to the other group by itself. Logging in
               or out anywhere (or the session expiring) switches screens with no navigate code.
-              While 'restoring', the login group is behind the splash screen. */}
+              While 'restoring', the login group is behind the splash screen.
+              `redirectTo` says WHERE to go when a group is hidden. Without it the router falls
+              back to the other group's own start ("/(auth)"), which has no screen: the login
+              screen is "/login", not an index, so the user saw "Unmatched route". */}
           <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Protected guard={status === 'signedIn'}>
+            <Stack.Protected guard={status === 'signedIn'} redirectTo="/login">
               <Stack.Screen name="(app)" />
             </Stack.Protected>
-            <Stack.Protected guard={status !== 'signedIn'}>
+            <Stack.Protected guard={status !== 'signedIn'} redirectTo="/">
               <Stack.Screen name="(auth)" />
             </Stack.Protected>
           </Stack>
