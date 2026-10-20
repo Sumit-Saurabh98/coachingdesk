@@ -1,6 +1,7 @@
 // ESLint (flat config) for every package: TECH_STACK "Lint/format: ESLint (typescript-eslint)
 // + Prettier". Formatting is Prettier's job: no style rules here, only rules that catch bugs.
 import js from '@eslint/js';
+import reactHooks from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
@@ -11,6 +12,9 @@ export default tseslint.config(
       '**/.turbo/**',
       '**/coverage/**',
       '**/.data/**',
+      // Expo writes these itself (route types, cache): never edit or lint them.
+      '**/.expo/**',
+      '**/expo-env.d.ts',
       'packages/db/migrations/**',
       'eslint.config.mjs',
       '**/vitest.config.*',
@@ -53,5 +57,14 @@ export default tseslint.config(
       '@typescript-eslint/unbound-method': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
     },
+  },
+  {
+    // React's rules, for the app only. Two classic bugs they catch:
+    //  - a hook called inside an `if` (React then mixes up which state belongs to which hook)
+    //  - an effect that reads a value but doesn't list it as a dependency (stale data on screen)
+    // The "flat" recommended set also includes the React Compiler checks, which match
+    // `reactCompiler: true` in app.json.
+    files: ['apps/mobile/**/*.{ts,tsx}'],
+    ...reactHooks.configs.flat.recommended,
   },
 );
