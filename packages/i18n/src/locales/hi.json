@@ -1,0 +1,23 @@
+{
+  "common": {
+    "appName": "ट्यूशनमित्र"
+  },
+  "settings": {
+    "theme": "थीम",
+    "themeSystem": "सिस्टम",
+    "themeLight": "लाइट",
+    "themeDark": "डार्क",
+    "language": "भाषा",
+    "languageSystem": "सिस्टम"
+  },
+  "preview": {
+    "title": "शर्मा क्लासेस",
+    "today": "आज",
+    "paid": "भुगतान हो गया",
+    "receipt": "रसीद",
+    "remind": "याद दिलाएँ",
+    "guardian": "अभिभावक {{phone}}",
+    "feesDue_one": "इस हफ़्ते {{count}} फ़ीस बाकी है",
+    "feesDue_other": "इस हफ़्ते {{count}} फ़ीस बाकी हैं"
+  }
+}

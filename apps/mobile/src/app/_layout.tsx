@@ -3,10 +3,13 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
-import { darkTheme, lightTheme, navigationThemeFor } from '@/theme/theme';
+// Importing it runs the i18next setup, before any screen renders.
+import i18n, { resolveLanguage } from '@/i18n';
 import { usePreferences } from '@/stores/preferences';
+import { darkTheme, lightTheme, navigationThemeFor } from '@/theme/theme';
 
 // The names the icon font knows ("whatsapp", "check", ...). Paper hands us a plain string.
 type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
@@ -18,6 +21,13 @@ export default function RootLayout() {
   // 'system' follows the phone; 'light'/'dark' override it.
   const dark = preference === 'dark' || (preference === 'system' && systemScheme === 'dark');
   const theme = dark ? darkTheme : lightTheme;
+
+  // When the user picks another language, tell i18next. Every screen using
+  // useTranslation() then re-renders in the new language by itself.
+  const language = usePreferences((state) => state.language);
+  useEffect(() => {
+    void i18n.changeLanguage(resolveLanguage(language));
+  }, [language]);
 
   return (
     // PaperProvider gives every Paper component (Button, Card, Text...) our theme.
