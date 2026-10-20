@@ -30,7 +30,7 @@ Solo developer, ~12 weeks to a paid MVP. Each milestone ends with something demo
 - [ ] Payment links + Razorpay webhook pipeline (idempotent)
 - [ ] Payout onboarding (KYC) flow + UPI-ID fallback on the pay page
 - [x] Reminder planner (offsets, 1/day, quiet hours, sibling grouping)  _(+ message quota and trial/new-institute caps; pay-link token with the pay page)_
-- [ ] Receipts; web pages: pay, receipt (Next.js)
+- [ ] Receipts; web pages: pay, receipt (Next.js)  _(✅ receipt numbers, receipt API, receipt WhatsApp, guardian credit; web pages with the public links)_
 - [ ] Mobile: fee dashboard, pending list, student fee history, "remind now"
 - **Demo:** parent pays via UPI link → app shows paid → receipt on WhatsApp
 

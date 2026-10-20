@@ -152,7 +152,7 @@ Batch object:
 | GET | `/institutes/{id}/students` | `?q=&status=active\|left\|all&limit=1–100 (50)&cursor=` → `200 { students, nextCursor }`, sorted by name (case-insensitive). `q` matches student/guardian name, or 3+ digits of the guardian phone. `?batchId=` = only students enrolled in that batch today (unknown batch → empty list) |
 | POST | `/institutes/{id}/students` | Owner, staff. Single student, optional `batchIds` (max 20) → `201 { student, enrollments, invoices }` (`invoices`: one_time batch fees, billed at once). Batches are checked first: unknown → `404`, archived → `409`, and then no student is created. Each enrollment uses the batch's default fee/cycle and starts on `joinedOn` |
 | POST | `/institutes/{id}/students/bulk` | Owner, staff. Up to 500 rows → `200 { created, students, failed }` |
-| GET | `/institutes/{id}/students/{studentId}` | `200 { student, enrollments }` (past and present, by start date). Fee summary and attendance % are added as those modules land |
+| GET | `/institutes/{id}/students/{studentId}` | `200 { student, enrollments, guardianCreditPaise }` (enrollments past and present, by start date). `guardianCreditPaise`: the guardian's unapplied money at this institute (same for siblings); left out for teachers |
 | PATCH | `/institutes/{id}/students/{studentId}` | Owner, staff. `{ name?, guardianName?, guardianPhone?, joinedOn?, notes? }` → `200 { student }`. `409` if erased |
 | POST | `/institutes/{id}/students/{studentId}/leave` | Owner, staff. `{ leftOn? }` (default: today at the institute) → `200 { student }`. Stops invoices/reminders; frees a plan slot. Idempotent: a retry keeps the first date |
 | POST | `/institutes/{id}/students/{studentId}/erase` | Owner. `{ confirm: true }` → `200 { student }`. Irreversibly erases the student's personal data (on guardian request): name → "Erased student", guardian name/phone and notes cleared, marked left (billing stops); absence alerts about them lose their text. The guardian's phone is also removed from payments, consent and the message log **unless a sibling here still has it**. Invoice and payment amounts are kept. Audited; repeating it is harmless |
@@ -244,6 +244,8 @@ PUT body (`clientId` = a UUID the phone generated offline; a retry with the same
 | POST | `/institutes/{id}/invoices/{invoiceId}/share-link` | Mints a guardian pay-page token for this invoice's guardian → `{ url, whatsappText }` (Free plan manual share). POST because it creates a token |
 | GET | `/institutes/{id}/payments?from&to&method&status&limit` | Owner, staff. Collections list, newest first. `from`/`to` are institute-local days (inclusive); `status=active` by default |
 | GET | `/institutes/{id}/payments/{paymentId}` | Owner, staff → `200 { payment, allocations: [{ invoiceId, amountPaise }], creditPaise }` |
+| GET | `/institutes/{id}/payments/{paymentId}/receipt` | Owner, staff → `{ receipt: { ...payment, institute: { name, city }, lines: [{ invoiceId, invoiceNumber, description, studentId, studentName, amountPaise }], creditPaise } }`. For the app's share sheet (Free plan shares by hand) and later the public receipt page. A voided payment still has one (`status: "voided"`) |
+| POST | `/institutes/{id}/invoices/{invoiceId}/apply-credit` | Owner, staff. Pays the invoice from the guardian's credit (oldest payment first, up to what is left) → `{ invoice, appliedPaise, creditPaise }` (credit left). `409` no credit / invoice closed / student erased. Audited (`credit.apply`) |
 
 Invoice object:
 ```json
@@ -271,7 +273,7 @@ Record payment (`method`: `cash` \| `bank` \| `other`; `paidAt` ISO 8601 with a 
 ```json
 { "amountPaise": 150000, "method": "cash", "paidAt": "2026-10-18T09:00:00Z", "note": "Paid at center" }
 ```
-Payment object: `{ id, guardianPhone, amountPaise, method, status, paidAt, note, voidedAt, voidReason }`. Teachers get `403` on every fees endpoint.
+Payment object: `{ id, receiptNumber, guardianPhone, amountPaise, method, status, paidAt, note, voidedAt, voidReason }`. Teachers get `403` on every fees endpoint.
 
 ## 9. Tests & results
 
@@ -324,6 +326,8 @@ Body — one of three kinds (KB §4 templates; offer the structured ones first, 
 
 Only guardians with consent (`opted_in`) are ever messaged; the check happens at send time.
 
+**Payment receipts** (automatic, Starter and above): every recorded payment queues one `payment_receipt` (priority 1, dedupe `receipt:{paymentId}`; a replayed request re-queues nothing). The worker writes it at send time from the payment as it is then ("Received ₹2,000 for Aarav at Sharma Classes. Thank you!") and skips it if the payment was voided meanwhile. Sent even after a global STOP (consent at the institute still needed). The "View receipt" link arrives with the public receipt page.
+
 **Fee reminders** (automatic, worker): on the institute's `reminderOffsets` (setting; default `[3, 0, -3, -7]` = 3 days before the due date, on it, 3 and 7 days after; `[]` = off), at most one per guardian per day, siblings combined (`fee_reminder` for one child, `fee_reminder_multi` for several, chosen at send time from what is due THEN; skipped if nothing is due). Students who left get none. Plan needs automatic messages. The "Pay now" button's link token arrives with the pay page.
 
 **Limits** (checked right before sending; over → message `skipped`, `skip_reason = over_quota`): the plan's monthly quota; during the trial 100/day and 200 in total; any institute's first 7 days 100/day. A failed send doesn't count. Consent is also recorded by `guardianConsent: true` on `POST /students` and `POST /students/bulk` (the "Guardian agreed to receive updates on WhatsApp" checkbox).
@@ -332,7 +336,7 @@ Only guardians with consent (`opted_in`) are ever messaged; the check happens at
 
 | Method | Path |
 |---|---|
-| GET | `/institutes/{id}/audit-log?limit&cursor` — owner → `{ entries: [{ id, action, actorUserId, entityType, entityId, before, after, createdAt }], nextCursor }`, newest first. Actions: `payment.void`, `invoice.waive`, `invoice.cancel`, `member.add`, `member.remove`, `institute.settings`, `student.erase`. Entries hold statuses, amounts and ids only — never names or phones |
+| GET | `/institutes/{id}/audit-log?limit&cursor` — owner → `{ entries: [{ id, action, actorUserId, entityType, entityId, before, after, createdAt }], nextCursor }`, newest first. Actions: `payment.void`, `credit.apply`, `institute.delete_requested`, `institute.delete_cancelled`, `invoice.waive`, `invoice.cancel`, `member.add`, `member.remove`, `institute.settings`, `student.erase`. Entries hold statuses, amounts and ids only — never names or phones |
 
 ## 12. Subscription
 

@@ -211,11 +211,14 @@ payments (                                -- money received; one row per provide
   provider text, provider_payment_id text unique,  -- null for offline
   payment_link_id uuid fk null,           -- FK added with payment_links
   idempotency_key text,                   -- unique (institute_id, idempotency_key): AGENTS rule 6
+  receipt_number text,                    -- RCT-000001, unique (institute_id, receipt_number); null before Step 24
   status text not null default 'active' check (status in ('active','voided','refunded')),
   voided_at timestamptz, voided_by uuid, void_reason text,
   recorded_by uuid null, note text,
   paid_at timestamptz not null, created_at, updated_at
 )
+
+receipt_counters (institute_id pk fk, next_value bigint)   -- like invoice_counters; taken in the payment's transaction
 
 payment_allocations (                     -- how a payment is split across invoices
   payment_id uuid fk, invoice_id uuid fk, institute_id uuid not null,
@@ -588,7 +591,7 @@ for msg:
 | Category | Re-check before sending | Skip when |
 |---|---|---|
 | `fee_reminder` | Load open invoices (`due`, `partially_paid`) for `(institute, to_phone)`; recompute names, total remaining, and single vs multi template | No open dues (`nothing_due`) |
-| `receipt` | Payment still `active` | Voided / refunded (`stale`) |
+| `receipt` | Payment still `active`; render amount, student names (from its allocations) and institute (`ReceiptRenderer`) | Voided / refunded, or the institute purged (`stale`) |
 | `absence` | Record still `absent` | Edited to present/late/leave (`stale`) |
 | `result` | Score still exists and has marks; re-render student/test/marks/max from current data | Test deleted, score gone or now absent (`stale`) |
 | `notice` | — | — |
@@ -625,6 +628,8 @@ enqueue payment-links.reconcile for each touched invoice
 ```
 - A payment can arrive on a link we already cancelled (provider race). It is processed exactly the same way; anything that no longer fits goes to credit and the owner sees it.
 - Offline payment (`POST /invoices/{id}/payments`): same transaction shape with a single target invoice (`SELECT … FOR UPDATE` on it); amount above `remaining` goes to credit. A paid/waived/cancelled invoice → `409`. Implemented in `DrizzlePaymentRepository.recordForInvoice`; a repeated `Idempotency-Key` returns the first payment (also when two requests race: the loser hits the unique key and replays).
+- Receipt numbers: the record transaction takes the next `receipt_counters` value (atomic UPSERT, rolled back with the payment: no gaps). After commit the service queues the receipt (`OutboxReceipts`), also on an Idempotency-Key replay, so a crash between the two is healed by the app's retry.
+- **Applying credit** (`POST /invoices/{id}/apply-credit`, `applyCredit`): lock the guardian's active payments (`FOR UPDATE`, oldest first), THEN the invoice (the same order as void: no deadlock); per payment, credit = amount − its allocations; allocate oldest first up to the invoice's remaining (upsert: a payment may already hold an allocation to an invoice a void reopened); update the invoice. Without the payment locks, 8 parallel applies spent one Rs 500 credit 8 times (tested).
 - Refund webhooks (`refund.processed`): full refund → treat as a void of that payment (§6.7, `status='refunded'`). Partial refund → no automatic change; alert the owner to fix it manually. Refunds are initiated from the provider dashboard in MVP.
 
 ### 6.5 Offline attendance sync
