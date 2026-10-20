@@ -2,6 +2,7 @@
 // and logging out.
 import { LANGUAGE_NAMES } from '@coachingdesk/i18n';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, View } from 'react-native';
@@ -21,6 +22,7 @@ import { errorMessage } from '@/api/error-message';
 import { logout, updateName } from '@/auth/auth-api';
 import { ME_KEY, type MeData, useMe } from '@/auth/use-me';
 import type { MyInstitute } from '@/institutes/current-institute';
+import { useCurrentInstitute } from '@/institutes/use-current-institute';
 import { usePreferences } from '@/stores/preferences';
 import { useAppTheme } from '@/theme/theme';
 
@@ -30,6 +32,8 @@ export default function MeScreen() {
   const queryClient = useQueryClient();
 
   const me = useMe();
+  const { current } = useCurrentInstitute();
+  const setCurrentInstitute = usePreferences((state) => state.setCurrentInstitute);
 
   const lastPhone = usePreferences((state) => state.lastPhone);
   const themePreference = usePreferences((state) => state.theme);
@@ -76,7 +80,7 @@ export default function MeScreen() {
             <>
               <Text style={{ color: theme.colors.error }}>{errorMessage(t, me.error)}</Text>
               <Button compact onPress={() => void me.refetch()}>
-                {t('preview.retry')}
+                {t('common.retry')}
               </Button>
             </>
           ) : (
@@ -112,14 +116,39 @@ export default function MeScreen() {
             left={(props) => <List.Icon {...props} icon="domain" />}
           />
         )}
-        {me.data?.institutes.map((institute) => (
-          <List.Item
-            key={institute.id}
-            title={institute.name}
-            description={roleLabel[institute.role]}
-            left={(props) => <List.Icon {...props} icon="domain" />}
-          />
-        ))}
+        {me.data?.institutes.map((institute) => {
+          const isCurrent = institute.id === current?.id;
+          return (
+            <List.Item
+              key={institute.id}
+              title={institute.name}
+              description={roleLabel[institute.role]}
+              left={(props) => <List.Icon {...props} icon="domain" />}
+              // A check mark on the institute the app is working in now.
+              right={(props) =>
+                isCurrent ? (
+                  <List.Icon {...props} icon="check" color={theme.colors.primary} />
+                ) : null
+              }
+              // Tap another one to switch to it. The home screen follows the saved choice;
+              // dismissTo('/') goes BACK to the home screen already open, instead of
+              // stacking a second copy on top of this one.
+              onPress={
+                isCurrent
+                  ? undefined
+                  : () => {
+                      setCurrentInstitute(institute.id);
+                      router.dismissTo('/');
+                    }
+              }
+            />
+          );
+        })}
+        <List.Item
+          title={t('welcome.createAnother')}
+          left={(props) => <List.Icon {...props} icon="plus" />}
+          onPress={() => router.push('/create-institute')}
+        />
       </List.Section>
 
       <Divider />

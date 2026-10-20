@@ -107,7 +107,7 @@ export default function Index() {
           {plans.isError && (
             <Card.Actions>
               {/* refetch() returns a Promise; `void` says we don't wait for it here. */}
-              <Button onPress={() => void plans.refetch()}>{t('preview.retry')}</Button>
+              <Button onPress={() => void plans.refetch()}>{t('common.retry')}</Button>
             </Card.Actions>
           )}
         </Card>
