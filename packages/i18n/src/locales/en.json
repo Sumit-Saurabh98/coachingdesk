@@ -2,7 +2,8 @@
   "common": {
     "appName": "Coaching Desk",
     "save": "Save",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "retry": "Try again"
   },
   "settings": {
     "theme": "Theme",
@@ -13,7 +14,6 @@
     "languageSystem": "System"
   },
   "preview": {
-    "title": "Sharma Classes",
     "today": "Today",
     "paid": "Paid",
     "receipt": "Receipt",
@@ -71,5 +71,25 @@
     "logout": "Log out",
     "logoutTitle": "Log out?",
     "logoutBody": "You will need a new code by SMS to log in again on this phone."
+  },
+  "institute": {
+    "typeLabel": "What kind of institute is it?",
+    "typeTuition": "Tuition centre",
+    "typeAcademy": "Coaching academy",
+    "typeHomeTutor": "Home tutor",
+    "nameLabel": "Institute name",
+    "nameInvalid": "The name must be 2 to 80 characters",
+    "cityLabel": "City (optional)",
+    "cityInvalid": "The city can be at most 60 characters",
+    "create": "Create institute",
+    "trialNote": "Your 30-day free trial with every feature starts today."
+  },
+  "welcome": {
+    "title": "Welcome",
+    "createTitle": "Set up your institute",
+    "createSubtitle": "It takes a minute, and you can change it later.",
+    "chooseTitle": "Choose an institute",
+    "createAnother": "Create another institute",
+    "newInstitute": "New institute"
   }
 }

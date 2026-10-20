@@ -13,9 +13,12 @@ interface PreferencesState {
   language: LanguagePreference;
   /** The 10 digits that last logged in on this phone: prefilled on the login screen. */
   lastPhone: string | null;
+  /** The institute the app works in on this phone (several possible: owner + teacher). */
+  currentInstituteId: string | null;
   setTheme: (theme: ThemePreference) => void;
   setLanguage: (language: LanguagePreference) => void;
   setLastPhone: (phone: string) => void;
+  setCurrentInstitute: (instituteId: string) => void;
 }
 
 // A Zustand store is a hook. A component reads ONE piece of it, e.g.
@@ -28,9 +31,11 @@ export const usePreferences = create<PreferencesState>()(
       theme: 'system',
       language: 'system',
       lastPhone: null,
+      currentInstituteId: null,
       setTheme: (theme) => set({ theme }),
       setLanguage: (language) => set({ language }),
       setLastPhone: (lastPhone) => set({ lastPhone }),
+      setCurrentInstitute: (currentInstituteId) => set({ currentInstituteId }),
     }),
     {
       name: 'preferences', // the key in storage
@@ -44,6 +49,7 @@ export const usePreferences = create<PreferencesState>()(
         theme: state.theme,
         language: state.language,
         lastPhone: state.lastPhone,
+        currentInstituteId: state.currentInstituteId,
       }),
     },
   ),

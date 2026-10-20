@@ -1,7 +1,7 @@
 // "Me": who is logged in (name, number, institutes), this phone's settings (theme, language),
 // and logging out.
 import { LANGUAGE_NAMES } from '@coachingdesk/i18n';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, View } from 'react-native';
@@ -18,20 +18,18 @@ import {
   TextInput,
 } from 'react-native-paper';
 import { errorMessage } from '@/api/error-message';
-import { getMe, logout, type MyInstitute, updateName } from '@/auth/auth-api';
+import { logout, updateName } from '@/auth/auth-api';
+import { ME_KEY, type MeData, useMe } from '@/auth/use-me';
+import type { MyInstitute } from '@/institutes/current-institute';
 import { usePreferences } from '@/stores/preferences';
 import { useAppTheme } from '@/theme/theme';
-
-// The cache key for GET /v1/me. One constant, so reading and updating use the same name.
-const ME_KEY = ['me'] as const;
-type MeData = Awaited<ReturnType<typeof getMe>>;
 
 export default function MeScreen() {
   const { t } = useTranslation();
   const theme = useAppTheme();
   const queryClient = useQueryClient();
 
-  const me = useQuery({ queryKey: ME_KEY, queryFn: ({ signal }) => getMe(signal) });
+  const me = useMe();
 
   const lastPhone = usePreferences((state) => state.lastPhone);
   const themePreference = usePreferences((state) => state.theme);

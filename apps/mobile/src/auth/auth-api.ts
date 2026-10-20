@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { api, session } from '@/api';
+import type { MyInstitute } from '@/institutes/current-institute';
 import { usePreferences } from '@/stores/preferences';
 import type { Tokens } from './session';
 
@@ -40,14 +41,6 @@ export async function login(
   // Remembered on this phone only (MMKV): next time the login screen starts with it filled in.
   usePreferences.getState().setLastPhone(phone);
   return { user: result.user, isNewUser: result.isNewUser };
-}
-
-/** An institute the user belongs to, with their role there. */
-export interface MyInstitute {
-  id: string;
-  name: string;
-  type: 'tuition' | 'academy' | 'home_tutor';
-  role: 'owner' | 'teacher' | 'staff';
 }
 
 /** GET /v1/me -> the user and their institutes. */

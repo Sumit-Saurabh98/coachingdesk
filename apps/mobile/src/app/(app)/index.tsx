@@ -15,6 +15,7 @@ import {
   Text,
 } from 'react-native-paper';
 import { api } from '@/api';
+import { useCurrentInstitute } from '@/institutes/use-current-institute';
 import { useAppTheme } from '@/theme/theme';
 
 const fee = Money.ofPaise(150000).format();
@@ -25,6 +26,8 @@ export default function Index() {
   const theme = useAppTheme();
   // t('key') returns the text in the current language; the component re-renders on a switch.
   const { t } = useTranslation();
+  // Always set here: the (app) layout only opens this screen when an institute is chosen.
+  const { current } = useCurrentInstitute();
 
   // useQuery: loads, caches and retries. The key ['plans'] names this data in the cache;
   // `signal` lets TanStack Query cancel the request if the screen goes away.
@@ -39,7 +42,7 @@ export default function Index() {
       {/* A screen sets its own header: title, and a button on the right that opens Me. */}
       <Stack.Screen
         options={{
-          title: t('preview.title'),
+          title: current?.name ?? '',
           headerRight: () => (
             <IconButton
               icon="account-circle"
