@@ -15,7 +15,8 @@
     "format:check": "prettier --check .",
     "db:generate": "pnpm --filter @coachingdesk/db generate",
     "db:migrate": "pnpm --filter @coachingdesk/db migrate",
-    "db:studio": "pnpm --filter @coachingdesk/db studio"
+    "db:studio": "pnpm --filter @coachingdesk/db studio",
+    "db:seed": "pnpm --filter @coachingdesk/api seed"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",

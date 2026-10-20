@@ -9,7 +9,8 @@
     "worker": "tsx --env-file=../../.env src/worker.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "seed": "tsx --env-file=../../.env src/scripts/seed.ts"
   },
   "devDependencies": {
     "@testcontainers/postgresql": "^12.2.1",
