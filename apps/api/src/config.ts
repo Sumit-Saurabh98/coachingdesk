@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { FileStoreConfig } from './file-store-config';
 
 // Every environment variable the API reads, validated once at startup.
 // A missing or malformed variable stops the server immediately with a clear message,
@@ -20,6 +21,7 @@ const ConfigSchema = z.object({
     .string()
     .regex(/^\d{6}$/, 'must be 6 digits')
     .optional(),
+  ...FileStoreConfig,
 });
 
 export type Config = z.infer<typeof ConfigSchema>;

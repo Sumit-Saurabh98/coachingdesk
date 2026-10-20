@@ -6,6 +6,9 @@ coverage/
 *.log
 .DS_Store
 
+# local file store (data exports)
+.data/
+
 # secrets: never commit real env files
 .env
 .env.*

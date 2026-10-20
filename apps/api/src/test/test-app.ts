@@ -1,4 +1,4 @@
-import { FakeSmsProvider } from '@coachingdesk/providers';
+import { FakeSmsProvider, InMemoryFileStore } from '@coachingdesk/providers';
 import { FixedClock, SequentialIdGenerator } from '@coachingdesk/shared';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../app';
@@ -61,6 +61,9 @@ import { InMemorySubscriptionRepository } from '../modules/subscriptions/subscri
 import { SubscriptionService } from '../modules/subscriptions/subscription.service';
 import { ErasureService } from '../modules/privacy/erasure.service';
 import { DeletionService } from '../modules/privacy/deletion.service';
+import { InMemoryDataExportRepository } from '../modules/privacy/data-export.repository';
+import { ExportService } from '../modules/privacy/export.service';
+import { ExportsController } from '../modules/privacy/exports.controller';
 import { PrivacyController } from '../modules/privacy/privacy.controller';
 import { SubscriptionsController } from '../modules/subscriptions/subscriptions.controller';
 import { MeController } from '../modules/users/me.controller';
@@ -226,6 +229,8 @@ export function buildTestApp() {
     ids,
     clock,
   });
+  const dataExportRepository = new InMemoryDataExportRepository();
+  const fileStore = new InMemoryFileStore();
   const authService = new AuthService({
     otp: otpService,
     users: userService,
@@ -237,6 +242,9 @@ export function buildTestApp() {
     meController: new MeController(userService, instituteService, sessionService),
     institutesController: new InstitutesController(instituteService, entitlements),
     auditController: new AuditController(auditLog),
+    exportsController: new ExportsController(
+      new ExportService({ exports: dataExportRepository, files: fileStore, ids, clock }),
+    ),
     privacyController: new PrivacyController(
       erasureService,
       new DeletionService({ institutes: instituteService, users: userService, otp: otpService }),
@@ -285,6 +293,8 @@ export function buildTestApp() {
     auditRepository,
     testRepository,
     testService,
+    dataExportRepository,
+    fileStore,
   };
 }
 

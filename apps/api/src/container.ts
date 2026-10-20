@@ -30,6 +30,10 @@ import { NoticesController } from './modules/messaging/notices.controller';
 import { RemindersController } from './modules/messaging/reminders.controller';
 import { StudentsController } from './modules/students/students.controller';
 import { DeletionService } from './modules/privacy/deletion.service';
+import { createFileStore } from './file-store-config';
+import { DrizzleDataExportRepository } from './modules/privacy/drizzle-data-export.repository';
+import { ExportService } from './modules/privacy/export.service';
+import { ExportsController } from './modules/privacy/exports.controller';
 import { PrivacyController } from './modules/privacy/privacy.controller';
 import { SubscriptionsController } from './modules/subscriptions/subscriptions.controller';
 import { MeController } from './modules/users/me.controller';
@@ -97,6 +101,14 @@ export function createContainer(config: Config): Container {
       services.entitlements,
     ),
     auditController: new AuditController(services.auditLog),
+    exportsController: new ExportsController(
+      new ExportService({
+        exports: new DrizzleDataExportRepository(database.db),
+        files: createFileStore(config),
+        ids,
+        clock,
+      }),
+    ),
     privacyController: new PrivacyController(
       services.erasureService,
       new DeletionService({

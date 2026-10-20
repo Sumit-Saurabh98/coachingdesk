@@ -6,3 +6,4 @@ export {
   WhatsAppSendError,
   type WhatsAppSender,
 } from './whatsapp-sender';
+export { assertSafeKey, type FileStore, InMemoryFileStore, LocalFileStore } from './file-store';

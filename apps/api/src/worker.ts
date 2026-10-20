@@ -44,6 +44,29 @@ const reminderPoller = new Poller(
   (error) => log('error', 'reminder planning failed', { error: String(error) }),
 );
 
+const exportPoller = new Poller(
+  async () => {
+    const summary = await container.exports.runOnce();
+    if (summary.built + summary.retried + summary.failed + summary.expired > 0) {
+      log(summary.failed > 0 ? 'error' : 'info', 'exports run', { ...summary });
+    }
+  },
+  config.EXPORT_POLL_MS,
+  (error) => log('error', 'exports run failed', { error: String(error) }),
+);
+
+const purgePoller = new Poller(
+  async () => {
+    const summary = await container.purge.runOnce();
+    if (summary.purged + summary.notDue + summary.failed > 0) {
+      // Counts only: never the institute's name (it's in the DB tombstone if ever needed).
+      log(summary.failed > 0 ? 'error' : 'info', 'purge run', { ...summary });
+    }
+  },
+  config.RETENTION_POLL_MS,
+  (error) => log('error', 'purge run failed', { error: String(error) }),
+);
+
 // Graceful shutdown, like server.ts: finish the current runs, close the database, exit.
 let shuttingDown = false;
 async function shutdown(signal: string): Promise<void> {
@@ -52,7 +75,13 @@ async function shutdown(signal: string): Promise<void> {
   }
   shuttingDown = true;
   log('info', 'worker shutting down', { signal });
-  await Promise.all([poller.stop(), billingPoller.stop(), reminderPoller.stop()]);
+  await Promise.all([
+    poller.stop(),
+    billingPoller.stop(),
+    reminderPoller.stop(),
+    exportPoller.stop(),
+    purgePoller.stop(),
+  ]);
   await container.close();
   process.exit(0);
 }
@@ -63,8 +92,12 @@ log('info', 'worker started', {
   outboxPollMs: config.OUTBOX_POLL_MS,
   invoicePollMs: config.INVOICE_POLL_MS,
   reminderPollMs: config.REMINDER_POLL_MS,
+  exportPollMs: config.EXPORT_POLL_MS,
+  retentionPollMs: config.RETENTION_POLL_MS,
   provider: config.WHATSAPP_PROVIDER,
 });
 poller.start();
 billingPoller.start();
 reminderPoller.start();
+exportPoller.start();
+purgePoller.start();

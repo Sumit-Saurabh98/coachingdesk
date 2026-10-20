@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { FileStoreConfig } from './file-store-config';
 
 // The worker needs much less than the API: no HTTP, no JWT/OTP secrets, no Redis (yet).
 // Same rule as config.ts: a missing or malformed variable stops the process at startup.
@@ -23,6 +24,15 @@ const WorkerConfigSchema = z.object({
     .int()
     .min(1000)
     .default(15 * 60_000),
+  // How often export jobs are picked up (FR-7.6). The owner waits for these: keep it short.
+  EXPORT_POLL_MS: z.coerce.number().int().min(500).default(10_000),
+  // How often the purge of deleted institutes (and old export files) runs.
+  RETENTION_POLL_MS: z.coerce
+    .number()
+    .int()
+    .min(1000)
+    .default(60 * 60_000),
+  ...FileStoreConfig,
 });
 
 export type WorkerConfig = z.infer<typeof WorkerConfigSchema>;

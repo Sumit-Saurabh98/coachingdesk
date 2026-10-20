@@ -7,6 +7,11 @@ import { ResultRevalidator } from './modules/messaging/result-revalidator';
 import { FeeReminderRenderer } from './modules/messaging/fee-reminder-renderer';
 import { ReminderPlanner, ReminderScheduler } from './modules/messaging/reminder-planner';
 import { OutboxDispatcher } from './modules/messaging/outbox-dispatcher';
+import { createFileStore } from './file-store-config';
+import { DrizzleDataExportRepository } from './modules/privacy/drizzle-data-export.repository';
+import { DrizzleTenantDataRepository } from './modules/privacy/drizzle-tenant-data.repository';
+import { ExportProcessor } from './modules/privacy/export-processor';
+import { PurgeJob } from './modules/privacy/purge-job';
 import { createDomainServices } from './services';
 import type { WorkerConfig } from './worker-config';
 
@@ -14,6 +19,8 @@ export interface WorkerContainer {
   dispatcher: OutboxDispatcher;
   billing: BillingScheduler;
   reminders: ReminderScheduler;
+  exports: ExportProcessor;
+  purge: PurgeJob;
   close: () => Promise<void>;
 }
 
@@ -60,7 +67,17 @@ export function createWorkerContainer(config: WorkerConfig): WorkerContainer {
     }),
   );
 
-  return { dispatcher, billing, reminders, close: () => database.close() };
+  const files = createFileStore(config);
+  const tenantData = new DrizzleTenantDataRepository(database.db);
+  const exports = new ExportProcessor({
+    exports: new DrizzleDataExportRepository(database.db),
+    source: tenantData,
+    files,
+    clock,
+  });
+  const purge = new PurgeJob({ tenantData, files, clock });
+
+  return { dispatcher, billing, reminders, exports, purge, close: () => database.close() };
 }
 
 function createWhatsAppSender(config: WorkerConfig): WhatsAppSender {

@@ -28,6 +28,7 @@ import type { MessagesController } from './modules/messaging/messages.controller
 import type { NoticesController } from './modules/messaging/notices.controller';
 import type { RemindersController } from './modules/messaging/reminders.controller';
 import { registerMessagingRoutes } from './modules/messaging/messaging.routes';
+import type { ExportsController } from './modules/privacy/exports.controller';
 import type { PrivacyController } from './modules/privacy/privacy.controller';
 import { registerPrivacyRoutes } from './modules/privacy/privacy.routes';
 import type { SubscriptionsController } from './modules/subscriptions/subscriptions.controller';
@@ -54,6 +55,7 @@ export interface AppDependencies {
   subscriptionsController: SubscriptionsController;
   auditController: AuditController;
   privacyController: PrivacyController;
+  exportsController: ExportsController;
   invoicesController: InvoicesController;
   paymentsController: PaymentsController;
   testsController: TestsController;
@@ -121,7 +123,10 @@ export function buildApp(deps: AppDependencies, options: AppOptions = {}): Fasti
   );
   registerTestRoutes(app, deps.testsController, { requireAuth, requireMember });
   registerAuditRoutes(app, deps.auditController, { requireAuth, requireMember });
-  registerPrivacyRoutes(app, deps.privacyController, { requireAuth, requireMember });
+  registerPrivacyRoutes(app, deps.privacyController, deps.exportsController, {
+    requireAuth,
+    requireMember,
+  });
   registerSubscriptionRoutes(app, deps.subscriptionsController, { requireAuth, requireMember });
   registerFeeRoutes(app, deps.invoicesController, deps.paymentsController, {
     requireAuth,

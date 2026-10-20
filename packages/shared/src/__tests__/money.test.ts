@@ -64,3 +64,14 @@ describe('Money', () => {
     });
   });
 });
+
+describe('Money.toDecimalString', () => {
+  it.each([
+    [150000, '1500.00'],
+    [150050, '1500.50'],
+    [5, '0.05'],
+    [0, '0.00'],
+  ])('%s paise -> %s', (paise, expected) => {
+    expect(Money.ofPaise(paise).toDecimalString()).toBe(expected);
+  });
+});

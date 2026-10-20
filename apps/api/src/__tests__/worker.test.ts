@@ -6,7 +6,7 @@ import { loadWorkerConfig } from '../worker-config';
 const base = { DATABASE_URL: 'postgres://u:p@localhost:5432/db' };
 
 describe('loadWorkerConfig', () => {
-  it('needs only the database; console sender and 5 s polling by default', () => {
+  it('needs only the database; console sender, 5 s polling and a local file store by default', () => {
     expect(loadWorkerConfig(base)).toEqual({
       NODE_ENV: 'development',
       DATABASE_URL: base.DATABASE_URL,
@@ -14,6 +14,10 @@ describe('loadWorkerConfig', () => {
       OUTBOX_POLL_MS: 5000,
       INVOICE_POLL_MS: 900_000,
       REMINDER_POLL_MS: 900_000,
+      EXPORT_POLL_MS: 10_000,
+      RETENTION_POLL_MS: 3_600_000,
+      FILE_STORE: 'local',
+      FILE_STORE_DIR: '.data/files',
     });
   });
 

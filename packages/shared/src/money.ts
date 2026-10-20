@@ -68,6 +68,11 @@ export class Money {
     }).format(this.paise / 100);
   }
 
+  /** "1500.00": plain, for CSV exports (no ₹, no grouping, always 2 decimals). */
+  toDecimalString(): string {
+    return `${Math.trunc(this.paise / 100)}.${String(this.paise % 100).padStart(2, '0')}`;
+  }
+
   toJSON(): number {
     return this.paise;
   }
