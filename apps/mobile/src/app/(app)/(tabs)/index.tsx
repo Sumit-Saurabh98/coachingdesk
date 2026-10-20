@@ -2,18 +2,10 @@
 // (Step 28 on). The theme and language switches now live on the Me screen.
 import { Money, PhoneNumber } from '@coachingdesk/shared';
 import { useQuery } from '@tanstack/react-query';
-import { router, Stack } from 'expo-router';
+import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import {
-  ActivityIndicator,
-  Avatar,
-  Button,
-  Card,
-  Chip,
-  IconButton,
-  Text,
-} from 'react-native-paper';
+import { ActivityIndicator, Avatar, Button, Card, Chip, Text } from 'react-native-paper';
 import { api } from '@/api';
 import { useCurrentInstitute } from '@/institutes/use-current-institute';
 import { useAppTheme } from '@/theme/theme';
@@ -39,19 +31,8 @@ export default function Index() {
 
   return (
     <>
-      {/* A screen sets its own header: title, and a button on the right that opens Me. */}
-      <Stack.Screen
-        options={{
-          title: current?.name ?? '',
-          headerRight: () => (
-            <IconButton
-              icon="account-circle"
-              accessibilityLabel={t('me.title')}
-              onPress={() => router.push('/me')}
-            />
-          ),
-        }}
-      />
+      {/* The tab's header shows the institute's name (the tab bar already says "Today"). */}
+      <Stack.Screen options={{ title: current?.name ?? '' }} />
       <ScrollView contentContainerStyle={styles.content}>
         {/* Paper's Text has Material type styles: headlineSmall, titleLarge, bodyMedium... */}
         <Text variant="headlineSmall">{t('preview.today')}</Text>

@@ -40,9 +40,11 @@ export default function AppLayout() {
   const hasInstitute = current !== null;
   return (
     <Stack>
-      {/* The institute's screens: only with a current institute. */}
+      {/* The institute's screens: only with a current institute. The tabs draw their own
+          headers (each tab its own title), so this Stack's header is hidden for them. */}
       <Stack.Protected guard={hasInstitute} redirectTo="/welcome">
-        <Stack.Screen name="index" />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="batches/index" options={{ title: t('more.batches') }} />
       </Stack.Protected>
       {/* Create / choose: only while there is none. Once one is chosen, go home. */}
       <Stack.Protected guard={!hasInstitute} redirectTo="/">

@@ -90,5 +90,20 @@
     "chooseTitle": "Choose an institute",
     "createAnother": "Create another institute",
     "newInstitute": "New institute"
+  },
+  "tabs": {
+    "today": "Today",
+    "students": "Students",
+    "fees": "Fees",
+    "more": "More"
+  },
+  "more": {
+    "batches": "Batches",
+    "batchesDescription": "Classes, timings and default fees",
+    "account": "Account and settings"
+  },
+  "comingSoon": {
+    "title": "Coming soon",
+    "body": "This screen is being built in the next steps."
   }
 }

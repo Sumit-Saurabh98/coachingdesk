@@ -90,5 +90,20 @@
     "chooseTitle": "संस्थान चुनें",
     "createAnother": "एक और संस्थान बनाएँ",
     "newInstitute": "नया संस्थान"
+  },
+  "tabs": {
+    "today": "आज",
+    "students": "छात्र",
+    "fees": "फ़ीस",
+    "more": "और"
+  },
+  "more": {
+    "batches": "बैच",
+    "batchesDescription": "कक्षाएँ, समय और डिफ़ॉल्ट फ़ीस",
+    "account": "खाता और सेटिंग"
+  },
+  "comingSoon": {
+    "title": "जल्द आ रहा है",
+    "body": "यह स्क्रीन अगले चरणों में बन रही है।"
   }
 }
