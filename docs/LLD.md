@@ -64,6 +64,7 @@ institutes (
   upi_vpa text,                           -- institute's own UPI ID; used on the pay page until payouts are active
   messaging_paused_at timestamptz,        -- set by quality guard (§6.8); blocks automatic messages
   deletion_requested_at timestamptz,      -- institute deletion: purge after 30 days (§6.9)
+  purged_at timestamptz,                  -- set by the purge (with archived_at): the row is a tombstone
   created_by uuid fk users, created_at, updated_at, archived_at
 )
 
@@ -314,10 +315,14 @@ message_usage (institute_id, day date, sent int, primary key (institute_id, day)
                                           -- advisory lock (KB #39). Notice counts: added with notices.
 
 data_exports (
-  id uuid pk, institute_id uuid fk, requested_by uuid fk users,
-  status text check (status in ('queued','ready','failed','expired')),
-  s3_key text, expires_at timestamptz, created_at, updated_at
+  id uuid pk, institute_id uuid fk, requested_by uuid fk users on delete set null,
+  status text check (status in ('queued','running','ready','failed','expired')),
+  file_key text,                          -- in the FileStore (local folder in dev, S3 later); never public
+  byte_size int, attempts int, error text, -- error: a code only, never data
+  started_at, ready_at, expires_at timestamptz, created_at, updated_at
 )
+unique index (institute_id) where status in ('queued','running')   -- one in progress per institute
+index (status, created_at)                -- the worker's claim (FOR UPDATE SKIP LOCKED)
 
 notices (id uuid pk, institute_id fk, kind text check (kind in ('general','holiday','schedule_change')), batch_ids uuid[],
          content jsonb,                  -- the template params guardians read
@@ -713,8 +718,8 @@ anything else → auto-reply once per phone per 24 h:
 
 ### 6.9 Data rights: export, deletion, erasure
 
-- **Institute export** (`POST /institutes/{id}/exports`, owner): job builds a ZIP of CSVs (students, enrollments, invoices, payments, attendance, scores) to S3; `GET /exports/{id}` returns a signed URL valid 24 h. Max one running export per institute.
-- **Institute deletion** (`POST /institutes/{id}/delete`, owner, requires a fresh OTP): sets `deletion_requested_at`, stops all messaging and billing immediately; owner can cancel within 30 days. After 30 days a job hard-deletes all tenant rows for the institute — the only case where money/attendance rows are hard-deleted. Our own subscription billing records (GST invoices to the institute) are kept as legally required.
+- **Institute export** (`POST /institutes/{id}/exports`, owner; `modules/privacy`): queues a `data_exports` row (one queued/running per institute via a partial unique index; 5 a day). The worker's `ExportProcessor` (`EXPORT_POLL_MS`) claims it with `SKIP LOCKED`, reads every tenant table in ONE `repeatable read, read only` transaction (`DrizzleTenantDataRepository.exportTables`), writes a ZIP (`lib/zip-writer.ts`, Node deflate + CRC-32, no dependency) of CSVs (`lib/csv.ts`: BOM, RFC 4180, formula guard) to the `FileStore`, and marks it `ready` for 7 days; errors retry on the next run, `failed` after 3 attempts. The owner downloads through the API (`GET /exports/{id}/download`), never via a public URL; expired files are deleted by the same processor.
+- **Institute deletion** (`POST /institutes/{id}/delete`, owner, with a fresh OTP sent by `POST .../delete/otp` to the owner's own phone; `DeletionService`): sets `deletion_requested_at` (atomic set-if-empty). From then on: the tenancy guard 404s non-owners and 409s the owner's writes (`INSTITUTE_PENDING_DELETION`; routes opt out with `config.allowWhilePendingDeletion`: cancel, exports); `listActive` (billing, reminders) skips it; the dispatcher skips its messages (`institute_paused`). Cancel clears it. The worker's `PurgeJob` (`RETENTION_POLL_MS`) finds institutes requested ≥ 30 days ago, deletes their export files, then in ONE transaction re-checks the request under `FOR UPDATE` (so a last-second cancel either wins or finds the institute archived), deletes every tenant table in FK order (`PURGE_ORDER`) and turns the institute row into a tombstone (name/type kept, city/settings/UPI cleared, `archived_at` = `purged_at` = now). The `subscriptions` row stays (our billing records). The only case where money/attendance rows are hard-deleted. A schema test fails if a tenant table is missing from the export or purge lists.
 - **Student erasure** (`POST /students/{id}/erase`, owner, on a guardian's request; `ErasureService` in `modules/privacy`): clears student name, guardian name/phone, notes; marks the student left; blanks the params of absence alerts about them (cancelling queued ones). If no other student at the institute has the guardian's phone: `payments.guardian_phone` → NULL, `guardian_contacts` row deleted, outbox rows to that phone deleted (`public_tokens` when they exist). Keeps invoice and payment amounts. Irreversible; audited; each step idempotent.
 - **User account deletion** (`DELETE /me`, also on the web at `/delete-account` via OTP login — Google Play requires both): refused with `409 OWNER_OF_INSTITUTES` while the user is the sole owner of an institute that isn't deleted. Otherwise removes memberships, revokes refresh tokens, and deletes the user row. Each step is idempotent, so a retry after a crash finishes the job. **Later:** rows that record *who did something* (e.g. `attendance_sessions.taken_by`) must not block deletion — use `ON DELETE SET NULL` on those FKs when they are added.
 
@@ -729,7 +734,7 @@ anything else → auto-reply once per phone per 24 h:
 | `payment-links.reconcile` | API + worker after invoice changes | 5 | 5x exp backoff |
 | `inbound.process` | WhatsApp message webhooks | 5 | 5x exp backoff |
 | `quality.guard` | nightly + status webhooks | 1 | 3x |
-| `data.export` / `data.purge` | API / nightly | 1 | 3x → DLQ + alert |
+| `data.export` / `data.purge` | API / nightly | 1 | 3x → DLQ + alert — **today: not a queue**; the worker polls `data_exports` (`EXPORT_POLL_MS`, 3 tries) and runs the purge every `RETENTION_POLL_MS` |
 | `attendance.alerts` | API | 5 | 3x — **today: not a queue**; the API writes the alert rows to the outbox inside the sync request |
 | `subscriptions.sweep` | nightly | 1 | 3x |
 | `reports.pdf` (v2) | API / monthly | 2 | 3x |

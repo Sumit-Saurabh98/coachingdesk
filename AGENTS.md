@@ -62,7 +62,7 @@ pnpm db:generate              # create migration after schema change
 9. **PII:** don't log phone numbers (mask), OTPs, tokens, or payloads with guardian data.
 10. **i18n:** no hard-coded user-facing strings in mobile/web — add keys to both `en.json` and `hi.json`.
 11. **Migrations:** forward-only and backward-compatible. Never edit an applied migration.
-12. **Layers:** routes → service → repo. A module may call another module's service, never its repo or tables.
+12. **Layers:** routes → service → repo. A module may call another module's service, never its repo or tables. Documented exceptions: institute creation writes the trial subscription (KB #26); data export and purge read/delete every tenant table in `modules/privacy` (KB #44). **A new tenant table must be added to `EXPORTED_TABLES`/`NOT_EXPORTED` and `PURGE_ORDER`/`KEPT_ON_PURGE`** (`drizzle-tenant-data.repository.ts`); a test fails otherwise.
 
 ## Code style
 

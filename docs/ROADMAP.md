@@ -40,7 +40,7 @@ Solo developer, ~12 weeks to a paid MVP. Each milestone ends with something demo
 - [ ] Tests & result cards; notices  _(✅ notices API; ✅ tests & result cards API — public result page comes with the public links)_
 - [ ] Sentry, logs, alerts, backups verified
 - [ ] Privacy policy, terms (incl. data-processing terms), consent checkbox
-- [ ] Data rights: export, institute deletion, student erasure, account deletion (app + web page)
+- [ ] Data rights: export, institute deletion, student erasure, account deletion (app + web page)  _(✅ API: export, deletion + 30-day purge, student erasure, account deletion; app screens and the public deletion web page remain)_
 - [ ] Store-review login number
 - **Demo:** trial → paid flow end to end
 

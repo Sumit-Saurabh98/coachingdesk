@@ -18,7 +18,7 @@ Base URL: `https://api.<domain>/v1` · JSON only · OpenAPI spec generated from 
 
 ### Common error codes
 
-`UNAUTHENTICATED` 401 · `FORBIDDEN` 403 · `NOT_FOUND` 404 · `VALIDATION_FAILED` 422 · `CONFLICT` 409 · `NOTHING_DUE` 409 · `ALREADY_REMINDED_TODAY` 409 · `OWNER_OF_INSTITUTES` 409 · `DAILY_LIMIT_REACHED` 429 · `PLAN_LIMIT_REACHED` 402 · `FEATURE_NOT_IN_PLAN` 402 · `OTP_INVALID` 400 · `OTP_EXPIRED` 400 · `RATE_LIMITED` 429 · `SERVICE_UNAVAILABLE` 503 (e.g. daily OTP budget used up) · `INTERNAL` 500
+`UNAUTHENTICATED` 401 · `FORBIDDEN` 403 · `NOT_FOUND` 404 · `VALIDATION_FAILED` 422 · `CONFLICT` 409 · `NOTHING_DUE` 409 · `ALREADY_REMINDED_TODAY` 409 · `OWNER_OF_INSTITUTES` 409 · `INSTITUTE_PENDING_DELETION` 409 · `DAILY_LIMIT_REACHED` 429 · `PLAN_LIMIT_REACHED` 402 · `FEATURE_NOT_IN_PLAN` 402 · `OTP_INVALID` 400 · `OTP_EXPIRED` 400 · `RATE_LIMITED` 429 · `SERVICE_UNAVAILABLE` 503 (e.g. daily OTP budget used up) · `INTERNAL` 500
 
 ### Roles
 
@@ -87,10 +87,17 @@ Roles are institute-wide in MVP (`memberships.batch_scope` stays null). Fixed pe
 | GET | `/institutes/{id}/payouts` | `{ status: "not_started"\|"pending"\|"active"\|"rejected", upiVpa, providerMessage? }` |
 | POST | `/institutes/{id}/payouts/onboarding` | Starts provider linked-account KYC → `{ onboardingUrl }`. Status updates arrive via provider webhook |
 | PUT | `/institutes/{id}/payouts/upi` | `{ upiVpa }` — institute's own UPI ID, shown on the pay page until payouts are active (validated format `name@bank`) |
-| POST | `/institutes/{id}/exports` | Owner. Starts a full data export → `{ exportId }` |
-| GET | `/institutes/{id}/exports/{exportId}` | `{ status, downloadUrl? }` — signed URL valid 24 h |
-| POST | `/institutes/{id}/delete` | Owner. `{ otp }` (fresh OTP required). Stops messaging/billing; purged after 30 days |
-| POST | `/institutes/{id}/delete/cancel` | Owner. Cancels a pending deletion within the 30 days |
+| POST | `/institutes/{id}/exports` | Owner, any plan. Queues a full data export → `202 { export }`; if one is already queued/running → `200 { export }` (the same one). At most 5 a day → `429 DAILY_LIMIT_REACHED` |
+| GET | `/institutes/{id}/exports?limit=1–50 (10)` | Owner → `{ exports }`, newest first |
+| GET | `/institutes/{id}/exports/{exportId}` | Owner → `{ export }`. Export object: `{ id, status: queued\|running\|ready\|failed\|expired, byteSize, createdAt, readyAt, expiresAt, downloadPath }`; `downloadPath` is set when ready |
+| GET | `/institutes/{id}/exports/{exportId}/download` | Owner → the ZIP (`application/zip`, `no-store`). Needs the login like any other call: never a public link. Not ready / expired → `409` (`details.status`) |
+| POST | `/institutes/{id}/delete/otp` | Owner → `204`: an SMS code to the **owner's own** phone (same limits as login codes) |
+| POST | `/institutes/{id}/delete` | Owner. `{ otp }` (that code) → `{ institute }` with `deletion: { requestedAt, purgeAfter }`. Wrong/expired code → `400 OTP_INVALID / OTP_EXPIRED` |
+| POST | `/institutes/{id}/delete/cancel` | Owner → `{ institute }` (`deletion: null`). Nothing pending → `409` |
+
+**Data export:** the worker builds a ZIP with `README.txt` and one CSV per area (institute, members, batches, students, enrollments, attendance, invoices, payments, payment_allocations, tests, test_scores, guardian_consent, notices, messages, audit_log). CSV: UTF-8 with BOM (Hindi shows correctly in Excel), amounts in rupees (`1500.00`), times in UTC; text cells starting with `= + - @` get a leading `'` (spreadsheet formula injection). The file is kept 7 days, then deleted (`expired`).
+
+**While an institute is pending deletion** (30 days): teachers and staff get `404` everywhere (it disappears from their `/me`); the owner can read everything, export, download and cancel; any other write → `409 INSTITUTE_PENDING_DELETION`. No automatic messages are sent (queued ones are skipped `institute_paused`), no new billing periods. Cancelling resumes from the current period (missed months are not billed). After 30 days every row of the institute is deleted; our own subscription record and the institute's name are kept for our billing records. The owner can then delete their account.
 
 `POST /institutes` → `201`:
 ```json
