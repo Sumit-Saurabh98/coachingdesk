@@ -1,6 +1,7 @@
 import { type LocalDate, Money, type PhoneNumber } from '@coachingdesk/shared';
 import type { Revalidation, Revalidator } from './outbox-dispatcher';
 import type { OutboxMessage } from './outbox.repository';
+import { joinNames, rupees } from './message-format';
 
 // What a fee reminder needs from other modules (their services fit; rule 12).
 export interface GuardianStudentsLookup {
@@ -76,18 +77,6 @@ export class FeeReminderRenderer implements Revalidator {
       },
     };
   }
-}
-
-/** "1,500" / "1,500.50": the template already has the ₹ sign. */
-function rupees(amount: Money): string {
-  return amount.format().replace(/^₹/, '');
-}
-
-/** "Aarav", "Aarav and Bhavya", "Aarav, Bhavya and Chirag". */
-function joinNames(names: string[]): string {
-  return names.length <= 2
-    ? names.join(' and ')
-    : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
 }
 
 function displayDate(date: LocalDate): string {

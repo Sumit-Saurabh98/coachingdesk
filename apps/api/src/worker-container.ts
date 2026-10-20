@@ -3,6 +3,7 @@ import { ConsoleWhatsAppSender, type WhatsAppSender } from '@coachingdesk/provid
 import { SystemClock, UuidV7Generator } from '@coachingdesk/shared';
 import { BillingScheduler } from './modules/fees/billing-scheduler';
 import { AbsenceRevalidator } from './modules/messaging/absence-revalidator';
+import { ReceiptRenderer } from './modules/messaging/receipt-renderer';
 import { ResultRevalidator } from './modules/messaging/result-revalidator';
 import { FeeReminderRenderer } from './modules/messaging/fee-reminder-renderer';
 import { ReminderPlanner, ReminderScheduler } from './modules/messaging/reminder-planner';
@@ -42,6 +43,7 @@ export function createWorkerContainer(config: WorkerConfig): WorkerContainer {
     revalidators: {
       absence: new AbsenceRevalidator(services.attendanceService),
       result: new ResultRevalidator(services.testService),
+      receipt: new ReceiptRenderer(services.paymentService),
       fee_reminder: new FeeReminderRenderer(
         services.studentService,
         services.invoiceService,

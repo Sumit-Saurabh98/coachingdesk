@@ -25,6 +25,16 @@ export interface PaymentInstituteLookup {
   get(instituteId: string): Promise<{ timezone: string; name: string; city: string | null }>;
 }
 
+/** Implemented by the messaging module (OutboxReceipts): queues, never sends (rule 4). */
+export interface ReceiptQueue {
+  /** Queues the receipt WhatsApp once per payment (a repeat is a no-op). true = queued now. */
+  paymentRecorded(input: {
+    instituteId: string;
+    paymentId: string;
+    guardianPhone: PhoneNumber;
+  }): Promise<boolean>;
+}
+
 export interface PaymentServiceDeps {
   payments: PaymentRepository;
   invoices: InvoiceRepository;
@@ -33,6 +43,7 @@ export interface PaymentServiceDeps {
   ids: IdGenerator;
   clock: Clock;
   audit?: AuditRecorder;
+  receipts?: ReceiptQueue;
 }
 
 export interface OfflinePaymentRequest {
@@ -116,6 +127,11 @@ export class PaymentService {
       now,
     );
     const result = await this.deps.payments.recordForInvoice(payment, invoiceId);
+    if (result.outcome === 'recorded' || result.outcome === 'replayed') {
+      // On a replay too: if the first request died between saving the payment and queueing
+      // the receipt, the retry queues it now (the dedupe key makes a second queue a no-op).
+      await this.queueReceipt(result.payment);
+    }
     switch (result.outcome) {
       case 'recorded':
         return {
@@ -131,6 +147,17 @@ export class PaymentService {
       case 'invoice_closed':
         throw new AppError('CONFLICT', `This invoice is ${result.status}: nothing is left to pay`);
     }
+  }
+
+  private async queueReceipt(payment: Payment): Promise<void> {
+    if (!this.deps.receipts || payment.status !== 'active' || !payment.guardianPhone) {
+      return;
+    }
+    await this.deps.receipts.paymentRecorded({
+      instituteId: payment.instituteId,
+      paymentId: payment.id,
+      guardianPhone: payment.guardianPhone,
+    });
   }
 
   /** POST /payments/:id/void (owner): LLD §6.7. The invoices reopen; reminders resume. */

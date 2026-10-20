@@ -2,6 +2,9 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { OTHER_PHONE, tenantHttp } from '../../../test/tenant-http';
 import { buildTestApp } from '../../../test/test-app';
+import type { OutboxMessage } from '../../messaging/outbox.repository';
+import { parseReceiptDedupeKey } from '../../messaging/receipt-messages';
+import { ReceiptRenderer } from '../../messaging/receipt-renderer';
 
 let app: FastifyInstance;
 let http: ReturnType<typeof tenantHttp>;
@@ -271,5 +274,77 @@ describe('GET /payments/:paymentId/receipt', () => {
     expect(
       (await http.call(other.token, 'GET', `${other.url}/payments/${paid.id}/receipt`)).statusCode,
     ).toBe(404);
+  });
+});
+
+describe('payment receipts on WhatsApp', () => {
+  it('recording a payment queues ONE receipt (a replay adds none); rendered at send time', async () => {
+    const { invoice, pay, testApp, instituteId } = await setup();
+    const first = (
+      await pay(invoice.id, { amountPaise: 200000, method: 'cash' }, { key: 'k1' })
+    ).json().payment;
+    await pay(invoice.id, { amountPaise: 200000, method: 'cash' }, { key: 'k1' }); // replay
+
+    const queued = await testApp.outboxRepository.listForInstitute(instituteId, {
+      category: 'receipt',
+      limit: 10,
+    });
+    expect(queued).toHaveLength(1);
+    expect(queued[0]).toMatchObject({
+      template: 'payment_receipt',
+      priority: 1,
+      status: 'queued',
+      dedupeKey: `receipt:${first.id}`,
+      params: {},
+    });
+    expect(queued[0]?.to.toE164()).toBe('+919812345678');
+
+    const renderer = new ReceiptRenderer(testApp.paymentService);
+    expect(await renderer.check(queued[0]!)).toEqual({
+      kind: 'send',
+      params: { amount: '2,000', students: 'Aarav', institute: 'Sharma Classes' },
+    });
+  });
+
+  it('a payment voided before the worker sends it: skipped (stale)', async () => {
+    const { token, url, invoice, pay, testApp, instituteId } = await setup();
+    const paid = (await pay(invoice.id, { amountPaise: 50000, method: 'cash' })).json().payment;
+    await http.call(token, 'POST', `${url}/payments/${paid.id}/void`, { reason: 'Typo' });
+
+    const [queued] = await testApp.outboxRepository.listForInstitute(instituteId, {
+      category: 'receipt',
+      limit: 1,
+    });
+    expect(await new ReceiptRenderer(testApp.paymentService).check(queued!)).toEqual({
+      kind: 'skip',
+      reason: 'stale',
+    });
+  });
+
+  it('Free plan: no receipt is queued (shared by hand from the app)', async () => {
+    const { invoice, pay, testApp, instituteId } = await setup();
+    testApp.subscriptionRepository.put({
+      instituteId,
+      plan: 'free',
+      status: 'free',
+      currentPeriodEnd: null,
+      graceUntil: null,
+    });
+    expect((await pay(invoice.id, { amountPaise: 50000, method: 'cash' })).statusCode).toBe(201);
+    expect(
+      await testApp.outboxRepository.listForInstitute(instituteId, {
+        category: 'receipt',
+        limit: 5,
+      }),
+    ).toEqual([]);
+  });
+
+  it('a malformed key is stale (never guess the payment)', async () => {
+    const { testApp } = await setup();
+    const renderer = new ReceiptRenderer(testApp.paymentService);
+    expect(parseReceiptDedupeKey('receipt:a:b')).toBeNull();
+    expect(
+      await renderer.check({ dedupeKey: 'receipt:', instituteId: 'x' } as unknown as OutboxMessage),
+    ).toEqual({ kind: 'skip', reason: 'stale' });
   });
 });

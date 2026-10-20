@@ -32,6 +32,7 @@ import { StudentService } from './modules/students/student.service';
 import { DrizzleSubscriptionRepository } from './modules/subscriptions/drizzle-subscription.repository';
 import { SubscriptionService } from './modules/subscriptions/subscription.service';
 import { DrizzleTestRepository } from './modules/tests/drizzle-test.repository';
+import { OutboxReceipts } from './modules/messaging/outbox-receipts';
 import { OutboxResultCards } from './modules/messaging/outbox-result-cards';
 import { TestService } from './modules/tests/test.service';
 import { DrizzleUserRepository } from './modules/users/drizzle-user.repository';
@@ -129,6 +130,14 @@ export function createDomainServices(db: Db, clock: Clock, ids: IdGenerator) {
     ids,
     clock,
     audit: auditLog,
+    // Receipts are QUEUED in the outbox; the worker sends them (AGENTS rule 4).
+    receipts: new OutboxReceipts({
+      outbox: outboxRepository,
+      institutes: instituteService,
+      entitlements,
+      ids,
+      clock,
+    }),
   });
 
   const messageQuota = new MessageQuota(new DrizzleMessageUsageRepository(db), entitlements, clock);
