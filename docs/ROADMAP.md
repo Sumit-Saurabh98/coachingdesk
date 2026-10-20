@@ -7,7 +7,7 @@ Solo developer, ~12 weeks to a paid MVP. Each milestone ends with something demo
 - [ ] Finalize name; buy domain; reserve Play Store listing name and social handles
 - [ ] Create Meta Business account, WhatsApp test number; submit first templates (EN + HI)
 - [ ] Razorpay account (test mode); explore linked accounts flow
-- [ ] Monorepo scaffold (pnpm + Turborepo), CI, docker compose (Postgres, Redis), provider fakes
+- [ ] Monorepo scaffold (pnpm + Turborepo), CI, docker compose (Postgres, Redis), provider fakes  _(✅ CI: GitHub Actions format/lint/typecheck/test; ✅ `pnpm db:seed`)_
 - [ ] Read store billing policy + DPDP basics → update KNOWLEDGE_BASE open questions
 - [ ] Decide product proposals P-1…P-7 (KNOWLEDGE_BASE §8): ask about UPI fees/KYC in the calls (P-1), ask Razorpay Route vs Partner (P-2), choose Android-only (P-3), scope cut (P-4), UI library (P-6)
 
@@ -35,7 +35,7 @@ Solo developer, ~12 weeks to a paid MVP. Each milestone ends with something demo
 - **Demo:** parent pays via UPI link → app shows paid → receipt on WhatsApp
 
 ## Phase 4 — Plans & polish (Weeks 8–9)
-- [ ] Entitlements, plan limits, usage counters, trial, grace, downgrade
+- [ ] Entitlements, plan limits, usage counters, trial, grace, downgrade  _(✅ API: limits, counters, trial, read-only students after a downgrade, plan cache; grace + store billing with the billing decision)_
 - [ ] Subscription checkout (per billing decision)
 - [ ] Tests & result cards; notices  _(✅ notices API; ✅ tests & result cards API — public result page comes with the public links)_
 - [ ] Sentry, logs, alerts, backups verified

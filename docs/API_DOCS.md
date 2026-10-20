@@ -20,6 +20,10 @@ Base URL: `https://api.<domain>/v1` · JSON only · OpenAPI spec generated from 
 
 `UNAUTHENTICATED` 401 · `FORBIDDEN` 403 · `NOT_FOUND` 404 · `VALIDATION_FAILED` 422 · `CONFLICT` 409 · `NOTHING_DUE` 409 · `ALREADY_REMINDED_TODAY` 409 · `OWNER_OF_INSTITUTES` 409 · `INSTITUTE_PENDING_DELETION` 409 · `DAILY_LIMIT_REACHED` 429 · `PLAN_LIMIT_REACHED` 402 · `FEATURE_NOT_IN_PLAN` 402 · `OTP_INVALID` 400 · `OTP_EXPIRED` 400 · `RATE_LIMITED` 429 · `SERVICE_UNAVAILABLE` 503 (e.g. daily OTP budget used up) · `INTERNAL` 500
 
+**Request limits:** every request counts against its IP (600/min) and, once logged in, its user (300/min; one center's shared Wi-Fi doesn't share a budget). Over → `429 RATE_LIMITED` with a `Retry-After` header (seconds). `/health` and `/ready` are not limited. OTP requests have their own stricter limits.
+
+**Read-only students** (after a downgrade, KB "Downgrade"): when a plan allows fewer active students than the institute has, the NEWEST active students beyond the limit are read-only. Student objects carry `readOnly`. Editing, enrolling or entering test marks for them → `402 PLAN_LIMIT_REACHED` with `details: { reason: "read_only", studentIds, limit }`; attendance sync skips their marks (`skippedReadOnly` in the response; `402` if every mark was theirs); the billing run doesn't invoice them. Payments, leaving and erasure always work. An upgrade, or other students leaving, makes them writable at once.
+
 ### Roles
 
 | Endpoint group | owner | teacher | staff |

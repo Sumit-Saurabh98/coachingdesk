@@ -481,7 +481,7 @@ export interface Entitlements {
   monthlyMessages: number; features: Set<FeatureKey>;
 }
 export interface EntitlementsService {
-  get(instituteId: string): Promise<Entitlements>;          // plan from subscriptions (dates decide); cache 60 s later
+  get(instituteId: string): Promise<Entitlements>;          // plan from subscriptions (dates decide); cached 30 s per process (CachedPlanLookup)
   limitFor(instituteId: string, limit: 'activeStudents' | 'members'): Promise<number | null>;
   assertFeature(instituteId: string, feature: FeatureKey): Promise<void>;   // 402 FEATURE_NOT_IN_PLAN
 }

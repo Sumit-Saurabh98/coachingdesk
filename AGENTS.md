@@ -39,7 +39,7 @@ infra/              Terraform
 pnpm install
 docker compose up -d          # postgres + redis
 pnpm db:migrate               # apply migrations
-pnpm db:seed                  # demo institute with batches/students
+pnpm db:seed                  # demo institute (owner 9999900001, teacher 9999900002); safe to re-run
 pnpm dev                      # api + worker + web (turbo)
 pnpm --filter @coachingdesk/api dev:worker   # outbox worker (sends queued messages)
 pnpm --filter mobile start    # expo
