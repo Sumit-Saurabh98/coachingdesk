@@ -259,5 +259,23 @@
     "save": "Save changes",
     "newNumberConsent": "The parent agreed to receive updates on WhatsApp on this new number",
     "newNumberHelp": "WhatsApp consent belongs to a number. A new number starts without it."
+  },
+  "bulkAdd": {
+    "title": "Add many students",
+    "open": "Paste a list instead",
+    "help": "One student per line: the name, then the parent's mobile. The parent's name can follow after another comma.",
+    "label": "Students",
+    "example": "Aarav Sharma, 98765 43210\nRiya Gupta, 98765 00000, Neha Gupta",
+    "found": "Students found: {{count}}",
+    "empty": "Paste at least one line",
+    "tooMany": "At most {{max}} students at a time. Split the list.",
+    "consent": "The parents of all these students agreed to receive updates on WhatsApp",
+    "submit": "Add students",
+    "added": "Students added: {{count}}",
+    "failedTitle": "Not added: {{count}}. Fix these lines and try again.",
+    "line": "Line {{line}}: {{text}}",
+    "rowInvalid": "Check this line",
+    "fixFailed": "Fix the lines not added",
+    "done": "Done"
   }
 }

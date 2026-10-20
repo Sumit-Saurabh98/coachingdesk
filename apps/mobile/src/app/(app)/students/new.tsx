@@ -77,6 +77,14 @@ export default function NewStudentScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
+      <Button
+        mode="text"
+        icon="text-box-multiple-outline"
+        style={styles.bulk}
+        onPress={() => router.replace('/students/bulk')}
+      >
+        {t('bulkAdd.open')}
+      </Button>
       <TextInput
         mode="outlined"
         label={t('studentForm.nameLabel')}
@@ -206,6 +214,7 @@ export default function NewStudentScreen() {
 
 const styles = StyleSheet.create({
   form: { padding: 16 },
+  bulk: { alignSelf: 'flex-start', marginBottom: 8 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionLabel: { marginTop: 16, marginBottom: 8 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },

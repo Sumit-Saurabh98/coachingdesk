@@ -1,6 +1,7 @@
 import type { StudentStatus } from '@coachingdesk/shared';
 import { api } from '@/api';
 import type { CreateStudentRequest, UpdateStudentRequest } from './student-form-rules';
+import type { BulkFailure } from './bulk-paste-rules';
 import type { Enrollment } from './profile-rules';
 
 /** A student as the API returns them (Student.toPublicJSON + readOnly on lists). */
@@ -43,6 +44,27 @@ export async function createStudent(
     body,
   );
   return result.student;
+}
+
+/** What POST .../students/bulk receives: raw rows (the API validates each one). */
+export interface BulkCreateRequest {
+  rows: { name: string; guardianPhone: string; guardianName?: string }[];
+  joinedOn?: string; // one date for every row; missing = today
+  guardianConsent: boolean; // one checkbox for the whole list
+}
+
+export interface BulkCreateResult {
+  created: number;
+  students: Student[];
+  failed: BulkFailure[]; // bad rows are reported, never dropped (FR-2.2)
+}
+
+/** POST .../students/bulk (owner, staff): good rows are created, bad rows come back. */
+export function bulkCreateStudents(
+  instituteId: string,
+  body: BulkCreateRequest,
+): Promise<BulkCreateResult> {
+  return api.post(`/v1/institutes/${instituteId}/students/bulk`, body);
 }
 
 /** GET .../students?q&status&limit&cursor -> one page, sorted by name. */
