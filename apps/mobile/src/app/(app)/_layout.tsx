@@ -45,6 +45,10 @@ export default function AppLayout() {
       <Stack.Protected guard={hasInstitute} redirectTo="/welcome">
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="batches/index" options={{ title: t('more.batches') }} />
+        <Stack.Screen name="batches/new" options={{ title: t('batch.newTitle') }} />
+        {/* The details screen sets its own title: the batch's name. */}
+        <Stack.Screen name="batches/[id]/index" options={{ title: '' }} />
+        <Stack.Screen name="batches/[id]/edit" options={{ title: t('batch.editTitle') }} />
       </Stack.Protected>
       {/* Create / choose: only while there is none. Once one is chosen, go home. */}
       <Stack.Protected guard={!hasInstitute} redirectTo="/">

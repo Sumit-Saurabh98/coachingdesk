@@ -2,6 +2,7 @@
 // owner and staff (29c). Teachers see no fees: the server leaves them out of the answer.
 import { Money } from '@coachingdesk/shared';
 import { useQuery } from '@tanstack/react-query';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
@@ -9,6 +10,7 @@ import {
   ActivityIndicator,
   Button,
   Divider,
+  FAB,
   List,
   SegmentedButtons,
   Text,
@@ -90,6 +92,7 @@ export default function BatchesScreen() {
           ItemSeparatorComponent={Divider}
           renderItem={({ item: batch }) => (
             <List.Item
+              onPress={() => router.push({ pathname: '/batches/[id]', params: { id: batch.id } })}
               title={batch.name}
               description={[batch.subject, formatSchedule(batch.schedule, labels)]
                 .filter(Boolean)
@@ -123,6 +126,15 @@ export default function BatchesScreen() {
           }
         />
       )}
+      {/* "New batch": owner and staff only (teachers can't create batches). */}
+      {canManage && (
+        <FAB
+          icon="plus"
+          label={t('batch.newBatch')}
+          style={styles.fab}
+          onPress={() => router.push('/batches/new')}
+        />
+      )}
     </View>
   );
 }
@@ -130,6 +142,7 @@ export default function BatchesScreen() {
 const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 },
   screen: { flex: 1 },
+  fab: { position: 'absolute', right: 16, bottom: 16 },
   filters: { margin: 16, marginBottom: 8 },
   right: { alignItems: 'flex-end', justifyContent: 'center', gap: 4 },
   emptyContainer: { flexGrow: 1 },

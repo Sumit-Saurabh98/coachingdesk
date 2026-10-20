@@ -3,6 +3,7 @@ import { type Language, resources } from '@coachingdesk/i18n';
 import { getLocales } from 'expo-localization';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
+import { en as datesEn, hi as datesHi, registerTranslation } from 'react-native-paper-dates';
 import { type LanguagePreference, usePreferences } from '@/stores/preferences';
 
 /** 'system' = the phone's language if we have it (Hindi), else English. */
@@ -23,5 +24,11 @@ void i18n.use(initReactI18next).init({
   initAsync: false, // our texts are bundled: no reason to wait, be ready immediately
   interpolation: { escapeValue: false }, // React already escapes text; don't do it twice
 });
+
+// The date/time picker (react-native-paper-dates) has its own small set of texts ("OK",
+// "Cancel", "Select time"...). It ships English and Hindi; register both so the picker speaks
+// the app's language (screens pass locale={i18n.language}).
+registerTranslation('en', datesEn);
+registerTranslation('hi', datesHi);
 
 export default i18n;

@@ -135,5 +135,47 @@
     "archivedTab": "Archived",
     "emptyArchivedTitle": "No archived batches",
     "emptyArchived": "Batches you archive move here. Their attendance and fee history stay."
+  },
+  "feeCycleName": {
+    "monthly": "Monthly",
+    "quarterly": "Quarterly",
+    "half_yearly": "Half-yearly",
+    "yearly": "Yearly",
+    "one_time": "One-time",
+    "none": "No fee"
+  },
+  "batchForm": {
+    "nameLabel": "Batch name",
+    "nameInvalid": "The name must be 2 to 80 characters",
+    "subjectLabel": "Subject (optional)",
+    "subjectInvalid": "The subject can be at most 60 characters",
+    "days": "Days",
+    "daysRequired": "Pick at least one day",
+    "starts": "Starts",
+    "ends": "Ends",
+    "timeInvalid": "The batch must end after it starts",
+    "pickStart": "Start time",
+    "pickEnd": "End time",
+    "feeLabel": "Default fee",
+    "feeInvalid": "Enter the fee in whole rupees",
+    "feeCycleLabel": "Fee cycle",
+    "feeNote": "Used for students who join from now on. Students already in the batch keep their fee.",
+    "create": "Create batch",
+    "save": "Save changes"
+  },
+  "batch": {
+    "newTitle": "New batch",
+    "editTitle": "Edit batch",
+    "timings": "Timings",
+    "subject": "Subject",
+    "defaultFee": "Default fee",
+    "enrolledToday_one": "{{count}} student enrolled today",
+    "enrolledToday_other": "{{count}} students enrolled today",
+    "edit": "Edit",
+    "archive": "Archive",
+    "archiveTitle": "Archive this batch?",
+    "archiveBody": "It disappears from attendance and new bills. Its attendance and fee history stay.",
+    "archivedNote": "This batch is archived. Its history is kept, but it can no longer be changed.",
+    "newBatch": "New batch"
   }
 }
