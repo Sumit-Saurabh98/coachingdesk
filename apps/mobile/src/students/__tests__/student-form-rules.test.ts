@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   isValidIndianPhone,
   NEW_STUDENT,
+  samePhone,
+  toUpdateStudentRequest,
+  valuesFromStudent,
   type StudentFormValues,
   toCreateStudentRequest,
   validateStudentForm,
@@ -66,5 +69,46 @@ describe('toCreateStudentRequest', () => {
 
   it('consent is never pre-ticked', () => {
     expect(NEW_STUDENT.guardianConsent).toBe(false);
+  });
+});
+
+describe('editing a student', () => {
+  const original = {
+    name: 'Aarav Sharma',
+    guardianName: 'Neha Sharma',
+    guardianPhone: '+919876543210',
+    joinedOn: '2026-10-01',
+    notes: null,
+  };
+
+  it('nothing changed -> null (no request)', () => {
+    expect(toUpdateStudentRequest(original, valuesFromStudent(original))).toBeNull();
+  });
+
+  it('the same phone written differently is NOT a change', () => {
+    for (const phone of ['98765 43210', '9876543210', '09876543210']) {
+      const values = { ...valuesFromStudent(original), guardianPhone: phone };
+      expect(toUpdateStudentRequest(original, values)).toBeNull();
+    }
+  });
+
+  it('only what changed is sent', () => {
+    const values = {
+      ...valuesFromStudent(original),
+      guardianPhone: '9123456789',
+      notes: 'Comes by bus',
+      guardianName: '',
+    };
+    expect(toUpdateStudentRequest(original, values)).toEqual({
+      guardianPhone: '9123456789',
+      notes: 'Comes by bus',
+      guardianName: null,
+    });
+  });
+
+  it('samePhone', () => {
+    expect(samePhone('98765 43210', '+919876543210')).toBe(true);
+    expect(samePhone('9123456789', '+919876543210')).toBe(false);
+    expect(samePhone('', null)).toBe(false);
   });
 });

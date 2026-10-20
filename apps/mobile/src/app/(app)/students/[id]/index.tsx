@@ -3,7 +3,7 @@
 // mark as left. Editing the details is the next step (30d).
 import { Money } from '@coachingdesk/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Linking, ScrollView, StyleSheet, View } from 'react-native';
@@ -239,6 +239,13 @@ export default function StudentScreen() {
 
         {canChange && (
           <View style={styles.actions}>
+            <Button
+              mode="contained-tonal"
+              icon="pencil"
+              onPress={() => router.push({ pathname: '/students/[id]/edit', params: { id } })}
+            >
+              {t('student.edit')}
+            </Button>
             <Button mode="contained" icon="plus" onPress={() => openDialog({ kind: 'add' })}>
               {t('student.addToBatch')}
             </Button>

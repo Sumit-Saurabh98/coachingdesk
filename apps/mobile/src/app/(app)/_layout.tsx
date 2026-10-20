@@ -52,6 +52,7 @@ export default function AppLayout() {
         <Stack.Screen name="students/new" options={{ title: t('studentForm.title') }} />
         {/* The profile sets its own title: the student's name. */}
         <Stack.Screen name="students/[id]/index" options={{ title: '' }} />
+        <Stack.Screen name="students/[id]/edit" options={{ title: t('studentEdit.title') }} />
       </Stack.Protected>
       {/* Create / choose: only while there is none. Once one is chosen, go home. */}
       <Stack.Protected guard={!hasInstitute} redirectTo="/">

@@ -251,6 +251,13 @@
     "markLeft": "Mark as left",
     "leftTitle": "Mark {{name}} as left?",
     "leftBody": "From today: no new fees and no reminders. Their history stays and they no longer count toward your plan.",
-    "leftBadge": "Left"
+    "leftBadge": "Left",
+    "edit": "Edit"
+  },
+  "studentEdit": {
+    "title": "Edit student",
+    "save": "Save changes",
+    "newNumberConsent": "The parent agreed to receive updates on WhatsApp on this new number",
+    "newNumberHelp": "WhatsApp consent belongs to a number. A new number starts without it."
   }
 }

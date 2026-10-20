@@ -79,3 +79,69 @@ export function toCreateStudentRequest(values: StudentFormValues): CreateStudent
     guardianConsent: values.guardianConsent,
   };
 }
+
+/** What PATCH /students/:id receives: only the fields that changed. */
+export interface UpdateStudentRequest {
+  name?: string;
+  guardianName?: string | null;
+  guardianPhone?: string;
+  joinedOn?: string;
+  notes?: string | null;
+}
+
+/** The fields the edit screen works with (a student as the API returns it). */
+export interface EditableStudent {
+  name: string;
+  guardianName: string | null;
+  guardianPhone: string | null;
+  joinedOn: string;
+  notes: string | null;
+}
+
+/** The form's starting values for an existing student. */
+export function valuesFromStudent(student: EditableStudent): StudentFormValues {
+  return {
+    ...NEW_STUDENT,
+    name: student.name,
+    guardianName: student.guardianName ?? '',
+    guardianPhone: student.guardianPhone ?? '',
+    joinedOn: student.joinedOn,
+    notes: student.notes ?? '',
+  };
+}
+
+/**
+ * The same number, however it's written: "98765 43210", "+919876543210" and "09876543210"
+ * are one phone. Uses the shared rule's normalisation (E.164).
+ */
+export function samePhone(a: string, b: string | null): boolean {
+  const phone = CreateStudentBody.shape.guardianPhone;
+  const left = phone.safeParse(a);
+  const right = phone.safeParse(b ?? '');
+  return left.success && right.success && left.data.toE164() === right.data.toE164();
+}
+
+/** PATCH body with only what changed; null when nothing did (then no request is sent). */
+export function toUpdateStudentRequest(
+  original: EditableStudent,
+  values: StudentFormValues,
+): UpdateStudentRequest | null {
+  const next = toCreateStudentRequest(values);
+  const body: UpdateStudentRequest = {};
+  if (next.name !== original.name) {
+    body.name = next.name;
+  }
+  if (next.guardianName !== original.guardianName) {
+    body.guardianName = next.guardianName;
+  }
+  if (!samePhone(next.guardianPhone, original.guardianPhone)) {
+    body.guardianPhone = next.guardianPhone;
+  }
+  if (next.joinedOn !== undefined && next.joinedOn !== original.joinedOn) {
+    body.joinedOn = next.joinedOn;
+  }
+  if (next.notes !== original.notes) {
+    body.notes = next.notes;
+  }
+  return Object.keys(body).length === 0 ? null : body;
+}

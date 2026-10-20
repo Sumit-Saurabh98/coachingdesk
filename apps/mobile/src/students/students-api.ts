@@ -1,6 +1,6 @@
 import type { StudentStatus } from '@coachingdesk/shared';
 import { api } from '@/api';
-import type { CreateStudentRequest } from './student-form-rules';
+import type { CreateStudentRequest, UpdateStudentRequest } from './student-form-rules';
 import type { Enrollment } from './profile-rules';
 
 /** A student as the API returns them (Student.toPublicJSON + readOnly on lists). */
@@ -110,4 +110,27 @@ export async function endEnrollment(
     { endDate },
   );
   return result.enrollment;
+}
+
+/** PATCH .../students/:id (owner, staff): only the fields that changed. */
+export async function updateStudent(
+  instituteId: string,
+  studentId: string,
+  body: UpdateStudentRequest,
+): Promise<Student> {
+  const result = await api.patch<{ student: Student }>(
+    `/v1/institutes/${instituteId}/students/${studentId}`,
+    body,
+  );
+  return result.student;
+}
+
+/**
+ * POST .../guardians/:phone/opt-in (owner, staff): the guardian said yes to WhatsApp updates.
+ * Consent belongs to a NUMBER: a new number starts without it.
+ */
+export async function recordConsent(instituteId: string, phone: string): Promise<void> {
+  await api.post(`/v1/institutes/${instituteId}/guardians/${encodeURIComponent(phone)}/opt-in`, {
+    source: 'verbal',
+  });
 }
