@@ -9,6 +9,7 @@ import { BatchService } from './modules/batches/batch.service';
 import { DrizzleBatchRepository } from './modules/batches/drizzle-batch.repository';
 import { DrizzleEnrollmentRepository } from './modules/enrollments/drizzle-enrollment.repository';
 import { EnrollmentService } from './modules/enrollments/enrollment.service';
+import { CachedPlanLookup } from './modules/entitlements/cached-plan-lookup';
 import { EntitlementsService } from './modules/entitlements/entitlements.service';
 import { DrizzleInvoiceRepository } from './modules/fees/drizzle-invoice.repository';
 import { InvoiceGenerator } from './modules/fees/invoice-generator';
@@ -49,7 +50,8 @@ export function createDomainServices(db: Db, clock: Clock, ids: IdGenerator) {
   const auditLog = new AuditLog(new DrizzleAuditRepository(db), ids, clock);
   const userService = new UserService(new DrizzleUserRepository(db), ids);
   const subscriptionService = new SubscriptionService(new DrizzleSubscriptionRepository(db), clock);
-  const entitlements = new EntitlementsService(subscriptionService);
+  // Plan lookups are cached for 30 s per process (KB #46): every request asks, plans rarely change.
+  const entitlements = new EntitlementsService(new CachedPlanLookup(subscriptionService, clock));
   const instituteService = new InstituteService({
     institutes: new DrizzleInstituteRepository(db),
     users: userService,
