@@ -10,7 +10,7 @@ function setup() {
     currentPlan: async (id: string) => plans.get(id) ?? 'free',
     state: async (id: string) => {
       queries += 1;
-      return { plan: plans.get(id) ?? ('free' as PlanId), trialStartedAt: null, signedUpAt: null };
+      return { plan: plans.get(id) ?? 'free', trialStartedAt: null, signedUpAt: null };
     },
   };
   const cache = new CachedPlanLookup(inner, clock, 30_000, 2);

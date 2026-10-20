@@ -2,13 +2,7 @@ import type { Db } from '@coachingdesk/db';
 import { invoiceCounters, invoiceRuns, invoices } from '@coachingdesk/db/schema';
 import { LocalDate, Money } from '@coachingdesk/shared';
 import { and, asc, eq, inArray, isNotNull, lt, sql, type SQL } from 'drizzle-orm';
-import {
-  INVOICE_KINDS,
-  INVOICE_STATUSES,
-  Invoice,
-  type InvoiceKind,
-  type InvoiceStatus,
-} from './invoice';
+import { INVOICE_KINDS, INVOICE_STATUSES, Invoice, type InvoiceStatus } from './invoice';
 import {
   formatInvoiceNumber,
   type InvoiceListQuery,
@@ -213,7 +207,7 @@ export function toInvoice(row: InvoiceRow): Invoice {
     studentId: row.studentId,
     enrollmentId: row.enrollmentId,
     batchId: row.batchId,
-    kind: oneOf(INVOICE_KINDS, row.kind) as InvoiceKind,
+    kind: oneOf(INVOICE_KINDS, row.kind),
     number: row.number,
     description: row.description,
     period:
@@ -224,7 +218,7 @@ export function toInvoice(row: InvoiceRow): Invoice {
     discount: Money.ofPaise(row.discountPaise),
     paid: Money.ofPaise(row.paidPaise),
     dueDate: LocalDate.parse(row.dueDate),
-    status: oneOf(INVOICE_STATUSES, row.status) as InvoiceStatus,
+    status: oneOf(INVOICE_STATUSES, row.status),
     closeReason: row.closeReason,
   });
 }

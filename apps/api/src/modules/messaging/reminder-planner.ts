@@ -48,7 +48,7 @@ export function feeReminderKey(
   day: LocalDate,
   manual = false,
 ): string {
-  return `fee_reminder:${manual ? 'manual:' : ''}${instituteId}:${phone.toE164()}:${day}`;
+  return `fee_reminder:${manual ? 'manual:' : ''}${instituteId}:${phone.toE164()}:${day.toString()}`;
 }
 
 /** A reminder planned today is stale after 21:00 tomorrow (it would have gone at 08:00). */

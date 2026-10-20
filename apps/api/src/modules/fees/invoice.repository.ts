@@ -141,18 +141,20 @@ export class InMemoryInvoiceRepository implements InvoiceRepository {
   }
 
   async isRunCompleted(instituteId: string, periodStart: LocalDate): Promise<boolean> {
-    return (this.runs.get(`${instituteId}|${periodStart}`)?.completedAt ?? null) !== null;
+    return (
+      (this.runs.get(`${instituteId}|${periodStart.toString()}`)?.completedAt ?? null) !== null
+    );
   }
 
   async startRun(instituteId: string, periodStart: LocalDate): Promise<void> {
-    const key = `${instituteId}|${periodStart}`;
+    const key = `${instituteId}|${periodStart.toString()}`;
     if (!this.runs.has(key)) {
       this.runs.set(key, { completedAt: null });
     }
   }
 
   async completeRun(instituteId: string, periodStart: LocalDate, at: Date): Promise<void> {
-    this.runs.set(`${instituteId}|${periodStart}`, { completedAt: at });
+    this.runs.set(`${instituteId}|${periodStart.toString()}`, { completedAt: at });
   }
 }
 

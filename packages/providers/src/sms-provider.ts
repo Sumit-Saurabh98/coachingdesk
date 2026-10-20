@@ -31,6 +31,6 @@ export class ConsoleSmsProvider implements SmsProvider {
 
   async sendOtp(to: PhoneNumber, code: string): Promise<void> {
     // `${to}` calls PhoneNumber.toString(), which is MASKED: the log shows +9198XXXXX210.
-    this.print(`[dev sms] OTP for ${to}: ${code}`);
+    this.print(`[dev sms] OTP for ${to.masked()}: ${code}`);
   }
 }

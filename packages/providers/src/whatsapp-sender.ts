@@ -64,7 +64,7 @@ export class ConsoleWhatsAppSender implements WhatsAppSender {
   async sendTemplate(message: TemplateMessage): Promise<{ providerMessageId: string }> {
     this.counter += 1;
     this.print(
-      `[dev whatsapp] ${message.template} (${message.locale}) to ${message.to}: ${JSON.stringify(message.params)}`,
+      `[dev whatsapp] ${message.template} (${message.locale}) to ${message.to.masked()}: ${JSON.stringify(message.params)}`,
     );
     return { providerMessageId: `console-wamid-${Date.now()}-${this.counter}` };
   }

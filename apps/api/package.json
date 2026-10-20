@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "seed": "tsx --env-file=../../.env src/scripts/seed.ts"
+    "seed": "tsx --env-file=../../.env src/scripts/seed.ts",
+    "lint": "eslint ."
   },
   "devDependencies": {
     "@testcontainers/postgresql": "^12.2.1",

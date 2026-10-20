@@ -4,7 +4,7 @@ import {
   type Clock,
   type IdGenerator,
   InstituteClock,
-  LocalDate,
+  type LocalDate,
 } from '@coachingdesk/shared';
 import type { AbsenceAlertOutcome, AbsenceAlerts } from './absence-alerts';
 import { AttendanceStats } from './attendance-stats';

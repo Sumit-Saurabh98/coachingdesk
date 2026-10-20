@@ -24,7 +24,7 @@ export interface MessageUsageRepository {
 
 /** Tests and local dev only. */
 export class InMemoryMessageUsageRepository implements MessageUsageRepository {
-  private readonly days = new Map<string, number>(); // `${instituteId}|${day}` -> sent
+  private readonly days = new Map<string, number>(); // `${instituteId}|${day.toString()}` -> sent
 
   async tryTake(instituteId: string, day: LocalDate, limits: UsageLimits): Promise<boolean> {
     const { today, month } = await this.usage(instituteId, day, limits.monthFrom);
@@ -38,18 +38,18 @@ export class InMemoryMessageUsageRepository implements MessageUsageRepository {
     ) {
       return false;
     }
-    this.days.set(`${instituteId}|${day}`, today + 1);
+    this.days.set(`${instituteId}|${day.toString()}`, today + 1);
     return true;
   }
 
   async release(instituteId: string, day: LocalDate): Promise<void> {
-    const key = `${instituteId}|${day}`;
+    const key = `${instituteId}|${day.toString()}`;
     this.days.set(key, Math.max(0, (this.days.get(key) ?? 0) - 1));
   }
 
   async usage(instituteId: string, day: LocalDate, monthFrom: LocalDate) {
     return {
-      today: this.days.get(`${instituteId}|${day}`) ?? 0,
+      today: this.days.get(`${instituteId}|${day.toString()}`) ?? 0,
       month: this.sumFrom(instituteId, monthFrom, monthFrom.addMonths(1).addDays(-1)),
     };
   }

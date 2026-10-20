@@ -5,13 +5,7 @@ import { and, asc, desc, eq, gte, inArray, lt, sql, type SQL } from 'drizzle-orm
 import { isUniqueViolation } from '../../lib/pg-errors';
 import { toInvoice } from './drizzle-invoice.repository';
 import type { Invoice } from './invoice';
-import {
-  PAYMENT_METHODS,
-  PAYMENT_STATUSES,
-  Payment,
-  type PaymentMethod,
-  type PaymentStatus,
-} from './payment';
+import { PAYMENT_METHODS, PAYMENT_STATUSES, Payment } from './payment';
 import type {
   CollectedTotals,
   OpenDueTotals,
@@ -442,8 +436,8 @@ function toPayment(row: PaymentRow): Payment {
     instituteId: row.instituteId,
     guardianPhone: row.guardianPhone ? PhoneNumber.parse(row.guardianPhone) : null,
     amount: Money.ofPaise(row.amountPaise),
-    method: oneOf(PAYMENT_METHODS, row.method) as PaymentMethod,
-    status: oneOf(PAYMENT_STATUSES, row.status) as PaymentStatus,
+    method: oneOf(PAYMENT_METHODS, row.method),
+    status: oneOf(PAYMENT_STATUSES, row.status),
     paidAt: row.paidAt,
     note: row.note,
     recordedBy: row.recordedBy,

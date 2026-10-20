@@ -29,6 +29,8 @@ describe('PhoneNumber', () => {
 
   it('never leaks the full number through string conversion', () => {
     const phone = PhoneNumber.parse('9876543210');
+    // The point of this test IS the template conversion (a phone dropped into a log line).
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     expect(`${phone}`).toBe('+9198XXXXX210');
     expect(String(phone)).not.toContain('76543');
   });

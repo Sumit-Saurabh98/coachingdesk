@@ -4,7 +4,6 @@ import {
   type FeatureKey,
   type IdGenerator,
   InstituteClock,
-  type LocalDate,
   MESSAGE_CAPS,
   type PhoneNumber,
   type SendNoticeBody,
@@ -163,6 +162,6 @@ export class NoticeService {
         phones.set(s.guardianPhone.toE164(), s.guardianPhone);
       }
     }
-    return { phones: [...phones.values()], institute, content, today: today as LocalDate };
+    return { phones: [...phones.values()], institute, content, today: today };
   }
 }
