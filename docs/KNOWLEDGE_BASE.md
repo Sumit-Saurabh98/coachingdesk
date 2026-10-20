@@ -181,7 +181,7 @@ Each needs Hindi version. Template approval takes time — submit early.
 
 ## 7. Open questions
 
-1. **Final product name** (working name: TuitionMitra). Check Play Store, domain (.in/.app fallback), trademark.
+1. **Final product name** (working name: Coaching Desk). Check Play Store, domain (.in/.app fallback), trademark.
 2. **In-app subscription billing:** confirm current Google Play / Apple rules for Indian B2B SaaS subscriptions (store billing vs. alternative billing vs. web checkout).
 3. **DPDP Act + DPDP Rules, 2025** (Rules notified Nov 2025, obligations phased in — confirm exact dates). Working assumption: the **institute is the Data Fiduciary**, we are its **Data Processor** (needs a processing agreement in our terms). Children's data needs verifiable parental consent — the institute's duty, but our consent checkbox/flow must support it. Children's data must not be used for tracking or behavioural monitoring → no product analytics on guardian pages. Still to confirm with a lawyer: consent wording, retention periods, breach-notification process, whether we have any direct obligations.
 4. **WhatsApp provider:** Meta Cloud API direct vs. a BSP (support, onboarding, pricing).

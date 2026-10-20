@@ -42,7 +42,7 @@ Principle: **one language (TypeScript) end to end, boring managed infrastructure
 ## 2. Repo layout
 
 ```
-coachingdesk/            # repo root (product working name: TuitionMitra)
+coachingdesk/            # repo root (product working name: Coaching Desk)
 ├── apps/
 │   ├── mobile/          # Expo app (owner/teacher)
 │   ├── api/             # Fastify HTTP API

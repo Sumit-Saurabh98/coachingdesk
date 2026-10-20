@@ -1,4 +1,4 @@
-# TuitionMitra (working name)
+# Coaching Desk (working name)
 
 Fees and parent updates on autopilot for small tuition centers, home tutors, and academies in India. Parents get WhatsApp messages and pay via UPI links — no app install.
 

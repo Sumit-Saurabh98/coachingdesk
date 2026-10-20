@@ -1,6 +1,8 @@
 {
   "common": {
-    "appName": "ट्यूशनमित्र"
+    "appName": "ट्यूशनमित्र",
+    "save": "सेव करें",
+    "cancel": "रद्द करें"
   },
   "settings": {
     "theme": "थीम",
@@ -23,11 +25,7 @@
     "serverChecking": "कनेक्शन जाँच रहे हैं…",
     "serverOk": "जुड़ गया · {{plans}} प्लान उपलब्ध",
     "serverDown": "सर्वर से संपर्क नहीं हो पा रहा",
-    "retry": "फिर से कोशिश करें",
-    "session": "लॉगिन",
-    "sessionRestoring": "सेव किया गया लॉगिन जाँच रहे हैं…",
-    "sessionSignedIn": "लॉगिन है",
-    "sessionSignedOut": "लॉगिन नहीं है"
+    "retry": "फिर से कोशिश करें"
   },
   "auth": {
     "title": "लॉग इन करें",
@@ -56,5 +54,22 @@
     "otpInvalid_other": "कोड सही नहीं है। {{count}} कोशिशें बाकी हैं।",
     "otpLocked": "बहुत ज़्यादा गलत कोशिशें। कृपया नया कोड मँगाएँ।",
     "otpExpired": "इस कोड की समय-सीमा खत्म हो गई। कृपया नया कोड मँगाएँ।"
+  },
+  "me": {
+    "title": "मैं",
+    "addName": "अपना नाम जोड़ें",
+    "editName": "आपका नाम",
+    "nameLabel": "नाम",
+    "nameInvalid": "अपना नाम डालें",
+    "phone": "मोबाइल नंबर",
+    "institutes": "संस्थान",
+    "noInstitutes": "अभी किसी संस्थान से नहीं जुड़े हैं",
+    "roleOwner": "मालिक",
+    "roleTeacher": "शिक्षक",
+    "roleStaff": "स्टाफ़",
+    "appearance": "दिखावट",
+    "logout": "लॉग आउट",
+    "logoutTitle": "लॉग आउट करें?",
+    "logoutBody": "इस फ़ोन पर फिर से लॉग इन करने के लिए SMS से नया कोड चाहिए होगा।"
   }
 }

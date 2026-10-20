@@ -1,6 +1,8 @@
 {
   "common": {
-    "appName": "TuitionMitra"
+    "appName": "Coaching Desk",
+    "save": "Save",
+    "cancel": "Cancel"
   },
   "settings": {
     "theme": "Theme",
@@ -23,11 +25,7 @@
     "serverChecking": "Checking the connection…",
     "serverOk": "Connected · {{plans}} plans available",
     "serverDown": "Can't reach the server",
-    "retry": "Try again",
-    "session": "Login",
-    "sessionRestoring": "Checking saved login…",
-    "sessionSignedIn": "Logged in",
-    "sessionSignedOut": "Not logged in"
+    "retry": "Try again"
   },
   "auth": {
     "title": "Log in",
@@ -56,5 +54,22 @@
     "otpInvalid_other": "That code is not correct. {{count}} attempts left.",
     "otpLocked": "Too many wrong attempts. Please request a new code.",
     "otpExpired": "This code has expired. Please request a new one."
+  },
+  "me": {
+    "title": "Me",
+    "addName": "Add your name",
+    "editName": "Your name",
+    "nameLabel": "Name",
+    "nameInvalid": "Enter your name",
+    "phone": "Mobile number",
+    "institutes": "Institutes",
+    "noInstitutes": "Not part of any institute yet",
+    "roleOwner": "Owner",
+    "roleTeacher": "Teacher",
+    "roleStaff": "Staff",
+    "appearance": "Appearance",
+    "logout": "Log out",
+    "logoutTitle": "Log out?",
+    "logoutBody": "You will need a new code by SMS to log in again on this phone."
   }
 }

@@ -11,8 +11,11 @@ export type LanguagePreference = 'system' | 'en' | 'hi';
 interface PreferencesState {
   theme: ThemePreference;
   language: LanguagePreference;
+  /** The 10 digits that last logged in on this phone: prefilled on the login screen. */
+  lastPhone: string | null;
   setTheme: (theme: ThemePreference) => void;
   setLanguage: (language: LanguagePreference) => void;
+  setLastPhone: (phone: string) => void;
 }
 
 // A Zustand store is a hook. A component reads ONE piece of it, e.g.
@@ -24,17 +27,24 @@ export const usePreferences = create<PreferencesState>()(
     (set) => ({
       theme: 'system',
       language: 'system',
+      lastPhone: null,
       setTheme: (theme) => set({ theme }),
       setLanguage: (language) => set({ language }),
+      setLastPhone: (lastPhone) => set({ lastPhone }),
     }),
     {
       name: 'preferences', // the key in storage
       // If the SHAPE of this store changes one day, bump this and add a `migrate` function,
-      // so phones with the old saved shape upgrade instead of crashing.
+      // so phones with the old saved shape upgrade instead of crashing. (ADDING a field, like
+      // lastPhone, needs no bump: persist merges the saved values over these defaults.)
       version: 1,
       storage: createJSONStorage(() => zustandMMKVStorage),
       // Save only the values, not the functions.
-      partialize: (state) => ({ theme: state.theme, language: state.language }),
+      partialize: (state) => ({
+        theme: state.theme,
+        language: state.language,
+        lastPhone: state.lastPhone,
+      }),
     },
   ),
 );

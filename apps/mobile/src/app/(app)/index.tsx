@@ -1,8 +1,8 @@
-// A THEME + LANGUAGE PREVIEW (Step 26d-f). The real screens replace this from Step 27 on.
-import { LANGUAGE_NAMES } from '@coachingdesk/i18n';
+// A PREVIEW of the theme and the API connection (Step 26). The real home screen replaces it
+// (Step 28 on). The theme and language switches now live on the Me screen.
 import { Money, PhoneNumber } from '@coachingdesk/shared';
 import { useQuery } from '@tanstack/react-query';
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import {
@@ -11,12 +11,10 @@ import {
   Button,
   Card,
   Chip,
-  SegmentedButtons,
+  IconButton,
   Text,
 } from 'react-native-paper';
 import { api } from '@/api';
-import { useSessionStatus } from '@/auth/use-session-status';
-import { usePreferences } from '@/stores/preferences';
 import { useAppTheme } from '@/theme/theme';
 
 const fee = Money.ofPaise(150000).format();
@@ -25,13 +23,8 @@ const phone = PhoneNumber.parse('9876543210').masked();
 export default function Index() {
   // Our theme (with success/warning). Colours come from ROLES, never hex values.
   const theme = useAppTheme();
-  const themePreference = usePreferences((state) => state.theme);
-  const setTheme = usePreferences((state) => state.setTheme);
-  const languagePreference = usePreferences((state) => state.language);
-  const setLanguage = usePreferences((state) => state.setLanguage);
   // t('key') returns the text in the current language; the component re-renders on a switch.
   const { t } = useTranslation();
-  const sessionStatus = useSessionStatus((state) => state.status);
 
   // useQuery: loads, caches and retries. The key ['plans'] names this data in the cache;
   // `signal` lets TanStack Query cancel the request if the screen goes away.
@@ -43,30 +36,20 @@ export default function Index() {
 
   return (
     <>
-      {/* A screen sets its own header title like this. */}
-      <Stack.Screen options={{ title: t('preview.title') }} />
+      {/* A screen sets its own header: title, and a button on the right that opens Me. */}
+      <Stack.Screen
+        options={{
+          title: t('preview.title'),
+          headerRight: () => (
+            <IconButton
+              icon="account-circle"
+              accessibilityLabel={t('me.title')}
+              onPress={() => router.push('/me')}
+            />
+          ),
+        }}
+      />
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Temporary: these two switches move to the Settings screen later. SegmentedButtons
-            is generic: the value's type flows into onValueChange, so the setters fit directly. */}
-        <SegmentedButtons
-          value={themePreference}
-          onValueChange={setTheme}
-          buttons={[
-            { value: 'system', label: t('settings.themeSystem'), icon: 'theme-light-dark' },
-            { value: 'light', label: t('settings.themeLight'), icon: 'white-balance-sunny' },
-            { value: 'dark', label: t('settings.themeDark'), icon: 'weather-night' },
-          ]}
-        />
-        <SegmentedButtons
-          value={languagePreference}
-          onValueChange={setLanguage}
-          buttons={[
-            { value: 'system', label: t('settings.languageSystem'), icon: 'translate' },
-            // Language names are NOT translated: each is written in its own language.
-            { value: 'en', label: LANGUAGE_NAMES.en },
-            { value: 'hi', label: LANGUAGE_NAMES.hi },
-          ]}
-        />
         {/* Paper's Text has Material type styles: headlineSmall, titleLarge, bodyMedium... */}
         <Text variant="headlineSmall">{t('preview.today')}</Text>
         <Card mode="elevated">
@@ -100,19 +83,6 @@ export default function Index() {
               {t('preview.remind')}
             </Button>
           </Card.Actions>
-        </Card>
-        {/* Temporary (27a): the login state. Login screens arrive in 27b. */}
-        <Card mode="outlined">
-          <Card.Title
-            title={t('preview.session')}
-            subtitle={
-              sessionStatus === 'restoring'
-                ? t('preview.sessionRestoring')
-                : sessionStatus === 'signedIn'
-                  ? t('preview.sessionSignedIn')
-                  : t('preview.sessionSignedOut')
-            }
-          />
         </Card>
         {/* Temporary connection check (26g): the three states every screen will have. */}
         <Card mode="outlined">

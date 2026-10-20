@@ -1,6 +1,6 @@
 # REQUIREMENTS.md
 
-> Product working name: **TuitionMitra** (final name undecided — find/replace when chosen).
+> Product working name: **Coaching Desk** (final name undecided — find/replace when chosen).
 > Status: v0.1 draft · Owner: Sumit
 
 ## 1. Product summary

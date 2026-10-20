@@ -4,6 +4,7 @@ import { SecureTokenStore } from '@/auth/secure-token-store';
 import { Session } from '@/auth/session';
 import { ApiClient } from './api-client';
 import { apiBaseUrl } from './config';
+import { queryClient } from './query-client';
 
 const baseUrl = apiBaseUrl();
 
@@ -17,5 +18,13 @@ export const api = new ApiClient({
   onUnauthorized: () => session.refresh(),
 });
 
+// Whenever the session ends (logout, or the server ended it), forget every cached answer:
+// the next person to log in on this phone must never see the previous user's data.
+session.subscribe((status) => {
+  if (status === 'signedOut') {
+    queryClient.clear();
+  }
+});
+
 export { ApiError } from './api-error';
-export { queryClient } from './query-client';
+export { queryClient };

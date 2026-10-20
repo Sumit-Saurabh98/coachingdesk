@@ -10,13 +10,16 @@ import { Button, HelperText, Text, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { errorMessage } from '@/api/error-message';
 import { requestOtp } from '@/auth/auth-api';
+import { usePreferences } from '@/stores/preferences';
 import { useAppTheme } from '@/theme/theme';
 
 export default function LoginScreen() {
   const { t } = useTranslation();
   const theme = useAppTheme();
   // Only the 10 digits; "+91" is shown as a fixed prefix in front of the field.
-  const [digits, setDigits] = useState('');
+  // Starts with the number that last logged in on this phone (if any). The function form of
+  // useState runs only on the first render: later changes to the store don't overwrite typing.
+  const [digits, setDigits] = useState(() => usePreferences.getState().lastPhone ?? '');
   // Show "invalid number" only after the user tried to continue, not while still typing.
   const [triedToSubmit, setTriedToSubmit] = useState(false);
 
