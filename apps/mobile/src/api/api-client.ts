@@ -15,8 +15,13 @@ export interface ApiClientOptions {
   baseUrl: string;
   fetch?: typeof fetch; // injected in tests
   timeoutMs?: number;
-  /** Returns the current access token, or null when logged out (wired in Step 27). */
+  /** Returns the current access token, or null when logged out. */
   getAccessToken?: () => string | null;
+  /**
+   * Called when the server answers 401 (the access token expired, ~every 15 min). Resolves
+   * true if a fresh token is now available: the request is then sent ONE more time.
+   */
+  onUnauthorized?: () => Promise<boolean>;
 }
 
 // The server's error body (apps/api error-handler): { error: { code, message, details }, requestId }
@@ -60,6 +65,20 @@ export class ApiClient {
   }
 
   async request<T>(method: HttpMethod, path: string, options: RequestOptions = {}): Promise<T> {
+    try {
+      return await this.send<T>(method, path, options);
+    } catch (error) {
+      // An expired access token is normal: renew it and try ONCE more. Only once, so a
+      // server that keeps saying 401 can't put us in a loop.
+      const expired = error instanceof ApiError && error.status === 401;
+      if (expired && this.options.onUnauthorized && (await this.options.onUnauthorized())) {
+        return this.send<T>(method, path, options);
+      }
+      throw error;
+    }
+  }
+
+  private async send<T>(method: HttpMethod, path: string, options: RequestOptions): Promise<T> {
     const headers: Record<string, string> = { accept: 'application/json', ...options.headers };
     if (options.body !== undefined) {
       headers['content-type'] = 'application/json';

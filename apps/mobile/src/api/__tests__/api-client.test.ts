@@ -136,3 +136,80 @@ describe('ApiClient', () => {
     expect(error).not.toBeInstanceOf(ApiError);
   });
 });
+
+describe('ApiClient: expired access token (401)', () => {
+  const unauthorized = () =>
+    json(401, { error: { code: 'UNAUTHENTICATED', message: 'Please log in.' } });
+
+  it('renews the token once and retries the request with the NEW token', async () => {
+    let token = 'old';
+    const fake = fakeFetch((_url, init) =>
+      (init.headers as Record<string, string>).authorization === 'Bearer new'
+        ? json(200, { ok: true })
+        : unauthorized(),
+    );
+    let renewals = 0;
+    const api = new ApiClient({
+      baseUrl: 'http://api',
+      fetch: fake.fn,
+      getAccessToken: () => token,
+      onUnauthorized: async () => {
+        renewals += 1;
+        token = 'new';
+        return true;
+      },
+    });
+
+    expect(await api.get('/v1/me')).toEqual({ ok: true });
+    expect(renewals).toBe(1);
+    expect(fake.calls).toHaveLength(2);
+  });
+
+  it('renewal fails: the original 401 reaches the caller (no loop)', async () => {
+    const fake = fakeFetch(() => unauthorized());
+    const api = new ApiClient({
+      baseUrl: 'http://api',
+      fetch: fake.fn,
+      getAccessToken: () => 'old',
+      onUnauthorized: async () => false,
+    });
+
+    const error = await api.get('/v1/me').catch((e: unknown) => e);
+
+    expect(error).toMatchObject({ kind: 'http', status: 401 });
+    expect(fake.calls).toHaveLength(1);
+  });
+
+  it('still 401 after renewing: retried only ONCE, then the error', async () => {
+    const fake = fakeFetch(() => unauthorized());
+    let renewals = 0;
+    const api = new ApiClient({
+      baseUrl: 'http://api',
+      fetch: fake.fn,
+      getAccessToken: () => 'x',
+      onUnauthorized: async () => {
+        renewals += 1;
+        return true;
+      },
+    });
+
+    await expect(api.get('/v1/me')).rejects.toMatchObject({ status: 401 });
+    expect(renewals).toBe(1);
+    expect(fake.calls).toHaveLength(2);
+  });
+
+  it('other errors (e.g. 403) never trigger a renewal', async () => {
+    const fake = fakeFetch(() => json(403, { error: { code: 'FORBIDDEN', message: 'No' } }));
+    let renewals = 0;
+    const api = new ApiClient({
+      baseUrl: 'http://api',
+      fetch: fake.fn,
+      onUnauthorized: async () => {
+        renewals += 1;
+        return true;
+      },
+    });
+    await expect(api.get('/x')).rejects.toMatchObject({ status: 403 });
+    expect(renewals).toBe(0);
+  });
+});

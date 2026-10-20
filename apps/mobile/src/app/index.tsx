@@ -15,6 +15,7 @@ import {
   Text,
 } from 'react-native-paper';
 import { api } from '@/api';
+import { useSessionStatus } from '@/auth/use-session-status';
 import { usePreferences } from '@/stores/preferences';
 import { useAppTheme } from '@/theme/theme';
 
@@ -30,6 +31,7 @@ export default function Index() {
   const setLanguage = usePreferences((state) => state.setLanguage);
   // t('key') returns the text in the current language; the component re-renders on a switch.
   const { t } = useTranslation();
+  const sessionStatus = useSessionStatus((state) => state.status);
 
   // useQuery: loads, caches and retries. The key ['plans'] names this data in the cache;
   // `signal` lets TanStack Query cancel the request if the screen goes away.
@@ -98,6 +100,19 @@ export default function Index() {
               {t('preview.remind')}
             </Button>
           </Card.Actions>
+        </Card>
+        {/* Temporary (27a): the login state. Login screens arrive in 27b. */}
+        <Card mode="outlined">
+          <Card.Title
+            title={t('preview.session')}
+            subtitle={
+              sessionStatus === 'restoring'
+                ? t('preview.sessionRestoring')
+                : sessionStatus === 'signedIn'
+                  ? t('preview.sessionSignedIn')
+                  : t('preview.sessionSignedOut')
+            }
+          />
         </Card>
         {/* Temporary connection check (26g): the three states every screen will have. */}
         <Card mode="outlined">

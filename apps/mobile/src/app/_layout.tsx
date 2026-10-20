@@ -7,7 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
-import { queryClient } from '@/api';
+import { queryClient, session } from '@/api';
 // Importing it runs the i18next setup, before any screen renders.
 import i18n, { resolveLanguage } from '@/i18n';
 import { usePreferences } from '@/stores/preferences';
@@ -23,6 +23,11 @@ export default function RootLayout() {
   // 'system' follows the phone; 'light'/'dark' override it.
   const dark = preference === 'dark' || (preference === 'system' && systemScheme === 'dark');
   const theme = dark ? darkTheme : lightTheme;
+
+  // Once, at app start: read the saved login (secure store) and renew the access token.
+  useEffect(() => {
+    void session.restore();
+  }, []);
 
   // When the user picks another language, tell i18next. Every screen using
   // useTranslation() then re-renders in the new language by itself.

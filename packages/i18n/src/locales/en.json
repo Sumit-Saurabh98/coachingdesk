@@ -23,6 +23,10 @@
     "serverChecking": "Checking the connection…",
     "serverOk": "Connected · {{plans}} plans available",
     "serverDown": "Can't reach the server",
-    "retry": "Try again"
+    "retry": "Try again",
+    "session": "Login",
+    "sessionRestoring": "Checking saved login…",
+    "sessionSignedIn": "Logged in",
+    "sessionSignedOut": "Not logged in"
   }
 }

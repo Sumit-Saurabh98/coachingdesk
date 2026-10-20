@@ -23,6 +23,10 @@
     "serverChecking": "कनेक्शन जाँच रहे हैं…",
     "serverOk": "जुड़ गया · {{plans}} प्लान उपलब्ध",
     "serverDown": "सर्वर से संपर्क नहीं हो पा रहा",
-    "retry": "फिर से कोशिश करें"
+    "retry": "फिर से कोशिश करें",
+    "session": "लॉगिन",
+    "sessionRestoring": "सेव किया गया लॉगिन जाँच रहे हैं…",
+    "sessionSignedIn": "लॉगिन है",
+    "sessionSignedOut": "लॉगिन नहीं है"
   }
 }
