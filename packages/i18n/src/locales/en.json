@@ -226,5 +226,31 @@
     "consent": "The parent agreed to receive updates on WhatsApp",
     "consentHelp": "Without this, no automatic WhatsApp messages are sent to this number.",
     "create": "Add student"
+  },
+  "student": {
+    "guardian": "Parent / guardian",
+    "call": "Call",
+    "whatsapp": "WhatsApp",
+    "joinedOn": "Joined {{date}}",
+    "leftOn": "Left on {{date}}",
+    "notes": "Notes",
+    "batches": "Batches",
+    "notInBatch": "Not in any batch",
+    "since": "Since {{date}}",
+    "until": "Until {{date}}",
+    "netFee": "{{fee}} {{cycle}}",
+    "discount": "after {{discount}} discount",
+    "addToBatch": "Add to batch",
+    "noBatchToJoin": "Already in every active batch.",
+    "removeFromBatch": "Remove from batch",
+    "removeTitle": "Remove from {{batch}}?",
+    "removeBody": "Today is the last day. No new fees for this batch from the next billing.",
+    "credit": "Family credit",
+    "creditHelp": "Paid but not yet applied to any fee. Shared by brothers and sisters.",
+    "readOnly": "Read-only on your plan. Upgrade, or mark other students as left, to change this student.",
+    "markLeft": "Mark as left",
+    "leftTitle": "Mark {{name}} as left?",
+    "leftBody": "From today: no new fees and no reminders. Their history stays and they no longer count toward your plan.",
+    "leftBadge": "Left"
   }
 }

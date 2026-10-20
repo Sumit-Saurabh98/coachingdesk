@@ -112,6 +112,9 @@ export default function StudentsTab() {
           ItemSeparatorComponent={Divider}
           renderItem={({ item: student }) => (
             <List.Item
+              onPress={() =>
+                router.push({ pathname: '/students/[id]', params: { id: student.id } })
+              }
               title={student.name}
               description={[student.guardianName, formatIndianPhone(student.guardianPhone)]
                 .filter(Boolean)

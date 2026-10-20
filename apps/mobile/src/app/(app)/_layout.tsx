@@ -50,6 +50,8 @@ export default function AppLayout() {
         <Stack.Screen name="batches/[id]/index" options={{ title: '' }} />
         <Stack.Screen name="batches/[id]/edit" options={{ title: t('batch.editTitle') }} />
         <Stack.Screen name="students/new" options={{ title: t('studentForm.title') }} />
+        {/* The profile sets its own title: the student's name. */}
+        <Stack.Screen name="students/[id]/index" options={{ title: '' }} />
       </Stack.Protected>
       {/* Create / choose: only while there is none. Once one is chosen, go home. */}
       <Stack.Protected guard={!hasInstitute} redirectTo="/">
