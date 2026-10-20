@@ -10,6 +10,7 @@ export { type IdGenerator, SequentialIdGenerator, UuidV7Generator } from './id-g
 export { UpdateMeBody } from './schemas/users';
 export { AddMemberBody, CreateInstituteBody, UpdateInstituteBody } from './schemas/institutes';
 export {
+  type BatchSchedule,
   BatchScheduleSchema,
   CreateBatchBody,
   FEE_CYCLES,

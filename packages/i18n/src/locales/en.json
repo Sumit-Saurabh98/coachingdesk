@@ -105,5 +105,33 @@
   "comingSoon": {
     "title": "Coming soon",
     "body": "This screen is being built in the next steps."
+  },
+  "schedule": {
+    "mon": "Mon",
+    "tue": "Tue",
+    "wed": "Wed",
+    "thu": "Thu",
+    "fri": "Fri",
+    "sat": "Sat",
+    "sun": "Sun",
+    "everyDay": "Every day",
+    "am": "AM",
+    "pm": "PM"
+  },
+  "feeCycle": {
+    "monthly": "per month",
+    "quarterly": "per quarter",
+    "half_yearly": "per 6 months",
+    "yearly": "per year",
+    "one_time": "one-time",
+    "none": "No fee"
+  },
+  "batches": {
+    "title": "Batches",
+    "showArchived": "Show archived",
+    "archived": "Archived",
+    "emptyTitle": "No batches yet",
+    "emptyOwner": "Create your first batch to start taking attendance and billing fees.",
+    "emptyMember": "The owner hasn’t created any batches yet."
   }
 }
