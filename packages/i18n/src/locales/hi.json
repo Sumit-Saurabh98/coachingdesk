@@ -18,6 +18,11 @@
     "remind": "याद दिलाएँ",
     "guardian": "अभिभावक {{phone}}",
     "feesDue_one": "इस हफ़्ते {{count}} फ़ीस बाकी है",
-    "feesDue_other": "इस हफ़्ते {{count}} फ़ीस बाकी हैं"
+    "feesDue_other": "इस हफ़्ते {{count}} फ़ीस बाकी हैं",
+    "server": "सर्वर",
+    "serverChecking": "कनेक्शन जाँच रहे हैं…",
+    "serverOk": "जुड़ गया · {{plans}} प्लान उपलब्ध",
+    "serverDown": "सर्वर से संपर्क नहीं हो पा रहा",
+    "retry": "फिर से कोशिश करें"
   }
 }

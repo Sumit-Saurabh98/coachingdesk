@@ -1,10 +1,20 @@
 // A THEME + LANGUAGE PREVIEW (Step 26d-f). The real screens replace this from Step 27 on.
 import { LANGUAGE_NAMES } from '@coachingdesk/i18n';
 import { Money, PhoneNumber } from '@coachingdesk/shared';
+import { useQuery } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Avatar, Button, Card, Chip, SegmentedButtons, Text } from 'react-native-paper';
+import {
+  ActivityIndicator,
+  Avatar,
+  Button,
+  Card,
+  Chip,
+  SegmentedButtons,
+  Text,
+} from 'react-native-paper';
+import { api } from '@/api';
 import { usePreferences } from '@/stores/preferences';
 import { useAppTheme } from '@/theme/theme';
 
@@ -20,6 +30,14 @@ export default function Index() {
   const setLanguage = usePreferences((state) => state.setLanguage);
   // t('key') returns the text in the current language; the component re-renders on a switch.
   const { t } = useTranslation();
+
+  // useQuery: loads, caches and retries. The key ['plans'] names this data in the cache;
+  // `signal` lets TanStack Query cancel the request if the screen goes away.
+  // GET /v1/plans is public (no login needed), so it proves the phone reaches the API.
+  const plans = useQuery({
+    queryKey: ['plans'],
+    queryFn: ({ signal }) => api.get<{ plans: unknown[] }>('/v1/plans', { signal }),
+  });
 
   return (
     <>
@@ -80,6 +98,30 @@ export default function Index() {
               {t('preview.remind')}
             </Button>
           </Card.Actions>
+        </Card>
+        {/* Temporary connection check (26g): the three states every screen will have. */}
+        <Card mode="outlined">
+          <Card.Title title={t('preview.server')} subtitle={api.baseUrl} />
+          <Card.Content>
+            {plans.isPending ? (
+              <View style={styles.row}>
+                <Text>{t('preview.serverChecking')}</Text>
+                <ActivityIndicator />
+              </View>
+            ) : plans.isError ? (
+              <Text style={{ color: theme.colors.error }}>{t('preview.serverDown')}</Text>
+            ) : (
+              <Text style={{ color: theme.colors.success }}>
+                {t('preview.serverOk', { plans: plans.data.plans.length })}
+              </Text>
+            )}
+          </Card.Content>
+          {plans.isError && (
+            <Card.Actions>
+              {/* refetch() returns a Promise; `void` says we don't wait for it here. */}
+              <Button onPress={() => void plans.refetch()}>{t('preview.retry')}</Button>
+            </Card.Actions>
+          )}
         </Card>
         <View style={[styles.banner, { backgroundColor: theme.colors.warningContainer }]}>
           {/* `count` picks the plural form: feesDue_one or feesDue_other. */}

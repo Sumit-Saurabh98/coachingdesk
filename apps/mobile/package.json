@@ -7,6 +7,7 @@
     "@coachingdesk/shared": "workspace:*",
     "@expo/ui": "~58.0.21",
     "@expo/vector-icons": "^15.1.1",
+    "@tanstack/react-query": "^5.104.5",
     "expo": "~58.0.16",
     "expo-constants": "~58.0.12",
     "expo-crypto": "~58.0.7",
@@ -43,7 +44,8 @@
   },
   "devDependencies": {
     "@types/react": "~19.3.0",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.5"
   },
   "scripts": {
     "start": "expo start",
@@ -51,7 +53,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "private": true
 }

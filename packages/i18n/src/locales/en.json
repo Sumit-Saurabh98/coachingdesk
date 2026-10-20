@@ -18,6 +18,11 @@
     "remind": "Remind",
     "guardian": "Guardian {{phone}}",
     "feesDue_one": "{{count}} fee due this week",
-    "feesDue_other": "{{count}} fees due this week"
+    "feesDue_other": "{{count}} fees due this week",
+    "server": "Server",
+    "serverChecking": "Checking the connection…",
+    "serverOk": "Connected · {{plans}} plans available",
+    "serverDown": "Can't reach the server",
+    "retry": "Try again"
   }
 }
