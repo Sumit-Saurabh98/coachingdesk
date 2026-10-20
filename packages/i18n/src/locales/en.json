@@ -177,5 +177,18 @@
     "archiveBody": "It disappears from attendance and new bills. Its attendance and fee history stay.",
     "archivedNote": "This batch is archived. Its history is kept, but it can no longer be changed.",
     "newBatch": "New batch"
+  },
+  "students": {
+    "search": "Search name or phone",
+    "active": "Active",
+    "left": "Left",
+    "all": "All",
+    "readOnly": "Read-only",
+    "leftBadge": "Left",
+    "emptyTitle": "No students yet",
+    "emptyOwner": "Add your students to take attendance and send fee reminders.",
+    "emptyMember": "The owner hasn’t added any students yet.",
+    "noResults": "No students match “{{q}}”",
+    "noLeft": "No students have left"
   }
 }
