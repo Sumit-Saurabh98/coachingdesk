@@ -36,6 +36,8 @@ export interface StudentNamesLookup {
     instituteId: string,
     ids: readonly string[],
   ): Promise<Array<{ id: string; name: string }>>;
+  /** Students frozen by a downgrade (KB "Downgrade"): their marks are skipped. */
+  readOnlyIds(instituteId: string): Promise<ReadonlySet<string>>;
 }
 export interface InstituteTimezoneLookup {
   get(instituteId: string): Promise<{ timezone: string }>;
@@ -63,6 +65,8 @@ export interface SyncedAttendance {
   session: AttendanceSession;
   records: AttendanceRecord[];
   alerts: AbsenceAlertOutcome;
+  /** Marks not saved: these students are read-only on the current plan. */
+  skippedReadOnly: string[];
 }
 
 export interface RegisterRow {
@@ -104,6 +108,21 @@ export class AttendanceService {
       });
     }
 
+    // Read-only students (after a downgrade) are SKIPPED, not refused: this is an offline
+    // sync from a phone that may not know about the downgrade yet, and failing the whole
+    // class's attendance over 3 students would be worse. The response lists who was skipped.
+    const readOnly = await this.deps.students.readOnlyIds(instituteId);
+    const marks = request.records.filter((r) => !readOnly.has(r.studentId));
+    const skippedReadOnly = request.records
+      .filter((r) => readOnly.has(r.studentId))
+      .map((r) => r.studentId);
+    if (marks.length === 0) {
+      throw new AppError('PLAN_LIMIT_REACHED', 'These students are read-only on your plan', {
+        reason: 'read_only',
+        studentIds: skippedReadOnly,
+      });
+    }
+
     const result = await this.deps.attendance.sync({
       newSessionId: this.deps.ids.next(),
       instituteId,
@@ -111,7 +130,7 @@ export class AttendanceService {
       date: request.date,
       clientId,
       userId,
-      marks: request.records,
+      marks,
       now: this.deps.clock.now(),
     });
     if (result.outcome === 'client_id_conflict') {
@@ -120,7 +139,7 @@ export class AttendanceService {
       });
     }
     const alerts = await this.alertsFor(result.session, result.records);
-    return { session: result.session, records: result.records, alerts };
+    return { session: result.session, records: result.records, alerts, skippedReadOnly };
   }
 
   /**

@@ -113,6 +113,15 @@ export class DrizzleStudentRepository implements StudentRepository {
     );
   }
 
+  async activeIdsOldestFirst(instituteId: string): Promise<string[]> {
+    const rows = await this.db
+      .select({ id: students.id })
+      .from(students)
+      .where(and(eq(students.instituteId, instituteId), eq(students.status, 'active')))
+      .orderBy(asc(students.joinedOn), asc(students.id));
+    return rows.map((r) => r.id);
+  }
+
   async listByGuardianPhone(instituteId: string, phone: PhoneNumber): Promise<Student[]> {
     const rows = await this.db
       .select()

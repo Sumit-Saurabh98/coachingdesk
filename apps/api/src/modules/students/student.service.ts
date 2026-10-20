@@ -163,7 +163,38 @@ export class StudentService {
     return student;
   }
 
+  /**
+   * KB "Downgrade": data is never deleted, but students beyond the plan's limit become
+   * READ-ONLY until the plan is upgraded or other students leave. Who: the newest active
+   * students past the limit (the oldest N keep working, so a long-standing class isn't
+   * frozen because someone joined yesterday). Computed, never stored: an upgrade or a
+   * "left" frees them at once.
+   */
+  async readOnlyIds(instituteId: string): Promise<Set<string>> {
+    const limit = await this.deps.entitlements.limitFor(instituteId, 'activeStudents');
+    if (limit === null) {
+      return new Set();
+    }
+    const ids = await this.deps.students.activeIdsOldestFirst(instituteId);
+    return new Set(ids.slice(limit));
+  }
+
+  /** 402 when any of these students is read-only (edit, enroll, marks). */
+  async assertWritable(instituteId: string, studentIds: readonly string[]): Promise<void> {
+    const readOnly = await this.readOnlyIds(instituteId);
+    const blocked = [...new Set(studentIds)].filter((id) => readOnly.has(id));
+    if (blocked.length > 0) {
+      const limit = (await this.deps.entitlements.limitFor(instituteId, 'activeStudents')) ?? 0;
+      throw new AppError(
+        'PLAN_LIMIT_REACHED',
+        'Some students are read-only on your plan: upgrade, or mark other students as left',
+        { limit, reason: 'read_only', studentIds: blocked },
+      );
+    }
+  }
+
   async update(instituteId: string, studentId: string, changes: StudentChanges): Promise<Student> {
+    await this.assertWritable(instituteId, [studentId]);
     const updated = (await this.get(instituteId, studentId)).withChanges(changes);
     await this.deps.students.update(updated);
     return updated;

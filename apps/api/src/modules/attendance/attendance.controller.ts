@@ -43,6 +43,7 @@ export class AttendanceController {
       session: sessionJSON(result.session),
       records: result.records.map((r) => ({ studentId: r.studentId, status: r.status })),
       alerts: result.alerts,
+      skippedReadOnly: result.skippedReadOnly,
     });
   }
 

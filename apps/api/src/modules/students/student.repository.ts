@@ -45,6 +45,8 @@ export interface StudentRepository {
   list(instituteId: string, query: StudentListQuery): Promise<StudentPage>;
   /** How many ACTIVE students the institute has (plan usage). */
   countActive(instituteId: string): Promise<number>;
+  /** Ids of ACTIVE students, oldest first (joined_on, then id): who keeps write access. */
+  activeIdsOldestFirst(instituteId: string): Promise<string[]>;
   /** Every student of this guardian at this institute (siblings), any status. */
   listByGuardianPhone(instituteId: string, phone: PhoneNumber): Promise<Student[]>;
   /** Saves every editable field + status/leftOn. Matches id AND instituteId; throws if none. */
@@ -112,6 +114,16 @@ export class InMemoryStudentRepository implements StudentRepository {
   async countActive(instituteId: string): Promise<number> {
     return [...this.students.values()].filter((s) => s.instituteId === instituteId && s.isActive)
       .length;
+  }
+
+  async activeIdsOldestFirst(instituteId: string): Promise<string[]> {
+    return [...this.students.values()]
+      .filter((s) => s.instituteId === instituteId && s.isActive)
+      .sort(
+        (a, b) =>
+          a.joinedOn.toString().localeCompare(b.joinedOn.toString()) || (a.id < b.id ? -1 : 1),
+      )
+      .map((s) => s.id);
   }
 
   async listByGuardianPhone(instituteId: string, phone: PhoneNumber): Promise<Student[]> {

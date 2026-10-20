@@ -91,9 +91,13 @@ export class StudentsController {
     const ids = batchId
       ? await this.enrollments.studentIdsInBatchToday(instituteId, batchId)
       : undefined;
-    const page = await this.students.list(instituteId, { ...query, ids });
+    const [page, readOnly] = await Promise.all([
+      this.students.list(instituteId, { ...query, ids }),
+      this.students.readOnlyIds(instituteId),
+    ]);
     await reply.status(200).send({
-      students: page.students.map((s) => s.toPublicJSON()),
+      // readOnly: frozen after a downgrade (the app greys them out; leave/upgrade frees them).
+      students: page.students.map((s) => ({ ...s.toPublicJSON(), readOnly: readOnly.has(s.id) })),
       nextCursor: page.nextCursor,
     });
   }
@@ -164,12 +168,13 @@ export class StudentsController {
     const enrollments = await this.enrollments.listForStudent(tenant.instituteId, student.id);
     const showFees = canSeeFees(tenant.role);
     // Credit is money: teachers never see it (KB #31). Shared by siblings (same guardian).
+    const readOnly = (await this.students.readOnlyIds(tenant.instituteId)).has(student.id);
     const credit =
       showFees && student.guardianPhone
         ? (await this.credit.creditForGuardian(tenant.instituteId, student.guardianPhone)).toPaise()
         : 0;
     await reply.status(200).send({
-      student: student.toPublicJSON(),
+      student: { ...student.toPublicJSON(), readOnly },
       ...(showFees ? { guardianCreditPaise: credit } : {}),
       enrollments: enrollments.map((e) =>
         showFees

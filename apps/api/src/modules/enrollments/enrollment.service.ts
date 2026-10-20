@@ -14,6 +14,8 @@ import type { EnrollmentRepository } from './enrollment.repository';
 // their services, never their tables). StudentService, BatchService and InstituteService fit.
 export interface StudentLookup {
   get(instituteId: string, studentId: string): Promise<{ id: string; isActive: boolean }>;
+  /** 402 for a student who is read-only after a downgrade (KB "Downgrade"). */
+  assertWritable(instituteId: string, studentIds: readonly string[]): Promise<void>;
 }
 export interface BatchLookup {
   get(
@@ -59,6 +61,7 @@ export class EnrollmentService {
         studentId: student.id,
       });
     }
+    await this.deps.students.assertWritable(instituteId, [student.id]);
     const [batch] = await this.openBatches(instituteId, [request.batchId]);
     const startDate = request.startDate ?? (await this.todayAt(instituteId));
     await this.assertNotEnrolledFrom(instituteId, student.id, request.batchId, startDate);

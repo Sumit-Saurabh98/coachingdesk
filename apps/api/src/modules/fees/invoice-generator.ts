@@ -37,6 +37,8 @@ export interface BillingStudentLookup {
     instituteId: string,
     ids: readonly string[],
   ): Promise<Array<{ id: string; isActive: boolean }>>;
+  /** Students frozen by a downgrade: no new invoices until they're writable again. */
+  readOnlyIds(instituteId: string): Promise<ReadonlySet<string>>;
 }
 export interface BillingBatchLookup {
   list(
@@ -94,15 +96,19 @@ export class InvoiceGenerator {
       await this.deps.enrollments.activeBetween(instituteId, month.start, month.end)
     ).filter((e) => cycleMonths(e.feeCycle) !== null); // one_time is billed at enrollment; none never
 
-    const [students, batches, anchors] = await Promise.all([
+    const [students, readOnly, batches, anchors] = await Promise.all([
       this.deps.students.findByIds(instituteId, [...new Set(enrollments.map((e) => e.studentId))]),
+      this.deps.students.readOnlyIds(instituteId),
       this.deps.batches.list(instituteId, { includeArchived: true }),
       this.deps.invoices.firstCyclePeriods(
         instituteId,
         enrollments.map((e) => e.id),
       ),
     ]);
-    const activeStudents = new Set(students.filter((s) => s.isActive).map((s) => s.id));
+    // FR-2.5: left students get no new invoices; nor do students read-only after a downgrade.
+    const activeStudents = new Set(
+      students.filter((s) => s.isActive && !readOnly.has(s.id)).map((s) => s.id),
+    );
     const batchById = new Map(batches.map((b) => [b.id, b]));
 
     const summary: GenerationSummary = { periodStart, created: 0, alreadyBilled: 0, skipped: 0 };

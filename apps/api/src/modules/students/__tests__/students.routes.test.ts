@@ -186,7 +186,7 @@ describe('GET / PATCH /v1/institutes/:instituteId/students/:studentId', () => {
     const { token, studentsUrl, createStudent } = await setup();
     const student = await createStudent();
     const response = await http.call(token, 'GET', `${studentsUrl}/${student.id}`);
-    expect(response.json().student).toEqual(student);
+    expect(response.json().student).toEqual({ ...student, readOnly: false });
   });
 
   it("TENANCY: 404 for another institute's student, even through my OWN institute's URL", async () => {

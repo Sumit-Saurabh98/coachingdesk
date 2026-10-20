@@ -22,6 +22,8 @@ export interface TestEnrollmentLookup {
 }
 export interface TestStudentLookup {
   get(instituteId: string, studentId: string): Promise<{ id: string }>;
+  /** 402 for students read-only after a downgrade. */
+  assertWritable(instituteId: string, studentIds: readonly string[]): Promise<void>;
   findByIds(
     instituteId: string,
     ids: readonly string[],
@@ -214,6 +216,11 @@ export class TestService {
         },
       );
     }
+
+    await this.deps.students.assertWritable(
+      instituteId,
+      body.scores.map((s) => s.studentId),
+    );
 
     const entries: ScoreEntry[] = body.scores.map((s) =>
       s.isAbsent === true
