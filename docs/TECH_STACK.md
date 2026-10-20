@@ -6,11 +6,11 @@ Principle: **one language (TypeScript) end to end, boring managed infrastructure
 
 | Layer | Choice | Why |
 |---|---|---|
-| Mobile app (owner/teacher) | **React Native + Expo (SDK latest stable), TypeScript** | One codebase for Android + iOS; OTA updates via EAS Update; reuse React skills |
+| Mobile app (owner/teacher) | **React Native + Expo (SDK latest stable, 58 at start), TypeScript** — Android first (KB #47) | One codebase for Android + iOS; OTA updates via EAS Update; reuse React skills |
 | Mobile navigation | Expo Router | File-based routing, deep links for free |
 | Mobile state/server cache | TanStack Query (persisted) + Zustand (UI state) | Offline cache, retries, optimistic updates |
 | Mobile local storage | expo-sqlite (offline attendance queue) + MMKV (small KV) | Fast, works on low-end phones |
-| Mobile UI | React Native Paper or Tamagui (pick one, keep it) + custom theme — proposal: Paper (KNOWLEDGE_BASE §8 P-6) | Ready components, light/dark |
+| Mobile UI | **React Native Paper** (Material 3) + custom theme — the only UI library (KNOWLEDGE_BASE #47) | Ready, accessible components, light/dark |
 | Mobile i18n | i18next + react-i18next | EN + HI at launch |
 | Guardian web pages + landing + free tools | **Next.js (App Router)** | SSR for fast pay/receipt pages on slow phones; SEO for landing & free tools |
 | API | **Node.js (LTS) + Fastify + TypeScript** | Fast, schema-first, good plugin system |
