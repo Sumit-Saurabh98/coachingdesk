@@ -288,7 +288,7 @@ describe('DrizzleTenantDataRepository.exportTables', () => {
       'absent',
       id('a', 4),
     ]);
-    expect(file('payments.csv')?.rows[0]?.[2]).toBe('500.50');
+    expect(file('payments.csv')?.rows[0]?.[3]).toBe('500.50');
     expect(file('test_scores.csv')?.rows[0]).toEqual([
       id('a', 7),
       id('a', 2),

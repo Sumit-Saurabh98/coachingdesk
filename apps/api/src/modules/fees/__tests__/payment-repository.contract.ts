@@ -112,6 +112,28 @@ export function describePaymentRepositoryContract(
       expect((await fixture.invoices.findById(instituteA, invoice.id))?.paid.toPaise()).toBe(50000);
     });
 
+    it('receipt numbers: RCT-000001, 2, ... per institute; refused payments use none; a replay keeps its number', async () => {
+      const fixture = create();
+      const invoice = await withInvoice(fixture);
+      const record = async (p: Payment, invoiceId = invoice.id) => {
+        const result = await fixture.payments.recordForInvoice(p, invoiceId);
+        return 'payment' in result ? result.payment.receiptNumber : result.outcome;
+      };
+
+      expect(await record(offlinePayment(100, { key: 'k1' }))).toBe('RCT-000001');
+      expect(await record(offlinePayment(100, { key: 'k1' }))).toBe('RCT-000001'); // replay
+      expect(await record(offlinePayment(100, { instituteId: instituteB }))).toBe(
+        'invoice_not_found',
+      );
+      expect(await record(offlinePayment(1400))).toBe('RCT-000002'); // pays it in full
+      expect(await record(offlinePayment(100))).toBe('invoice_closed');
+      const next = (await fixture.invoices.create(manualInvoice(s2)))!;
+      expect(await record(offlinePayment(100), next.id)).toBe('RCT-000003');
+      const [latest] = await fixture.payments.listForInvoice(instituteA, next.id);
+      const found = await fixture.payments.findById(instituteA, latest?.payment.id ?? '');
+      expect(found?.payment.receiptNumber).toBe('RCT-000003');
+    });
+
     it('void: the payment stops counting and the invoice reopens', async () => {
       const fixture = create();
       const invoice = await withInvoice(fixture);

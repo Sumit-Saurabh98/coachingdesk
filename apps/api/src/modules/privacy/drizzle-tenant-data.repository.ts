@@ -47,6 +47,7 @@ export const EXPORTED_TABLES = [
 export const NOT_EXPORTED: Record<string, string> = {
   subscriptions: 'our billing with the institute, shown in the app',
   invoice_counters: 'internal invoice-number counter',
+  receipt_counters: 'internal receipt-number counter',
   invoice_runs: 'internal billing-job bookkeeping',
   message_usage: 'internal message-quota counter',
   data_exports: 'bookkeeping of the exports themselves',
@@ -62,6 +63,7 @@ export const PURGE_ORDER = [
   'invoices',
   'invoice_runs',
   'invoice_counters',
+  'receipt_counters',
   'test_scores',
   'tests',
   'attendance_records',
@@ -365,6 +367,7 @@ export class DrizzleTenantDataRepository implements TenantDataSource, TenantPurg
             file: 'payments.csv',
             header: [
               'id',
+              'receipt_number',
               'guardian_phone',
               'amount_rupees',
               'method',
@@ -377,6 +380,7 @@ export class DrizzleTenantDataRepository implements TenantDataSource, TenantPurg
             ],
             rows: paymentRows.map((p) => [
               p.id,
+              p.receiptNumber,
               p.guardianPhone,
               rupees(p.amountPaise),
               p.method,

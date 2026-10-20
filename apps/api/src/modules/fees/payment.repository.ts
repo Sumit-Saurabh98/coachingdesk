@@ -32,11 +32,15 @@ export interface OpenDueTotals {
   overdueByStudent: Array<{ studentId: string; overdue: Money; oldestDueDate: LocalDate }>;
 }
 
+export function formatReceiptNumber(n: number): string {
+  return `RCT-${String(n).padStart(6, '0')}`;
+}
+
 export interface PaymentRepository {
   /**
    * Records an offline payment against ONE invoice, atomically (LLD §6.4 "Offline payment"):
-   * the invoice row is locked, the payment and its allocation inserted, the invoice's paid
-   * total and status updated. What doesn't fit the invoice stays unallocated = guardian credit.
+   * the invoice row is locked, the payment (with the next receipt number) and its allocation
+   * inserted, the invoice's paid total and status updated. What doesn't fit the invoice stays unallocated = guardian credit.
    */
   recordForInvoice(payment: Payment, invoiceId: string): Promise<RecordOutcome>;
   /**
@@ -75,6 +79,7 @@ export interface PaymentRepository {
 export class InMemoryPaymentRepository implements PaymentRepository {
   private readonly payments = new Map<string, Payment>();
   private readonly allocations: Array<{ paymentId: string; invoiceId: string; amount: Money }> = [];
+  private readonly receiptCounters = new Map<string, number>();
 
   constructor(private readonly invoices: InMemoryInvoiceRepository) {}
 
@@ -101,12 +106,18 @@ export class InMemoryPaymentRepository implements PaymentRepository {
     }
     const allocated = payment.amount.min(invoice.remaining);
     const updated = invoice.withPaid(invoice.paid.add(allocated));
-    this.payments.set(payment.id, payment);
+    const next = (this.receiptCounters.get(payment.instituteId) ?? 0) + 1;
+    this.receiptCounters.set(payment.instituteId, next);
+    const stored = Payment.restore({
+      ...payment.toProps(),
+      receiptNumber: formatReceiptNumber(next),
+    });
+    this.payments.set(payment.id, stored);
     this.allocations.push({ paymentId: payment.id, invoiceId, amount: allocated });
     this.invoices.put(updated);
     return {
       outcome: 'recorded',
-      payment,
+      payment: stored,
       invoice: updated,
       allocated,
       credit: payment.amount.subtract(allocated),

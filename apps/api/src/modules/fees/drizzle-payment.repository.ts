@@ -1,5 +1,5 @@
 import type { Db } from '@coachingdesk/db';
-import { invoices, paymentAllocations, payments } from '@coachingdesk/db/schema';
+import { invoices, paymentAllocations, payments, receiptCounters } from '@coachingdesk/db/schema';
 import { LocalDate, Money, PhoneNumber } from '@coachingdesk/shared';
 import { and, asc, desc, eq, gte, inArray, lt, sql, type SQL } from 'drizzle-orm';
 import { isUniqueViolation } from '../../lib/pg-errors';
@@ -19,6 +19,7 @@ import type {
   PaymentRepository,
   RecordOutcome,
 } from './payment.repository';
+import { formatReceiptNumber } from './payment.repository';
 
 type PaymentRow = typeof payments.$inferSelect;
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
@@ -54,7 +55,21 @@ export class DrizzlePaymentRepository implements PaymentRepository {
         const allocated = payment.amount.min(invoice.remaining);
         const updated = invoice.withPaid(invoice.paid.add(allocated));
 
-        await tx.insert(payments).values(toColumns(payment));
+        // The next receipt number: one atomic UPSERT (as for invoices). Inside this
+        // transaction, so a rollback returns the number: no gaps, no repeats.
+        const [counter] = await tx
+          .insert(receiptCounters)
+          .values({ instituteId: payment.instituteId, nextValue: 2 })
+          .onConflictDoUpdate({
+            target: receiptCounters.instituteId,
+            set: { nextValue: sql`${receiptCounters.nextValue} + 1` },
+          })
+          .returning({ nextValue: receiptCounters.nextValue });
+        const stored = Payment.restore({
+          ...payment.toProps(),
+          receiptNumber: formatReceiptNumber((counter?.nextValue ?? 2) - 1),
+        });
+        await tx.insert(payments).values(toColumns(stored));
         await tx.insert(paymentAllocations).values({
           paymentId: payment.id,
           invoiceId,
@@ -67,7 +82,7 @@ export class DrizzlePaymentRepository implements PaymentRepository {
           .where(eq(invoices.id, invoiceId));
         return {
           outcome: 'recorded',
-          payment,
+          payment: stored,
           invoice: updated,
           allocated,
           credit: payment.amount.subtract(allocated),
@@ -301,6 +316,7 @@ function toColumns(payment: Payment) {
     amountPaise: payment.amount.toPaise(),
     method: payment.method,
     idempotencyKey: payment.idempotencyKey,
+    receiptNumber: payment.receiptNumber,
     status: payment.status,
     voidedAt: payment.voidedAt,
     voidedBy: payment.voidedBy,
@@ -323,6 +339,7 @@ function toPayment(row: PaymentRow): Payment {
     note: row.note,
     recordedBy: row.recordedBy,
     idempotencyKey: row.idempotencyKey,
+    receiptNumber: row.receiptNumber,
     voidedAt: row.voidedAt,
     voidedBy: row.voidedBy,
     voidReason: row.voidReason,

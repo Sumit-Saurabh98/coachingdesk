@@ -17,6 +17,8 @@ export interface PaymentProps {
   note: string | null;
   recordedBy: string | null;
   idempotencyKey: string | null;
+  /** RCT-000123; given by the repository when the payment is stored (null before Step 24). */
+  receiptNumber: string | null;
   voidedAt: Date | null;
   voidedBy: string | null;
   voidReason: string | null;
@@ -47,6 +49,7 @@ export class Payment {
   readonly note: string | null;
   readonly recordedBy: string | null;
   readonly idempotencyKey: string | null;
+  readonly receiptNumber: string | null;
   readonly voidedAt: Date | null;
   readonly voidedBy: string | null;
   readonly voidReason: string | null;
@@ -62,6 +65,7 @@ export class Payment {
     this.note = props.note;
     this.recordedBy = props.recordedBy;
     this.idempotencyKey = props.idempotencyKey;
+    this.receiptNumber = props.receiptNumber;
     this.voidedAt = props.voidedAt;
     this.voidedBy = props.voidedBy;
     this.voidReason = props.voidReason;
@@ -104,6 +108,7 @@ export class Payment {
       note: note === '' ? null : note,
       recordedBy: input.recordedBy,
       idempotencyKey: input.idempotencyKey,
+      receiptNumber: null,
       voidedAt: null,
       voidedBy: null,
       voidReason: null,
@@ -145,6 +150,7 @@ export class Payment {
   toPublicJSON() {
     return {
       id: this.id,
+      receiptNumber: this.receiptNumber,
       guardianPhone: this.guardianPhone?.toE164() ?? null,
       amountPaise: this.amount.toPaise(),
       method: this.method,
@@ -168,6 +174,7 @@ export class Payment {
       note: this.note,
       recordedBy: this.recordedBy,
       idempotencyKey: this.idempotencyKey,
+      receiptNumber: this.receiptNumber,
       voidedAt: this.voidedAt,
       voidedBy: this.voidedBy,
       voidReason: this.voidReason,

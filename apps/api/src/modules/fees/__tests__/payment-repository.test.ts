@@ -111,6 +111,10 @@ describe('DrizzlePaymentRepository (Postgres only)', () => {
     });
     // 7 full payments (Rs 1400) + 1 split (Rs 100 applied, Rs 100 credit); the rest found it closed.
     expect(allocated + credit).toBe(recorded.length * 20000);
+    // Receipt numbers: one each, no repeats, no gaps.
+    expect(recorded.map((r) => r.payment.receiptNumber).sort()).toEqual(
+      recorded.map((_, i) => `RCT-${String(i + 1).padStart(6, '0')}`),
+    );
   });
 
   it('CONCURRENCY: the same Idempotency-Key twice at once -> ONE payment', async () => {

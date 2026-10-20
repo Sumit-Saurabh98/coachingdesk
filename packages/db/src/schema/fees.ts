@@ -30,6 +30,17 @@ export const invoiceCounters = pgTable('invoice_counters', {
 });
 
 /**
+ * Per-institute receipt numbers (RCT-000001, ...), same atomic UPSERT as invoice numbers.
+ * Taken inside the payment's own transaction: a rolled-back payment gives its number back.
+ */
+export const receiptCounters = pgTable('receipt_counters', {
+  instituteId: uuid()
+    .primaryKey()
+    .references(() => institutes.id),
+  nextValue: bigint({ mode: 'number' }).notNull().default(1),
+});
+
+/**
  * One row per institute per billing period (LLD §6.1). Lets the daily job catch up after an
  * outage: a period is generated until its run is marked completed, never skipped.
  */
@@ -145,6 +156,8 @@ export const payments = pgTable(
     // AGENTS rule 6: the Idempotency-Key of the request that recorded it. A double tap on
     // "Record payment" finds this row instead of recording the money twice.
     idempotencyKey: text(),
+    // RCT-000123, unique per institute. NULL only for payments recorded before Step 24.
+    receiptNumber: text(),
     status: text().notNull().default('active'),
     voidedAt: timestamp({ withTimezone: true }),
     voidedBy: uuid().references(() => users.id, { onDelete: 'set null' }),
@@ -157,6 +170,7 @@ export const payments = pgTable(
   (t) => [
     unique('payments_institute_id_id_unique').on(t.instituteId, t.id),
     unique('payments_institute_idempotency_key_unique').on(t.instituteId, t.idempotencyKey),
+    unique('payments_institute_receipt_number_unique').on(t.instituteId, t.receiptNumber),
     index('payments_institute_paid_at_idx').on(t.instituteId, t.paidAt),
     check('payments_amount_check', sql`${t.amountPaise} > 0`),
     check('payments_method_check', sql`${t.method} in ('upi_link', 'cash', 'bank', 'other')`),
