@@ -4,7 +4,7 @@ import {
   type IdGenerator,
   InstituteClock,
   LocalDate,
-  type Money,
+  Money,
   type PhoneNumber,
   zonedInstant,
 } from '@coachingdesk/shared';
@@ -22,7 +22,7 @@ export interface PaymentStudentLookup {
   ): Promise<Array<{ id: string; name: string; guardianPhone: PhoneNumber | null }>>;
 }
 export interface PaymentInstituteLookup {
-  get(instituteId: string): Promise<{ timezone: string }>;
+  get(instituteId: string): Promise<{ timezone: string; name: string; city: string | null }>;
 }
 
 export interface PaymentServiceDeps {
@@ -58,6 +58,24 @@ export interface PaymentFilter {
 }
 
 const TOP_OVERDUE = 10;
+
+/** One line of a receipt: what part of the payment went to which due. */
+export interface ReceiptLine {
+  invoiceId: string;
+  invoiceNumber: string | null;
+  description: string;
+  studentId: string;
+  studentName: string;
+  amount: Money;
+}
+
+/** Everything a receipt shows (the app's share sheet now; the public receipt page later). */
+export interface Receipt {
+  payment: Payment;
+  institute: { name: string; city: string | null };
+  lines: ReceiptLine[];
+  credit: Money; // the part not applied to any due (guardian credit)
+}
 
 /** The public face of payments (FR-4.3, 4.4, 4.7). */
 export class PaymentService {
@@ -150,6 +168,50 @@ export class PaymentService {
       throw new AppError('NOT_FOUND', 'Payment not found');
     }
     return found;
+  }
+
+  /**
+   * GET /payments/:id/receipt (owner, staff): the receipt of one payment, in the shape it is
+   * shared. A voided payment still has one (status 'voided': the app shows it cancelled).
+   */
+  async receipt(instituteId: string, paymentId: string): Promise<Receipt> {
+    const { payment, allocations } = await this.get(instituteId, paymentId);
+    const institute = await this.deps.institutes.get(instituteId);
+    const invoices = (
+      await Promise.all(
+        allocations.map((a) => this.deps.invoices.findById(instituteId, a.invoiceId)),
+      )
+    ).filter((i): i is Invoice => i !== null);
+    const students = new Map(
+      (
+        await this.deps.students.findByIds(instituteId, [
+          ...new Set(invoices.map((i) => i.studentId)),
+        ])
+      ).map((s) => [s.id, s.name]),
+    );
+    const byId = new Map(invoices.map((i) => [i.id, i]));
+    const lines: ReceiptLine[] = allocations.flatMap((a) => {
+      const invoice = byId.get(a.invoiceId);
+      return invoice
+        ? [
+            {
+              invoiceId: invoice.id,
+              invoiceNumber: invoice.number,
+              description: invoice.description,
+              studentId: invoice.studentId,
+              studentName: students.get(invoice.studentId) ?? '',
+              amount: a.amount,
+            },
+          ]
+        : [];
+    });
+    const applied = allocations.reduce((sum, a) => sum.add(a.amount), Money.zero());
+    return {
+      payment,
+      institute: { name: institute.name, city: institute.city },
+      lines,
+      credit: payment.amount.subtract(applied),
+    };
   }
 
   /** Erasure: the guardian's phone leaves the payment history; amounts stay (LLD §6.9). */

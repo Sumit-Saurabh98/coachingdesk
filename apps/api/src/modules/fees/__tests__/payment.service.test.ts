@@ -13,7 +13,9 @@ const day = (text: string) => LocalDate.parse(text);
 async function setup() {
   const ids = new SequentialIdGenerator();
   const clock = new FixedClock(new Date('2026-10-19T10:00:00Z')); // 15:30 IST
-  const institutes = { get: async () => ({ timezone: 'Asia/Kolkata' }) };
+  const institutes = {
+    get: async () => ({ timezone: 'Asia/Kolkata', name: 'Sharma Classes', city: null }),
+  };
   const students = new StudentService({
     students: new InMemoryStudentRepository(),
     entitlements: { limitFor: async () => null },

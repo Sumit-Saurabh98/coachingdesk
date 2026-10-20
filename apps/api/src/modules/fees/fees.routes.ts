@@ -38,6 +38,9 @@ export function registerFeeRoutes(
   );
   app.get(PAYMENTS, { preHandler: read }, (req, reply) => payments.list(req, reply));
   app.get(`${PAYMENTS}/:paymentId`, { preHandler: read }, (req, reply) => payments.get(req, reply));
+  app.get(`${PAYMENTS}/:paymentId/receipt`, { preHandler: read }, (req, reply) =>
+    payments.receipt(req, reply),
+  );
   app.post(`${PAYMENTS}/:paymentId/void`, { preHandler: owner }, (req, reply) =>
     payments.void(req, reply),
   );

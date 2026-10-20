@@ -221,3 +221,55 @@ describe('GET /fees/dashboard', () => {
     expect((await http.call(teacher, 'GET', `${url}/fees/dashboard`)).statusCode).toBe(403);
   });
 });
+
+describe('GET /payments/:paymentId/receipt', () => {
+  it('number, institute, what it paid (with the student) and the credit', async () => {
+    const { token, url, invoice, pay } = await setup();
+    const paid = (await pay(invoice.id, { amountPaise: 200000, method: 'cash' })).json().payment;
+
+    const response = await http.call(token, 'GET', `${url}/payments/${paid.id}/receipt`);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().receipt).toMatchObject({
+      id: paid.id,
+      receiptNumber: 'RCT-000001',
+      amountPaise: 200000,
+      method: 'cash',
+      status: 'active',
+      institute: { name: 'Sharma Classes', city: null },
+      lines: [
+        {
+          invoiceId: invoice.id,
+          invoiceNumber: invoice.number,
+          description: 'Fee',
+          studentName: 'Aarav',
+          amountPaise: 150000,
+        },
+      ],
+      creditPaise: 50000,
+    });
+  });
+
+  it('a voided payment still has its receipt, marked voided', async () => {
+    const { token, url, invoice, pay } = await setup();
+    const paid = (await pay(invoice.id, { amountPaise: 50000, method: 'cash' })).json().payment;
+    await http.call(token, 'POST', `${url}/payments/${paid.id}/void`, { reason: 'Wrong student' });
+
+    const receipt = (await http.call(token, 'GET', `${url}/payments/${paid.id}/receipt`)).json()
+      .receipt;
+    expect(receipt).toMatchObject({ status: 'voided', voidReason: 'Wrong student' });
+  });
+
+  it('teacher 403; another institute 404', async () => {
+    const { url, invoice, pay, instituteId } = await setup();
+    const paid = (await pay(invoice.id, { amountPaise: 50000, method: 'cash' })).json().payment;
+    const teacher = await http.memberWithRole(instituteId, 'teacher');
+    expect((await http.call(teacher, 'GET', `${url}/payments/${paid.id}/receipt`)).statusCode).toBe(
+      403,
+    );
+    const other = await http.ownerWithInstitute(OTHER_PHONE);
+    expect(
+      (await http.call(other.token, 'GET', `${other.url}/payments/${paid.id}/receipt`)).statusCode,
+    ).toBe(404);
+  });
+});

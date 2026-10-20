@@ -9,7 +9,21 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import { currentUserId } from '../../http/auth-guard';
 import { uuidParam } from '../../http/route-params';
 import { currentTenant } from '../../http/tenancy-guard';
-import type { PaymentService } from './payment.service';
+import type { PaymentService, Receipt } from './payment.service';
+
+const receiptJSON = (r: Receipt) => ({
+  ...r.payment.toPublicJSON(),
+  institute: r.institute,
+  lines: r.lines.map((l) => ({
+    invoiceId: l.invoiceId,
+    invoiceNumber: l.invoiceNumber,
+    description: l.description,
+    studentId: l.studentId,
+    studentName: l.studentName,
+    amountPaise: l.amount.toPaise(),
+  })),
+  creditPaise: r.credit.toPaise(),
+});
 
 /**
  * AGENTS rule 6: the app sends a fresh random Idempotency-Key per "Record payment" tap and
@@ -51,6 +65,15 @@ export class PaymentsController {
       creditPaise: result.credit?.toPaise() ?? null,
       replayed: result.replayed,
     });
+  }
+
+  /** GET .../payments/:paymentId/receipt (owner, staff) -> 200 { receipt } */
+  async receipt(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+    const receipt = await this.payments.receipt(
+      currentTenant(request).instituteId,
+      uuidParam(request, 'paymentId', 'Payment not found'),
+    );
+    await reply.status(200).send({ receipt: receiptJSON(receipt) });
   }
 
   /** POST .../payments/:paymentId/void { reason } (owner) -> 200 { payment, invoices } */
