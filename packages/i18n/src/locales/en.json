@@ -128,10 +128,12 @@
   },
   "batches": {
     "title": "Batches",
-    "showArchived": "Show archived",
-    "archived": "Archived",
     "emptyTitle": "No batches yet",
     "emptyOwner": "Create your first batch to start taking attendance and billing fees.",
-    "emptyMember": "The owner hasn’t created any batches yet."
+    "emptyMember": "The owner hasn’t created any batches yet.",
+    "active": "Active",
+    "archivedTab": "Archived",
+    "emptyArchivedTitle": "No archived batches",
+    "emptyArchived": "Batches you archive move here. Their attendance and fee history stay."
   }
 }
