@@ -6,15 +6,19 @@ import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
 import { darkTheme, lightTheme, navigationThemeFor } from '@/theme/theme';
+import { usePreferences } from '@/stores/preferences';
 
 // The names the icon font knows ("whatsapp", "check", ...). Paper hands us a plain string.
 type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
 export default function RootLayout() {
-  // 'light' or 'dark', from the phone's setting. When the user switches it, this component
-  // re-renders with the other theme: dark mode needs no other code.
-  const scheme = useColorScheme();
-  const theme = scheme === 'dark' ? darkTheme : lightTheme;
+  // The phone's own setting, and what the user chose in the app.
+  const systemScheme = useColorScheme();
+  const preference = usePreferences((state) => state.theme);
+  // 'system' follows the phone; 'light'/'dark' override it.
+  const dark = preference === 'dark' || (preference === 'system' && systemScheme === 'dark');
+  const theme = dark ? darkTheme : lightTheme;
+
   return (
     // PaperProvider gives every Paper component (Button, Card, Text...) our theme.
     // `settings.icon`: we tell Paper EXACTLY which icon set to draw with, instead of letting it

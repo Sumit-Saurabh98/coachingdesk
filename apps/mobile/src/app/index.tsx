@@ -3,7 +3,9 @@
 import { Money, PhoneNumber } from '@coachingdesk/shared';
 import { Stack } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Avatar, Button, Card, Chip, Text } from 'react-native-paper';
+import { Avatar, Button, Card, Chip, SegmentedButtons, Text } from 'react-native-paper';
+import { usePreferences } from '@/stores/preferences';
+
 import { useAppTheme } from '@/theme/theme';
 
 const fee = Money.ofPaise(150000).format();
@@ -12,12 +14,28 @@ const phone = PhoneNumber.parse('9876543210').masked();
 export default function Index() {
   // Our theme (with success/warning). Colours come from ROLES, never hex values.
   const theme = useAppTheme();
+  const themePreference = usePreferences((state) => state.theme);
+  const setTheme = usePreferences((state) => state.setTheme);
+
   return (
     <>
       {/* A screen sets its own header title like this. */}
       <Stack.Screen options={{ title: 'Sharma Classes' }} />
       <ScrollView contentContainerStyle={styles.content}>
         {/* Paper's Text has Material type styles: headlineSmall, titleLarge, bodyMedium... */}
+        {/* Temporary: moves to the Settings screen later. SegmentedButtons is generic: the
+            value's type ('system' | 'light' | 'dark') flows into onValueChange, so setTheme
+            fits directly without any cast. */}
+        <SegmentedButtons
+          value={themePreference}
+          onValueChange={setTheme}
+          buttons={[
+            { value: 'system', label: 'System', icon: 'theme-light-dark' },
+            { value: 'light', label: 'Light', icon: 'white-balance-sunny' },
+            { value: 'dark', label: 'Dark', icon: 'weather-night' },
+          ]}
+        />
+
         <Text variant="headlineSmall">Today</Text>
         <Card mode="elevated">
           <Card.Title
