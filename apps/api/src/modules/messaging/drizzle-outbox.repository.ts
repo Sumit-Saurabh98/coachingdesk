@@ -137,6 +137,9 @@ export class DrizzleOutboxRepository implements OutboxRepository {
           or(
             like(messageOutbox.dedupeKey, `absence:%:${studentId}`),
             like(messageOutbox.dedupeKey, `result:%:${studentId}`),
+            // The copies to the student's own number (KB #50).
+            like(messageOutbox.dedupeKey, `absence:%:${studentId}:student`),
+            like(messageOutbox.dedupeKey, `result:%:${studentId}:student`),
           ),
         ),
       )

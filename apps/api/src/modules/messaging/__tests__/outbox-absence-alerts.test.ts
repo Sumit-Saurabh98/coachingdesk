@@ -49,6 +49,7 @@ function setup(options: { features?: FeatureKey[]; absenceAlerts?: boolean; now?
           id,
           name: id === 'erased' ? 'Erased student' : `Student ${id}`,
           guardianPhone: id === 'erased' ? null : PhoneNumber.parse('9876543210'),
+          studentPhone: id === 'own' ? PhoneNumber.parse('9123456789') : null,
         })),
     },
     ids: new SequentialIdGenerator(),
@@ -58,6 +59,20 @@ function setup(options: { features?: FeatureKey[]; absenceAlerts?: boolean; now?
 }
 
 describe('OutboxAbsenceAlerts', () => {
+  it('a student with their own number: a copy goes there too, with its own key (KB #50)', async () => {
+    const { alerts, outbox } = setup();
+    const outcome = await alerts.afterSync({ session, records: [mark('own', 'absent')] });
+
+    expect(outcome).toEqual({ status: 'queued', queued: 2 });
+    const copy = await outbox.findByDedupeKey(absenceDedupeKey('session-1', 'own', 'student'));
+    expect(copy?.to.toE164()).toBe('+919123456789');
+    // The worker can still find the student behind the copy ("still absent?").
+    expect(parseAbsenceDedupeKey(copy?.dedupeKey ?? '')).toEqual({
+      sessionId: 'session-1',
+      studentId: 'own',
+    });
+  });
+
   it('queues one absence_alert per absent student, with the template params', async () => {
     const { alerts, outbox } = setup();
 

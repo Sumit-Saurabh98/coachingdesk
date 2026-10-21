@@ -27,6 +27,7 @@ export class OutboxReceipts implements ReceiptQueue {
     instituteId: string;
     paymentId: string;
     guardianPhone: PhoneNumber;
+    studentPhones: Array<{ studentId: string; phone: PhoneNumber }>;
   }): Promise<boolean> {
     // FR-4.6: "if messaging is enabled for the plan" (Free shares receipts by hand).
     const { features } = await this.deps.entitlements.get(input.instituteId);
@@ -35,11 +36,16 @@ export class OutboxReceipts implements ReceiptQueue {
     }
     const institute = await this.deps.institutes.get(input.instituteId);
     const now = this.deps.clock.now();
-    const added = await this.deps.outbox.enqueueAll([
-      {
+    // The guardian's receipt, plus a copy for each paid-for student's own number (KB #50).
+    const recipients = [
+      { to: input.guardianPhone, studentId: undefined },
+      ...input.studentPhones.map((s) => ({ to: s.phone, studentId: s.studentId })),
+    ];
+    const added = await this.deps.outbox.enqueueAll(
+      recipients.map(({ to, studentId }) => ({
         id: this.deps.ids.next(),
         instituteId: input.instituteId,
-        to: input.guardianPhone,
+        to,
         template: 'payment_receipt',
         params: {}, // rendered at send time
         locale: institute.settings.messageLanguage,
@@ -47,10 +53,10 @@ export class OutboxReceipts implements ReceiptQueue {
         priority: RECEIPT_PRIORITY,
         scheduledFor: now,
         expiresAt: new Date(now.getTime() + EXPIRES_AFTER_MS),
-        dedupeKey: receiptDedupeKey(input.paymentId),
+        dedupeKey: receiptDedupeKey(input.paymentId, studentId),
         related: { type: 'payment', id: input.paymentId },
-      },
-    ]);
+      })),
+    );
     return added > 0;
   }
 }

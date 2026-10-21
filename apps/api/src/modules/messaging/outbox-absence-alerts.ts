@@ -29,7 +29,14 @@ export interface AlertStudentLookup {
   findByIds(
     instituteId: string,
     ids: readonly string[],
-  ): Promise<Array<{ id: string; name: string; guardianPhone: PhoneNumber | null }>>;
+  ): Promise<
+    Array<{
+      id: string;
+      name: string;
+      guardianPhone: PhoneNumber | null;
+      studentPhone: PhoneNumber | null;
+    }>
+  >;
 }
 
 export interface OutboxAbsenceAlertsDeps {
@@ -81,35 +88,47 @@ export class OutboxAbsenceAlerts implements AbsenceAlerts {
       this.deps.batches.get(session.instituteId, session.batchId),
       this.deps.students.findByIds(session.instituteId, absentIds),
     ]);
+    // To the parent, and to the student's own number if there is one (KB #50). Each number's
+    // consent is checked when the worker sends, so a number without consent gets nothing.
     const messages: NewOutboxMessage[] = students.flatMap((student) =>
-      student.guardianPhone === null // erased student: nobody to tell
-        ? []
-        : [
-            {
-              id: this.deps.ids.next(),
-              instituteId: session.instituteId,
-              to: student.guardianPhone,
-              template: 'absence_alert',
-              // KB template: "{{student}} was absent on {{date}} from {{batch}} at {{institute}}."
-              params: {
-                student: student.name,
-                date: displayDate(session.date),
-                batch: batch.name,
-                institute: institute.name,
-              },
-              locale: institute.settings.messageLanguage,
-              category: 'absence',
-              priority: ABSENCE_PRIORITY,
-              scheduledFor: now, // the worker moves it out of quiet hours if needed
-              expiresAt,
-              dedupeKey: absenceDedupeKey(session.id, student.id),
-              related: { type: 'attendance_session', id: session.id },
-            },
-          ],
+      recipientsOf(student).map(({ to, copy }) => ({
+        id: this.deps.ids.next(),
+        instituteId: session.instituteId,
+        to,
+        template: 'absence_alert',
+        // KB template: "{{student}} was absent on {{date}} from {{batch}} at {{institute}}."
+        params: {
+          student: student.name,
+          date: displayDate(session.date),
+          batch: batch.name,
+          institute: institute.name,
+        },
+        locale: institute.settings.messageLanguage,
+        category: 'absence',
+        priority: ABSENCE_PRIORITY,
+        scheduledFor: now, // the worker moves it out of quiet hours if needed
+        expiresAt,
+        dedupeKey: absenceDedupeKey(session.id, student.id, copy),
+        related: { type: 'attendance_session', id: session.id },
+      })),
     );
     await this.deps.outbox.enqueueAll(messages);
     return { status: 'queued', queued: messages.length };
   }
+}
+
+/**
+ * Who hears about a student: the parent, then the student's own number (if any). An erased
+ * student has neither, so nobody is told.
+ */
+export function recipientsOf(student: {
+  guardianPhone: PhoneNumber | null;
+  studentPhone: PhoneNumber | null;
+}): Array<{ to: PhoneNumber; copy: 'guardian' | 'student' }> {
+  return [
+    ...(student.guardianPhone ? [{ to: student.guardianPhone, copy: 'guardian' as const }] : []),
+    ...(student.studentPhone ? [{ to: student.studentPhone, copy: 'student' as const }] : []),
+  ];
 }
 
 /** 10:00 local on the day after the class. */

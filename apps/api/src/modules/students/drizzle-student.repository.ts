@@ -152,6 +152,15 @@ export class DrizzleStudentRepository implements StudentRepository {
     return rows.map(toStudent);
   }
 
+  async listByStudentPhone(instituteId: string, phone: PhoneNumber): Promise<Student[]> {
+    const rows = await this.db
+      .select()
+      .from(students)
+      .where(and(eq(students.instituteId, instituteId), eq(students.studentPhone, phone.toE164())))
+      .orderBy(nameKey, asc(students.id));
+    return rows.map(toStudent);
+  }
+
   async update(student: Student): Promise<UpdateStudentResult> {
     let updated: Array<{ id: string }>;
     try {

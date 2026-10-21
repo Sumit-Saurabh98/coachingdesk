@@ -64,6 +64,22 @@ export function describeStudentRepositoryContract(
       expect(await repo.findById(CONTRACT_INSTITUTE_B, studentId(1))).toBeNull();
     });
 
+    it('listByStudentPhone: students whose OWN number it is, this institute only', async () => {
+      const repo = create();
+      const own = PhoneNumber.parse('9000000011');
+      const withOwn = (n: number, instituteId = CONTRACT_INSTITUTE_A) =>
+        Student.create(studentId(n), instituteId, {
+          name: `Student ${n}`,
+          guardianPhone: PhoneNumber.parse('9876543210'),
+          studentPhone: own,
+          joinedOn: LocalDate.parse('2026-10-01'),
+        });
+      await seed(repo, withOwn(1), newStudent(2), withOwn(3, CONTRACT_INSTITUTE_B));
+
+      const found = await repo.listByStudentPhone(CONTRACT_INSTITUTE_A, own);
+      expect(found.map((s) => s.id)).toEqual([studentId(1)]);
+    });
+
     describe('roll number: unique among ACTIVE students of an institute', () => {
       it('a second active student with the same roll (any case) is refused, nothing stored', async () => {
         const repo = create();

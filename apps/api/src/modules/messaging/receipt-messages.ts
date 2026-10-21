@@ -1,9 +1,11 @@
 /** The dedupe key of a payment receipt: one per payment, ever (LLD §6.4). */
-export function receiptDedupeKey(paymentId: string): string {
-  return `receipt:${paymentId}`;
+/** The guardian's receipt; with studentId, the copy to that student's own number (KB #50). */
+export function receiptDedupeKey(paymentId: string, studentId?: string): string {
+  return studentId ? `receipt:${paymentId}:student:${studentId}` : `receipt:${paymentId}`;
 }
 
 export function parseReceiptDedupeKey(key: string): { paymentId: string } | null {
   const [kind, paymentId, ...rest] = key.split(':');
-  return kind === 'receipt' && paymentId && rest.length === 0 ? { paymentId } : null;
+  const copyOk = rest.length === 0 || (rest.length === 2 && rest[0] === 'student' && rest[1]);
+  return kind === 'receipt' && paymentId && copyOk ? { paymentId } : null;
 }

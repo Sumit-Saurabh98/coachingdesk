@@ -12,6 +12,7 @@ import { feeReminderKey, ReminderPlanner, ReminderScheduler } from '../reminder-
 const A = 'inst-a';
 const NEHA = PhoneNumber.parse('9812345678');
 const RAVI = PhoneNumber.parse('9123456789');
+const OWN = PhoneNumber.parse('9000000011'); // Chirag's own phone
 // Today at the institute: 2026-10-19 (15:30 IST).
 const NOW = new Date('2026-10-19T10:00:00Z');
 
@@ -22,10 +23,10 @@ function setup(
 ) {
   const outbox = new InMemoryOutboxRepository();
   const students = [
-    { id: 'aarav', isActive: true, guardianPhone: NEHA },
-    { id: 'bhavya', isActive: true, guardianPhone: NEHA }, // Aarav's sister
-    { id: 'chirag', isActive: true, guardianPhone: RAVI },
-    { id: 'leaver', isActive: false, guardianPhone: RAVI },
+    { id: 'aarav', isActive: true, guardianPhone: NEHA, studentPhone: null },
+    { id: 'bhavya', isActive: true, guardianPhone: NEHA, studentPhone: null }, // Aarav's sister
+    { id: 'chirag', isActive: true, guardianPhone: RAVI, studentPhone: OWN },
+    { id: 'leaver', isActive: false, guardianPhone: RAVI, studentPhone: null },
   ];
   const invoices = options.invoices ?? [];
   const planner = new ReminderPlanner({
@@ -58,10 +59,11 @@ describe('ReminderPlanner.planFor', () => {
         { studentId: 'chirag', dueDate: '2026-10-12' }, // 7 days late: yes
       ],
     });
-    expect(await planner.planFor(A)).toEqual({ guardians: 2, queued: 2 });
+    // Aarav's parent, Chirag's parent, and Chirag's own number (KB #50).
+    expect(await planner.planFor(A)).toEqual({ recipients: 3, queued: 3 });
 
     const notOnOffset = setup({ invoices: [{ studentId: 'aarav', dueDate: '2026-10-20' }] });
-    expect(await notOnOffset.planner.planFor(A)).toEqual({ guardians: 0, queued: 0 });
+    expect(await notOnOffset.planner.planFor(A)).toEqual({ recipients: 0, queued: 0 });
   });
 
   it('siblings get ONE reminder; a re-run the same day queues nothing new', async () => {
@@ -72,8 +74,8 @@ describe('ReminderPlanner.planFor', () => {
       ],
     });
 
-    expect(await planner.planFor(A)).toEqual({ guardians: 1, queued: 1 });
-    expect(await planner.planFor(A)).toEqual({ guardians: 1, queued: 0 });
+    expect(await planner.planFor(A)).toEqual({ recipients: 1, queued: 1 });
+    expect(await planner.planFor(A)).toEqual({ recipients: 1, queued: 0 });
 
     const queued = await outbox.findByDedupeKey(
       feeReminderKey(A, NEHA, LocalDate.parse('2026-10-19')),
@@ -88,17 +90,17 @@ describe('ReminderPlanner.planFor', () => {
 
   it('students who left get no reminders', async () => {
     const { planner } = setup({ invoices: [{ studentId: 'leaver', dueDate: '2026-10-19' }] });
-    expect(await planner.planFor(A)).toEqual({ guardians: 0, queued: 0 });
+    expect(await planner.planFor(A)).toEqual({ recipients: 0, queued: 0 });
   });
 
   it('nothing on Free (no automatic messages) or with reminders turned off', async () => {
     const invoices = [{ studentId: 'aarav', dueDate: '2026-10-19' }];
     expect(await setup({ invoices, features: [] }).planner.planFor(A)).toEqual({
-      guardians: 0,
+      recipients: 0,
       queued: 0,
     });
     expect(await setup({ invoices, offsets: [] }).planner.planFor(A)).toEqual({
-      guardians: 0,
+      recipients: 0,
       queued: 0,
     });
   });

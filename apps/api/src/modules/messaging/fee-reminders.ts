@@ -15,7 +15,10 @@ export interface RemindInvoiceLookup {
   get(instituteId: string, invoiceId: string): Promise<{ studentId: string; isOpen: boolean }>;
 }
 export interface RemindStudentLookup {
-  get(instituteId: string, studentId: string): Promise<{ guardianPhone: PhoneNumber | null }>;
+  get(
+    instituteId: string,
+    studentId: string,
+  ): Promise<{ guardianPhone: PhoneNumber | null; studentPhone: PhoneNumber | null }>;
 }
 export interface RemindInstituteLookup {
   get(
@@ -60,7 +63,10 @@ export class FeeReminders {
         feature: 'automatic_messages',
       });
     }
-    const { guardianPhone } = await this.deps.students.get(instituteId, invoice.studentId);
+    const { guardianPhone, studentPhone } = await this.deps.students.get(
+      instituteId,
+      invoice.studentId,
+    );
     if (!guardianPhone) {
       throw new AppError('CONFLICT', "This student's guardian has no phone number on file");
     }
@@ -69,11 +75,14 @@ export class FeeReminders {
     const now = this.deps.clock.now();
     const scheduledFor = quietHoursEnd(this.deps.clock, institute.timezone) ?? now;
 
-    const queued = await this.deps.outbox.enqueueAll([
-      {
+    // The parent, and the student's own number too (KB #50: "remind" means both). Each number
+    // has its own one-a-day limit; "already reminded" only when neither could be queued.
+    const recipients = [guardianPhone, ...(studentPhone ? [studentPhone] : [])];
+    const queued = await this.deps.outbox.enqueueAll(
+      recipients.map((to) => ({
         id: this.deps.ids.next(),
         instituteId,
-        to: guardianPhone,
+        to,
         template: 'fee_reminder', // the send worker renders the final text from current dues
         params: {},
         locale: institute.settings.messageLanguage,
@@ -81,10 +90,10 @@ export class FeeReminders {
         priority: 3,
         scheduledFor,
         expiresAt: feeReminderExpiry(today, institute.timezone),
-        dedupeKey: feeReminderKey(instituteId, guardianPhone, today, force),
+        dedupeKey: feeReminderKey(instituteId, to, today, force),
         related: { type: 'guardian_dues', id: instituteId },
-      },
-    ]);
+      })),
+    );
     if (queued === 0) {
       throw new AppError(
         'ALREADY_REMINDED_TODAY',

@@ -33,6 +33,25 @@ async function setup() {
 }
 
 describe('notices', () => {
+  it("preview counts a student's own number too (consent is checked when sending)", async () => {
+    const { token, notices, maths, url } = await setup();
+    await http.call(token, 'POST', `${url}/students`, {
+      name: 'Dev',
+      guardianPhone: '9000000022',
+      studentPhone: '9000000033',
+      joinedOn: '2026-10-01',
+      batchIds: [maths.id],
+    });
+
+    const response = await http.call(token, 'POST', `${notices}/preview`, {
+      kind: 'general',
+      batchIds: [maths.id],
+      text: 'Exam on Monday',
+    });
+    // Neha (Aarav + Bhavya), Ravi (Chirag), Dev's parent, and Dev's own number.
+    expect(response.json()).toMatchObject({ recipients: 4, messagesNeeded: 4 });
+  });
+
   it('preview: one message per guardian (siblings share it), and the quota left', async () => {
     const { token, notices, maths, science } = await setup();
 

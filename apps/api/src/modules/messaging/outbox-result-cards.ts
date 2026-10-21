@@ -32,10 +32,15 @@ export class OutboxResultCards implements ResultCardQueue {
     }
     const institute = await this.deps.institutes.get(instituteId);
     const now = this.deps.clock.now();
-    const messages: NewOutboxMessage[] = cards.map((card) => ({
+    // The parent's card, and a copy for the student's own number (KB #50).
+    const copies = cards.flatMap((card) => [
+      { card, to: card.guardianPhone, copy: 'guardian' as const },
+      ...(card.studentPhone ? [{ card, to: card.studentPhone, copy: 'student' as const }] : []),
+    ]);
+    const messages: NewOutboxMessage[] = copies.map(({ card, to, copy }) => ({
       id: this.deps.ids.next(),
       instituteId,
-      to: card.guardianPhone,
+      to,
       template: 'result_card',
       // KB §4: "{{student}}'s result for {{test}} at {{institute}}: {{marks}}/{{max}}."
       params: resultParams(card, institute.name),
@@ -44,7 +49,7 @@ export class OutboxResultCards implements ResultCardQueue {
       priority: RESULT_PRIORITY,
       scheduledFor: now, // the worker handles quiet hours, consent and quota
       expiresAt: new Date(now.getTime() + EXPIRES_AFTER_MS),
-      dedupeKey: resultDedupeKey(card.testId, card.studentId),
+      dedupeKey: resultDedupeKey(card.testId, card.studentId, copy),
       related: { type: 'test', id: card.testId },
     }));
     return this.deps.outbox.enqueueAll(messages);

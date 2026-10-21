@@ -19,7 +19,14 @@ export interface PaymentStudentLookup {
   findByIds(
     instituteId: string,
     ids: readonly string[],
-  ): Promise<Array<{ id: string; name: string; guardianPhone: PhoneNumber | null }>>;
+  ): Promise<
+    Array<{
+      id: string;
+      name: string;
+      guardianPhone: PhoneNumber | null;
+      studentPhone: PhoneNumber | null;
+    }>
+  >;
 }
 export interface PaymentInstituteLookup {
   get(instituteId: string): Promise<{ timezone: string; name: string; city: string | null }>;
@@ -32,6 +39,8 @@ export interface ReceiptQueue {
     instituteId: string;
     paymentId: string;
     guardianPhone: PhoneNumber;
+    /** The paid-for students' own numbers (KB #50): each gets a copy. */
+    studentPhones: Array<{ studentId: string; phone: PhoneNumber }>;
   }): Promise<boolean>;
 }
 
@@ -153,10 +162,18 @@ export class PaymentService {
     if (!this.deps.receipts || payment.status !== 'active' || !payment.guardianPhone) {
       return;
     }
+    // The students this payment paid for, and which of them have their own number.
+    const { lines } = await this.receipt(payment.instituteId, payment.id);
+    const students = await this.deps.students.findByIds(payment.instituteId, [
+      ...new Set(lines.map((line) => line.studentId)),
+    ]);
     await this.deps.receipts.paymentRecorded({
       instituteId: payment.instituteId,
       paymentId: payment.id,
       guardianPhone: payment.guardianPhone,
+      studentPhones: students.flatMap((s) =>
+        s.studentPhone ? [{ studentId: s.id, phone: s.studentPhone }] : [],
+      ),
     });
   }
 

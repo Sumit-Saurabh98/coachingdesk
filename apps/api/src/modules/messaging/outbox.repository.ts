@@ -186,7 +186,8 @@ export class InMemoryOutboxRepository implements OutboxRepository {
     for (const row of this.rows.values()) {
       const aboutStudent =
         (row.dedupeKey.startsWith('absence:') || row.dedupeKey.startsWith('result:')) &&
-        row.dedupeKey.endsWith(`:${studentId}`);
+        (row.dedupeKey.endsWith(`:${studentId}`) ||
+          row.dedupeKey.endsWith(`:${studentId}:student`)); // the student's own copy (KB #50)
       if (row.instituteId === instituteId && aboutStudent) {
         row.params = {};
         if (row.status === 'queued' || row.status === 'scheduled') {

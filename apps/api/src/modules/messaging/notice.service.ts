@@ -35,7 +35,13 @@ export interface NoticeDeps {
     findByIds(
       instituteId: string,
       ids: readonly string[],
-    ): Promise<Array<{ isActive: boolean; guardianPhone: PhoneNumber | null }>>;
+    ): Promise<
+      Array<{
+        isActive: boolean;
+        guardianPhone: PhoneNumber | null;
+        studentPhone: PhoneNumber | null;
+      }>
+    >;
   };
   entitlements: {
     get(instituteId: string): Promise<{ features: ReadonlySet<FeatureKey> }>;
@@ -155,11 +161,15 @@ export class NoticeService {
       }
     }
     const students = await this.deps.students.findByIds(instituteId, [...studentIds]);
-    // One message per GUARDIAN, even with children in several of the batches.
+    // One message per NUMBER: each guardian once (even with children in several batches), and
+    // each student's own number (KB #50). Consent is checked per number when the worker sends.
     const phones = new Map<string, PhoneNumber>();
     for (const s of students) {
       if (s.isActive && s.guardianPhone) {
         phones.set(s.guardianPhone.toE164(), s.guardianPhone);
+      }
+      if (s.isActive && s.studentPhone) {
+        phones.set(s.studentPhone.toE164(), s.studentPhone);
       }
     }
     return { phones: [...phones.values()], institute, content, today: today };

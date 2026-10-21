@@ -16,9 +16,9 @@ const due = (studentId: string, rupees: number, date: string): Due => ({
   dueDate: LocalDate.parse(date),
 });
 
-function renderer(students: Student[], dues: Due[]) {
+function renderer(students: Student[], dues: Due[], ownNumberOf: Student[] = []) {
   return new FeeReminderRenderer(
-    { activeByGuardianPhone: async () => students },
+    { activeByGuardianPhone: async () => students, activeByStudentPhone: async () => ownNumberOf },
     { openForStudents: async (_i, ids) => dues.filter((d) => ids.includes(d.studentId)) },
     { get: async () => ({ name: 'Sharma Classes' }) },
   );
@@ -79,6 +79,25 @@ describe('FeeReminderRenderer', () => {
     expect(await renderer([], [due('a', 1500, '2026-10-07')]).check(message)).toEqual({
       kind: 'skip',
       reason: 'nothing_due',
+    });
+  });
+
+  it("a student's OWN number: only their dues, greeted by their own name (KB #50)", async () => {
+    const result = await renderer(
+      [], // nobody's guardian number
+      [due('a', 1500, '2026-10-07'), due('b', 800, '2026-10-07')],
+      [aarav],
+    ).check(message);
+    expect(result).toEqual({
+      kind: 'send',
+      template: 'fee_reminder',
+      params: {
+        guardian: 'Aarav',
+        student: 'Aarav',
+        amount: '1,500',
+        institute: 'Sharma Classes',
+        date: '7 Oct 2026',
+      },
     });
   });
 

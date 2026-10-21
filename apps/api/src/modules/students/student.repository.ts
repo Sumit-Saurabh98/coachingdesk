@@ -50,6 +50,8 @@ export interface StudentRepository {
   activeIdsOldestFirst(instituteId: string): Promise<string[]>;
   /** Every student of this guardian at this institute (siblings), any status. */
   listByGuardianPhone(instituteId: string, phone: PhoneNumber): Promise<Student[]>;
+  /** Students whose OWN number this is (any status), by name. */
+  listByStudentPhone(instituteId: string, phone: PhoneNumber): Promise<Student[]>;
   /**
    * Saves every editable field + status/leftOn. Matches id AND instituteId; throws if none.
    * 'roll_number_taken': another ACTIVE student here has that roll number (nothing saved).
@@ -136,6 +138,12 @@ export class InMemoryStudentRepository implements StudentRepository {
   async listByGuardianPhone(instituteId: string, phone: PhoneNumber): Promise<Student[]> {
     return [...this.students.values()]
       .filter((s) => s.instituteId === instituteId && (s.guardianPhone?.equals(phone) ?? false))
+      .sort(compareByName);
+  }
+
+  async listByStudentPhone(instituteId: string, phone: PhoneNumber): Promise<Student[]> {
+    return [...this.students.values()]
+      .filter((s) => s.instituteId === instituteId && (s.studentPhone?.equals(phone) ?? false))
       .sort(compareByName);
   }
 

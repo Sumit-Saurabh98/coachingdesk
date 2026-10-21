@@ -35,6 +35,7 @@ export interface TestStudentLookup {
       rollNumber: string | null;
       isActive: boolean;
       guardianPhone: PhoneNumber | null;
+      studentPhone: PhoneNumber | null;
     }>
   >;
 }
@@ -50,6 +51,8 @@ export interface ResultCard {
   studentId: string;
   studentName: string;
   guardianPhone: PhoneNumber;
+  /** The student's own number (KB #50): gets a copy, if its consent allows at send time. */
+  studentPhone: PhoneNumber | null;
   marks: number;
 }
 /** Implemented by the messaging module (OutboxResultCards): queues, never sends (rule 4). */
@@ -281,6 +284,7 @@ export class TestService {
         studentId: row.studentId,
         studentName: row.name,
         guardianPhone: student.guardianPhone,
+        studentPhone: student.studentPhone,
         marks: row.marks,
       });
     }

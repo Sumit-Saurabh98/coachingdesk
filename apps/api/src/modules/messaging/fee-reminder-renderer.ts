@@ -9,6 +9,11 @@ export interface GuardianStudentsLookup {
     instituteId: string,
     phone: PhoneNumber,
   ): Promise<Array<{ id: string; name: string; guardianName: string | null }>>;
+  /** Students whose OWN number this is (KB #50). */
+  activeByStudentPhone(
+    instituteId: string,
+    phone: PhoneNumber,
+  ): Promise<Array<{ id: string; name: string; guardianName: string | null }>>;
 }
 export interface OpenDuesLookup {
   openForStudents(
@@ -33,7 +38,14 @@ export class FeeReminderRenderer implements Revalidator {
   ) {}
 
   async check(message: OutboxMessage): Promise<Revalidation> {
-    const students = await this.students.activeByGuardianPhone(message.instituteId, message.to);
+    // A parent's number: all their children's dues. A student's own number: only theirs, and
+    // the greeting is the student's own name (KB #50).
+    const asGuardian = await this.students.activeByGuardianPhone(message.instituteId, message.to);
+    const ownNumber =
+      asGuardian.length > 0
+        ? []
+        : await this.students.activeByStudentPhone(message.instituteId, message.to);
+    const students = asGuardian.length > 0 ? asGuardian : ownNumber;
     const dues = (
       await this.invoices.openForStudents(
         message.instituteId,
@@ -47,7 +59,8 @@ export class FeeReminderRenderer implements Revalidator {
     const total = dues.reduce((sum, d) => sum.add(d.remaining), Money.zero());
     const { name: institute } = await this.institutes.get(message.instituteId);
     // Same guardian for all siblings: any sibling's record may carry the name.
-    const guardian = students.find((s) => s.guardianName)?.guardianName ?? 'Parent';
+    const guardian =
+      ownNumber[0]?.name ?? students.find((s) => s.guardianName)?.guardianName ?? 'Parent';
 
     if (owing.length === 1) {
       // KB template fee_reminder: "Hello {{guardian}}, {{student}}'s fee of ₹{{amount}} at

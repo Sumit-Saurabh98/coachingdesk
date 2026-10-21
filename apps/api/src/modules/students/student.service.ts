@@ -154,6 +154,12 @@ export class StudentService {
     return siblings.filter((s) => s.isActive);
   }
 
+  /** ACTIVE students whose OWN number this is (KB #50): a fee reminder there covers just them. */
+  async activeByStudentPhone(instituteId: string, phone: PhoneNumber): Promise<Student[]> {
+    const own = await this.deps.students.listByStudentPhone(instituteId, phone);
+    return own.filter((s) => s.isActive);
+  }
+
   /** 404 for an unknown id AND for another institute's student. */
   async get(instituteId: string, studentId: string): Promise<Student> {
     const student = await this.deps.students.findById(instituteId, studentId);

@@ -26,7 +26,14 @@ export interface ReminderStudentLookup {
   findByIds(
     instituteId: string,
     ids: readonly string[],
-  ): Promise<Array<{ id: string; isActive: boolean; guardianPhone: PhoneNumber | null }>>;
+  ): Promise<
+    Array<{
+      id: string;
+      isActive: boolean;
+      guardianPhone: PhoneNumber | null;
+      studentPhone: PhoneNumber | null;
+    }>
+  >;
 }
 
 export interface ReminderPlannerDeps {
@@ -64,14 +71,14 @@ export function feeReminderExpiry(today: LocalDate, timezone: string): Date {
 export class ReminderPlanner {
   constructor(private readonly deps: ReminderPlannerDeps) {}
 
-  async planFor(instituteId: string): Promise<{ guardians: number; queued: number }> {
+  async planFor(instituteId: string): Promise<{ recipients: number; queued: number }> {
     const [institute, { features }] = await Promise.all([
       this.deps.institutes.get(instituteId),
       this.deps.entitlements.get(instituteId),
     ]);
     const offsets = institute.settings.reminderOffsets;
     if (!features.has('automatic_messages') || offsets.length === 0) {
-      return { guardians: 0, queued: 0 }; // Free plan, or the owner turned reminders off
+      return { recipients: 0, queued: 0 }; // Free plan, or the owner turned reminders off
     }
     const today = new InstituteClock(this.deps.clock, institute.timezone).today();
     // offset = days BEFORE the due date: due = today + offset (3 -> due in 3 days, -7 -> 7 days late)
@@ -86,6 +93,10 @@ export class ReminderPlanner {
     for (const student of students) {
       if (student.isActive && student.guardianPhone) {
         phones.set(student.guardianPhone.toE164(), student.guardianPhone);
+      }
+      // The student's own number too (KB #50): its reminder covers only that student's dues.
+      if (student.isActive && student.studentPhone) {
+        phones.set(student.studentPhone.toE164(), student.studentPhone);
       }
     }
     const now = this.deps.clock.now();
@@ -104,7 +115,7 @@ export class ReminderPlanner {
       related: { type: 'guardian_dues', id: instituteId },
     }));
     const queued = await this.deps.outbox.enqueueAll(messages);
-    return { guardians: phones.size, queued };
+    return { recipients: phones.size, queued };
   }
 }
 
