@@ -390,5 +390,21 @@
     "total": "Received {{amount}} ({{method}})",
     "thanks": "Thank you!",
     "share": "Share receipt"
+  },
+  "invoiceActions": {
+    "remind": "Send reminder",
+    "messageParent": "WhatsApp parent",
+    "help": "\"Send reminder\" sends our WhatsApp fee reminder (covering all of this family's dues). \"WhatsApp parent\" opens a chat with the message typed for you.",
+    "reminded": "Reminder queued: it goes out in a moment.",
+    "remindLater": "Reminder queued for {{time}} (no messages at night).",
+    "alreadyToday": "This parent already got a fee reminder today.",
+    "notInPlan": "Automatic WhatsApp reminders aren't in your plan. Use \"WhatsApp parent\" to send it yourself.",
+    "nothingDue": "Nothing is due on this invoice any more.",
+    "forceTitle": "Already reminded today",
+    "forceBody": "This parent already got a fee reminder today. Send one more? (At most one extra a day.)",
+    "forceSend": "Send one more",
+    "payFromCredit": "Pay from family credit ({{amount}} available)",
+    "creditApplied": "{{amount}} paid from family credit.",
+    "parentMessage": "Hello, this is a reminder from {{institute}}: {{student}}'s fee ({{description}}) of {{amount}} is due on {{date}}. Thank you!"
   }
 }

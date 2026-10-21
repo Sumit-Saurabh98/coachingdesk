@@ -7,6 +7,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Card, Chip, List, Text } from 'react-native-paper';
 import { errorMessage } from '@/api/error-message';
 import { feeKeys, getInvoice } from '@/fees/fees-api';
+import { InvoiceActions } from '@/fees/invoice-actions';
 import { invoiceTone, isOpen } from '@/fees/invoice-rules';
 import { InvoiceStatusChip } from '@/fees/invoice-status-chip';
 import { rupees } from '@/fees/rupees';
@@ -100,6 +101,14 @@ export default function InvoiceScreen() {
         >
           {t('payment.record')}
         </Button>
+      )}
+      {isOpen(invoice.status) && (
+        <InvoiceActions
+          instituteId={instituteId}
+          instituteName={current?.name ?? ''}
+          isOwner={current?.role === 'owner'}
+          invoice={invoice}
+        />
       )}
 
       <View style={styles.facts}>

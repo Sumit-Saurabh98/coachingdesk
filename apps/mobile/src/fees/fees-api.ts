@@ -164,3 +164,23 @@ export async function getReceipt(
   );
   return result.receipt;
 }
+
+/**
+ * POST .../invoices/:id/remind (owner, staff; `force` owner only). Queued, the worker sends
+ * it: now, or at 08:00 after quiet hours (`scheduledFor`). The text covers ALL the parent's dues.
+ */
+export function sendReminder(
+  instituteId: string,
+  invoiceId: string,
+  force: boolean,
+): Promise<{ scheduledFor: string }> {
+  return api.post(`/v1/institutes/${instituteId}/invoices/${invoiceId}/remind`, { force });
+}
+
+/** POST .../invoices/:id/apply-credit (owner, staff): pays it from the family's credit. */
+export function applyCredit(
+  instituteId: string,
+  invoiceId: string,
+): Promise<{ invoice: Invoice; appliedPaise: number; creditPaise: number }> {
+  return api.post(`/v1/institutes/${instituteId}/invoices/${invoiceId}/apply-credit`);
+}
