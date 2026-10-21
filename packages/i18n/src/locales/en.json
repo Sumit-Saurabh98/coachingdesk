@@ -95,7 +95,9 @@
     "messages": "Messages",
     "messagesDescription": "WhatsApp messages sent to parents, and this month's usage",
     "instituteSettings": "Institute settings",
-    "instituteSettingsDescription": "Fees, reminders and messages"
+    "instituteSettingsDescription": "Fees, reminders and messages",
+    "team": "Team",
+    "teamDescription": "Teachers and staff who use the app"
   },
   "comingSoon": {
     "title": "Coming soon",
@@ -618,5 +620,28 @@
     "languageHelp": "The language of the WhatsApp messages parents get (not this app's).",
     "save": "Save settings",
     "savedNote": "Settings saved"
+  },
+  "team": {
+    "help": "People who can open this institute in the app. They log in with their own mobile number.",
+    "add": "Add to team",
+    "addButton": "Add",
+    "name": "Name",
+    "nameInvalid": "Write their name (2–80 characters).",
+    "phone": "Mobile number",
+    "phoneInvalid": "Enter a valid 10-digit mobile number",
+    "phoneHelp": "They get access when they log in with this number.",
+    "teacherHelp": "Takes attendance, enters marks, sends notices. Doesn't see fees.",
+    "staffHelp": "Front desk: students, batches, attendance, fees and payments. Can't waive or void.",
+    "limit": "Your plan allows {{limit}} team members (besides you). Upgrade, or remove someone first.",
+    "notInPlan": "Your plan doesn't include team members. Upgrade to add teachers or staff.",
+    "already": "This number is already in your team.",
+    "remove": "Remove",
+    "removeTitle": "Remove {{name}}?",
+    "removeBody": "They lose access to this institute right away. Their past attendance and marks stay.",
+    "role": {
+      "owner": "Owner",
+      "teacher": "Teacher",
+      "staff": "Staff"
+    }
   }
 }

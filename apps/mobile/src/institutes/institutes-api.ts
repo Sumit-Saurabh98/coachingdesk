@@ -1,6 +1,7 @@
 import type { CreateInstituteBody } from '@coachingdesk/shared';
 import { api } from '@/api';
 import type { InstituteDetail, InstituteUpdate } from './settings-rules';
+import type { Member } from './team-rules';
 
 export interface CreatedInstitute {
   institute: { id: string; name: string; type: 'tuition' | 'academy' | 'home_tutor' };
@@ -55,4 +56,33 @@ export async function updateInstitute(
     body,
   );
   return result.institute;
+}
+
+export const memberKeys = {
+  all: (instituteId: string) => ['institutes', instituteId, 'members'] as const,
+};
+
+/** GET .../members (owner): the team. */
+export async function listMembers(instituteId: string, signal?: AbortSignal): Promise<Member[]> {
+  const result = await api.get<{ members: Member[] }>(`/v1/institutes/${instituteId}/members`, {
+    signal,
+  });
+  return result.members;
+}
+
+/**
+ * POST .../members (owner): adds a teacher or staff member by phone. They get access when they
+ * next log in with that number. 402 over the plan's team size; 409 already in the team.
+ */
+export async function addMember(
+  instituteId: string,
+  body: { phone: string; name: string; role: 'teacher' | 'staff' },
+): Promise<Member> {
+  const result = await api.post<{ member: Member }>(`/v1/institutes/${instituteId}/members`, body);
+  return result.member;
+}
+
+/** DELETE .../members/:userId (owner): they lose access at once. */
+export async function removeMember(instituteId: string, userId: string): Promise<void> {
+  await api.delete(`/v1/institutes/${instituteId}/members/${userId}`);
 }
