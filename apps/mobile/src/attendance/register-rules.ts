@@ -52,3 +52,22 @@ export function marksToSend(
 export function allPresent(rows: readonly RegisterRow[]): Marks {
   return Object.fromEntries(rows.map((row) => [row.studentId, 'present' as const]));
 }
+
+/**
+ * Saves still on this phone (not yet on the server) applied on top, oldest first: reopening a
+ * class offline shows what the teacher saved, not what the server last had.
+ */
+export function withSaves(
+  marks: Marks,
+  saves: ReadonlyArray<{ records: ReadonlyArray<{ studentId: string; status: AttendanceStatus }> }>,
+): Marks {
+  const result = { ...marks };
+  for (const save of saves) {
+    for (const record of save.records) {
+      if (record.studentId in result) {
+        result[record.studentId] = record.status;
+      }
+    }
+  }
+  return result;
+}

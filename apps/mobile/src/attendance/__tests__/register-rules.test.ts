@@ -6,6 +6,7 @@ import {
   marksToSend,
   type RegisterRow,
   tapped,
+  withSaves,
 } from '../register-rules';
 
 const row = (
@@ -78,5 +79,21 @@ describe('allPresent', () => {
       a: 'present',
       b: 'present',
     });
+  });
+});
+
+describe('withSaves', () => {
+  it('applies saves still on the phone, oldest first, only to students on the register', () => {
+    const marks = { a: 'present', b: 'present' } as const;
+    const saves = [
+      { records: [{ studentId: 'a', status: 'absent' as const }] },
+      {
+        records: [
+          { studentId: 'a', status: 'late' as const },
+          { studentId: 'gone', status: 'absent' as const },
+        ],
+      },
+    ];
+    expect(withSaves(marks, saves)).toEqual({ a: 'late', b: 'present' });
   });
 });

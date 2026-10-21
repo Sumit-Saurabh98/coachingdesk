@@ -3,7 +3,8 @@
     "appName": "Coaching Desk",
     "save": "Save",
     "cancel": "Cancel",
-    "retry": "Try again"
+    "retry": "Try again",
+    "showingSaved": "Couldn't refresh. Showing what was saved on this phone."
   },
   "settings": {
     "theme": "Theme",

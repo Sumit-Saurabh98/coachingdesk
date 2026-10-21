@@ -1,13 +1,18 @@
 // "Today": the classes meeting today at the institute and whether attendance is taken. The
 // server decides what "today" is (the institute's time zone), and which batches meet.
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, Stack } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Card, Chip, Text } from 'react-native-paper';
 import { errorMessage } from '@/api/error-message';
-import { attendanceKeys, type DayBatch, getTodaySummary } from '@/attendance/attendance-api';
+import {
+  attendanceKeys,
+  type DayBatch,
+  getRegister,
+  getTodaySummary,
+} from '@/attendance/attendance-api';
 import type { PendingAttendance } from '@/attendance/outbox/attendance-outbox';
 import { attendanceSyncer, syncFailureText, usePendingAttendance } from '@/attendance/sync';
 import { classTiming, countParts, isoWeekday, nowHHMM, takenCount } from '@/attendance/today-rules';
@@ -35,26 +40,43 @@ export default function TodayScreen() {
   // Saves still on this phone (offline, or refused by the server).
   const pending = usePendingAttendance(instituteId);
 
+  // Load today's registers in the background (and so onto the phone): a class can then be
+  // opened and marked even if the internet drops before the teacher gets to it.
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    const today = summary.data;
+    if (!today) {
+      return;
+    }
+    for (const batch of today.batches) {
+      void queryClient.prefetchQuery({
+        queryKey: attendanceKeys.register(instituteId, batch.batchId, today.date),
+        queryFn: ({ signal }) => getRegister(instituteId, batch.batchId, today.date, signal),
+      });
+    }
+  }, [queryClient, instituteId, summary.data]);
+
   const header = <Stack.Screen options={{ title: current?.name ?? '' }} />;
 
-  if (summary.isPending) {
+  // Saved data (also from the phone, when offline) wins over a failed refresh.
+  if (!summary.data) {
+    if (summary.isError) {
+      return (
+        <View style={styles.centered}>
+          {header}
+          {/* Offline: what's waiting on the phone still shows. */}
+          <PendingBanner pending={pending} />
+          <Text style={{ color: theme.colors.error }}>{errorMessage(t, summary.error)}</Text>
+          <Button mode="contained" onPress={() => void summary.refetch()}>
+            {t('common.retry')}
+          </Button>
+        </View>
+      );
+    }
     return (
       <View style={styles.centered}>
         {header}
         <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-  if (summary.isError) {
-    return (
-      <View style={styles.centered}>
-        {header}
-        {/* Offline: what's waiting on the phone still shows. */}
-        <PendingBanner pending={pending} />
-        <Text style={{ color: theme.colors.error }}>{errorMessage(t, summary.error)}</Text>
-        <Button mode="contained" onPress={() => void summary.refetch()}>
-          {t('common.retry')}
-        </Button>
       </View>
     );
   }
@@ -113,6 +135,11 @@ export default function TodayScreen() {
         }
         ListHeaderComponent={
           <View style={styles.heading}>
+            {summary.isError && (
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                {t('common.showingSaved')}
+              </Text>
+            )}
             <Text variant="titleLarge">
               {t('today.heading', {
                 weekday: labels.weekdays[isoWeekday(date) - 1] ?? '',

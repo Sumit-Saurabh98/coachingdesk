@@ -69,7 +69,7 @@ export default function BatchesScreen() {
         <View style={styles.centered}>
           <ActivityIndicator size="large" />
         </View>
-      ) : batches.isError ? (
+      ) : batches.isError && !batches.data ? (
         <View style={styles.centered}>
           <Text style={{ color: theme.colors.error }}>{errorMessage(t, batches.error)}</Text>
           <Button mode="contained" onPress={() => void batches.refetch()}>
@@ -79,9 +79,11 @@ export default function BatchesScreen() {
       ) : (
         // FlatList draws only the rows on screen: fine for 5 batches and for 500.
         <FlatList
-          data={batches.data}
+          data={batches.data ?? []}
           keyExtractor={(batch) => batch.id}
-          contentContainerStyle={batches.data.length === 0 ? styles.emptyContainer : undefined}
+          contentContainerStyle={
+            (batches.data ?? []).length === 0 ? styles.emptyContainer : undefined
+          }
           // Pull down to refresh.
           refreshControl={
             <RefreshControl

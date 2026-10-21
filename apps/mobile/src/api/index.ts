@@ -5,6 +5,7 @@ import { Session } from '@/auth/session';
 import { ApiClient } from './api-client';
 import { apiBaseUrl } from './config';
 import { queryClient } from './query-client';
+import { queryPersister } from './query-persister';
 
 const baseUrl = apiBaseUrl();
 
@@ -23,6 +24,8 @@ export const api = new ApiClient({
 session.subscribe((status) => {
   if (status === 'signedOut') {
     queryClient.clear();
+    // ...including the copy saved on the phone.
+    void queryPersister.removeClient();
   }
 });
 

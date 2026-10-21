@@ -1,7 +1,7 @@
 // The ROOT layout: Expo Router renders every screen inside this component. Anything wrapped
 // around <Stack /> here (providers) is available on every screen.
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -9,6 +9,8 @@ import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
 import { queryClient, session } from '@/api';
+import { CACHE_MAX_AGE_MS, CACHE_VERSION, shouldPersistQuery } from '@/api/persist-rules';
+import { queryPersister } from '@/api/query-persister';
 // Importing it runs the i18next setup, before any screen renders.
 import i18n, { resolveLanguage } from '@/i18n';
 import { useSessionStatus } from '@/auth/use-session-status';
@@ -52,7 +54,18 @@ export default function RootLayout() {
 
   return (
     // TanStack Query's cache, for every screen: useQuery/useMutation work anywhere below.
-    <QueryClientProvider client={queryClient}>
+    // Also saves the cache on the phone and loads it at start (screens work offline).
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister: queryPersister,
+        maxAge: CACHE_MAX_AGE_MS,
+        buster: CACHE_VERSION,
+        dehydrateOptions: {
+          shouldDehydrateQuery: (query) => shouldPersistQuery(query.queryKey, query.state.status),
+        },
+      }}
+    >
       {/* PaperProvider gives every Paper component (Button, Card, Text...) our theme.
           `settings.icon`: we tell Paper EXACTLY which icon set to draw with, instead of letting
           it search for one (with pnpm's strict folders, that search can fail and show no icons). */}
@@ -85,6 +98,6 @@ export default function RootLayout() {
           </Stack>
         </ThemeProvider>
       </PaperProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }

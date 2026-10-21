@@ -48,20 +48,21 @@ export default function EditStudentScreen() {
   if (current?.role !== 'owner' && current?.role !== 'staff') {
     return <Redirect href="/students" />;
   }
-  if (detail.isPending) {
+  // Saved data (also from the phone, when offline) wins over a failed refresh.
+  if (!detail.data) {
+    if (detail.isError) {
+      return (
+        <View style={styles.centered}>
+          <Text style={{ color: theme.colors.error }}>{errorMessage(t, detail.error)}</Text>
+          <Button mode="contained" onPress={() => void detail.refetch()}>
+            {t('common.retry')}
+          </Button>
+        </View>
+      );
+    }
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-  if (detail.isError) {
-    return (
-      <View style={styles.centered}>
-        <Text style={{ color: theme.colors.error }}>{errorMessage(t, detail.error)}</Text>
-        <Button mode="contained" onPress={() => void detail.refetch()}>
-          {t('common.retry')}
-        </Button>
       </View>
     );
   }

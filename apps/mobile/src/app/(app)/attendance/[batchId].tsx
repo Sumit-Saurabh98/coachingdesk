@@ -20,7 +20,7 @@ import {
 } from 'react-native-paper';
 import { errorMessage } from '@/api/error-message';
 import { attendanceKeys, getRegister, type Register } from '@/attendance/attendance-api';
-import type { StoredError } from '@/attendance/outbox/attendance-outbox';
+import type { PendingAttendance, StoredError } from '@/attendance/outbox/attendance-outbox';
 import {
   allPresent,
   countMarks,
@@ -28,8 +28,9 @@ import {
   type Marks,
   marksToSend,
   tapped,
+  withSaves,
 } from '@/attendance/register-rules';
-import { attendanceSyncer, syncFailureText } from '@/attendance/sync';
+import { attendanceSyncer, syncFailureText, usePendingAttendance } from '@/attendance/sync';
 import { countParts } from '@/attendance/today-rules';
 import { useCurrentInstitute } from '@/institutes/use-current-institute';
 import { useAppTheme } from '@/theme/theme';
@@ -51,9 +52,26 @@ export default function RegisterScreen() {
     enabled: instituteId !== '',
   });
 
+  // This class's saves still on the phone: the register shows them, not the server's older copy.
+  const saves = usePendingAttendance(instituteId).filter(
+    (save) => save.error === null && save.batchId === batchId && save.date === date,
+  );
+
   const header = name ? <Stack.Screen options={{ title: name }} /> : null;
 
-  if (register.isPending) {
+  // Saved data (also from the phone, when offline) wins over a failed refresh.
+  if (!register.data) {
+    if (register.isError) {
+      return (
+        <View style={styles.centered}>
+          {header}
+          <Text style={{ color: theme.colors.error }}>{errorMessage(t, register.error)}</Text>
+          <Button mode="contained" onPress={() => void register.refetch()}>
+            {t('common.retry')}
+          </Button>
+        </View>
+      );
+    }
     return (
       <View style={styles.centered}>
         {header}
@@ -61,22 +79,17 @@ export default function RegisterScreen() {
       </View>
     );
   }
-  if (register.isError) {
-    return (
-      <View style={styles.centered}>
-        {header}
-        <Text style={{ color: theme.colors.error }}>{errorMessage(t, register.error)}</Text>
-        <Button mode="contained" onPress={() => void register.refetch()}>
-          {t('common.retry')}
-        </Button>
-      </View>
-    );
-  }
   // Loaded once; the teacher's taps live in the form (a background refresh never undoes them).
   return (
     <>
       {header}
-      <RegisterForm instituteId={instituteId} batchName={name ?? ''} register={register.data} />
+      <RegisterForm
+        instituteId={instituteId}
+        batchName={name ?? ''}
+        register={register.data}
+        saves={saves}
+        stale={register.isError}
+      />
     </>
   );
 }
@@ -85,16 +98,20 @@ function RegisterForm({
   instituteId,
   batchName,
   register,
+  saves,
+  stale,
 }: {
   instituteId: string;
   batchName: string;
   register: Register;
+  saves: PendingAttendance[];
+  stale: boolean; // couldn't refresh: showing the copy saved on the phone
 }) {
   const { t } = useTranslation();
   const theme = useAppTheme();
   const rows = register.students;
 
-  const [marks, setMarks] = useState<Marks>(() => initialMarks(rows));
+  const [marks, setMarks] = useState<Marks>(() => withSaves(initialMarks(rows), saves));
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [refused, setRefused] = useState<StoredError | null>(null);
@@ -177,6 +194,11 @@ function RegisterForm({
         extraData={{ marks, menuFor }}
         ListHeaderComponent={
           <View style={styles.header}>
+            {stale && (
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                {t('common.showingSaved')}
+              </Text>
+            )}
             <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
               {t('register.help')}
             </Text>

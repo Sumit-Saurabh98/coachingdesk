@@ -1,6 +1,7 @@
 import { focusManager, QueryClient } from '@tanstack/react-query';
 import { AppState, type AppStateStatus } from 'react-native';
 import { ApiError } from './api-error';
+import { CACHE_MAX_AGE_MS } from './persist-rules';
 
 /**
  * TanStack Query: caches what screens load, refetches when data may be old, retries failures.
@@ -11,6 +12,9 @@ export const queryClient = new QueryClient({
     queries: {
       // Data younger than 30 s is shown without asking the server again (e.g. going back).
       staleTime: 30_000,
+      // Keep answers as long as they're saved on the phone: the saved copy is only as good as
+      // what's in memory (an answer dropped here would be dropped from the phone too).
+      gcTime: CACHE_MAX_AGE_MS,
       // Retry network trouble and 5xx up to 2 times, but never a 4xx: a wrong OTP or a
       // missing permission won't fix itself by asking again.
       retry: (failureCount, error) =>

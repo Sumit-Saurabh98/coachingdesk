@@ -80,7 +80,7 @@ export default function StudentsTab() {
         <View style={styles.centered}>
           <ActivityIndicator size="large" />
         </View>
-      ) : students.isError ? (
+      ) : students.isError && !students.data ? (
         <View style={styles.centered}>
           <Text style={{ color: theme.colors.error }}>{errorMessage(t, students.error)}</Text>
           <Button mode="contained" onPress={() => void students.refetch()}>
