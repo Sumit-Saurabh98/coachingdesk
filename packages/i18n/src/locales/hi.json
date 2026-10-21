@@ -367,5 +367,28 @@
       "waived": "माफ़",
       "cancelled": "रद्द"
     }
+  },
+  "payment": {
+    "title": "भुगतान दर्ज करें",
+    "record": "भुगतान दर्ज करें",
+    "leftToPay": "{{description}} · {{amount}} बाकी",
+    "amount": "मिली रकम",
+    "amountInvalid": "रकम लिखें, जैसे 1500 या 1500.50",
+    "extraCredit": "बाकी से {{amount}} ज़्यादा: यह परिवार के क्रेडिट में रखा जाएगा।",
+    "method": "भुगतान का तरीका",
+    "paidOn": "भुगतान की तारीख़",
+    "note": "नोट (वैकल्पिक)",
+    "save": "भुगतान सेव करें",
+    "saveAmount": "{{amount}} का भुगतान सेव करें",
+    "closed": "यह बिल पहले ही जमा, माफ़ या रद्द हो चुका है।"
+  },
+  "receipt": {
+    "title": "रसीद",
+    "numberOn": "रसीद {{number}} · {{date}}",
+    "credit": "क्रेडिट में रखा: {{amount}}",
+    "creditLine": "क्रेडिट में रखा",
+    "total": "{{amount}} मिले ({{method}})",
+    "thanks": "धन्यवाद!",
+    "share": "रसीद भेजें"
   }
 }

@@ -1,5 +1,5 @@
 // One invoice (owner, staff): what it's for, the amounts, and the payments made on it.
-// Recording a payment and the owner's actions arrive in the next steps (32c–32e).
+// Owner/staff record a payment from here; the owner's own actions arrive in 32d–32e.
 import { useQuery } from '@tanstack/react-query';
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -7,7 +7,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Card, Chip, List, Text } from 'react-native-paper';
 import { errorMessage } from '@/api/error-message';
 import { feeKeys, getInvoice } from '@/fees/fees-api';
-import { invoiceTone } from '@/fees/invoice-rules';
+import { invoiceTone, isOpen } from '@/fees/invoice-rules';
 import { InvoiceStatusChip } from '@/fees/invoice-status-chip';
 import { rupees } from '@/fees/rupees';
 import { useCurrentInstitute } from '@/institutes/use-current-institute';
@@ -89,6 +89,19 @@ export default function InvoiceScreen() {
         </Card.Content>
       </Card>
 
+      {isOpen(invoice.status) && (
+        <Button
+          mode="contained"
+          icon="cash-plus"
+          contentStyle={styles.buttonContent}
+          onPress={() =>
+            router.push({ pathname: '/fees/[invoiceId]/pay', params: { invoiceId: invoice.id } })
+          }
+        >
+          {t('payment.record')}
+        </Button>
+      )}
+
       <View style={styles.facts}>
         <Text variant="bodyMedium">{t('invoice.dueOn', { date: date(invoice.dueDate) })}</Text>
         {invoice.periodStart && invoice.periodEnd && (
@@ -122,6 +135,12 @@ export default function InvoiceScreen() {
               .join('\n')}
             descriptionNumberOfLines={3}
             left={(props) => <List.Icon {...props} icon="cash-check" />}
+            onPress={() =>
+              router.push({
+                pathname: '/fees/receipt/[paymentId]',
+                params: { paymentId: payment.id },
+              })
+            }
             right={() =>
               payment.status === 'voided' ? (
                 <Chip compact style={{ backgroundColor: theme.colors.surfaceVariant }}>
@@ -142,4 +161,5 @@ const styles = StyleSheet.create({
   amounts: { gap: 6 },
   line: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   facts: { gap: 4, paddingHorizontal: 4 },
+  buttonContent: { paddingVertical: 6 },
 });

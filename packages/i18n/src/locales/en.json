@@ -367,5 +367,28 @@
       "waived": "Waived",
       "cancelled": "Cancelled"
     }
+  },
+  "payment": {
+    "title": "Record payment",
+    "record": "Record payment",
+    "leftToPay": "{{description}} · {{amount}} left to pay",
+    "amount": "Amount received",
+    "amountInvalid": "Enter an amount, like 1500 or 1500.50",
+    "extraCredit": "{{amount}} more than is due: it will be kept as the family's credit.",
+    "method": "Paid by",
+    "paidOn": "Paid on",
+    "note": "Note (optional)",
+    "save": "Save payment",
+    "saveAmount": "Save {{amount}} payment",
+    "closed": "This invoice is already paid, waived or cancelled."
+  },
+  "receipt": {
+    "title": "Receipt",
+    "numberOn": "Receipt {{number}} · {{date}}",
+    "credit": "Kept as credit: {{amount}}",
+    "creditLine": "Kept as credit",
+    "total": "Received {{amount}} ({{method}})",
+    "thanks": "Thank you!",
+    "share": "Share receipt"
   }
 }
