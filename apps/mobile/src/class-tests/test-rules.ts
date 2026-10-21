@@ -58,3 +58,31 @@ export function toTestRequest(values: TestFormValues): {
     maxMarks: parseMarks(values.maxMarksText) ?? 0,
   };
 }
+
+/** The form's starting values for an existing test. */
+export function valuesFromTest(test: {
+  name: string;
+  date: string;
+  maxMarks: number;
+}): TestFormValues {
+  return { name: test.name, date: test.date, maxMarksText: formatMarks(test.maxMarks) };
+}
+
+/** PATCH body with only what changed; null when nothing did (then no request). */
+export function toTestUpdate(
+  original: { name: string; date: string; maxMarks: number },
+  values: TestFormValues,
+): Partial<{ name: string; date: string; maxMarks: number }> | null {
+  const next = toTestRequest(values);
+  const body: Partial<{ name: string; date: string; maxMarks: number }> = {};
+  if (next.name !== original.name) {
+    body.name = next.name;
+  }
+  if (next.date !== original.date) {
+    body.date = next.date;
+  }
+  if (next.maxMarks !== original.maxMarks) {
+    body.maxMarks = next.maxMarks;
+  }
+  return Object.keys(body).length === 0 ? null : body;
+}

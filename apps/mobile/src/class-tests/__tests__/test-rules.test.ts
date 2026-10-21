@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { formatMarks, parseMarks, toTestRequest, validateTestForm } from '../test-rules';
+import {
+  formatMarks,
+  parseMarks,
+  toTestRequest,
+  toTestUpdate,
+  validateTestForm,
+  valuesFromTest,
+} from '../test-rules';
 
 describe('parseMarks', () => {
   it.each([
@@ -46,5 +53,24 @@ describe('validateTestForm', () => {
       'testForm.maxInvalid',
     );
     expect(validateTestForm({ ...values, maxMarksText: '12.5' })).toEqual({});
+  });
+});
+
+describe('editing a test', () => {
+  const test = { name: 'Unit 3', date: '2026-10-19', maxMarks: 12.5 };
+
+  it('starts from the test; nothing changed -> null', () => {
+    expect(valuesFromTest(test)).toEqual({
+      name: 'Unit 3',
+      date: '2026-10-19',
+      maxMarksText: '12.5',
+    });
+    expect(toTestUpdate(test, valuesFromTest(test))).toBeNull();
+  });
+
+  it('only what changed', () => {
+    expect(toTestUpdate(test, { ...valuesFromTest(test), maxMarksText: '25' })).toEqual({
+      maxMarks: 25,
+    });
   });
 });

@@ -555,7 +555,9 @@
     "maxMarks": "Maximum marks",
     "maxInvalid": "Enter the maximum, like 25 or 12.5 (up to 1000).",
     "date": "Test date",
-    "create": "Create test"
+    "create": "Create test",
+    "save": "Save changes",
+    "maxBelowHighest": "The maximum can't be below the highest mark given ({{highest}})."
   },
   "marks": {
     "scored": "Scored",
@@ -572,5 +574,22 @@
     "save_one": "Save {{count}} change",
     "save_other": "Save {{count}} changes",
     "saved": "All saved"
+  },
+  "results": {
+    "title": "Test results",
+    "none": "No test results yet.",
+    "send": "Send results",
+    "sendAgain": "Send results (new marks only)",
+    "saveFirst": "Save the marks first, then send.",
+    "confirmTitle": "Send result cards?",
+    "confirmBody_one": "{{count}} student has marks: their parent gets a result card on WhatsApp.",
+    "confirmBody_other": "{{count}} students have marks: each parent gets a result card on WhatsApp.",
+    "confirmNote": "Students with their own number get it too, if they agreed. Absent students get none. A card already sent isn't sent again.",
+    "outcome": "Queued: {{queued}} · already sent: {{already}} · no card: {{skipped}}",
+    "notYet": "This test's date hasn't come yet.",
+    "edit": "Edit test",
+    "delete": "Delete test",
+    "deleteTitle": "Delete {{name}}?",
+    "deleteBody": "The test and all its marks are deleted. Result cards not sent yet won't go out."
   }
 }

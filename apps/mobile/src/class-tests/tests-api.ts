@@ -25,6 +25,8 @@ export const testKeys = {
     [...testKeys.all(instituteId), 'batch', batchId] as const,
   sheet: (instituteId: string, testId: string) =>
     [...testKeys.all(instituteId), 'sheet', testId] as const,
+  student: (instituteId: string, studentId: string) =>
+    [...testKeys.all(instituteId), 'student', studentId] as const,
 };
 
 /** GET .../batches/:batchId/tests (any member): newest test date first. */
@@ -84,4 +86,53 @@ export function saveScores(
   scores: ScoreToSend[],
 ): Promise<MarksSheet> {
   return api.put(`/v1/institutes/${instituteId}/tests/${testId}/scores`, { scores });
+}
+
+/** PATCH .../tests/:testId (owner, teacher). 409 if maxMarks < a mark already given. */
+export async function updateTest(
+  instituteId: string,
+  testId: string,
+  body: Partial<{ name: string; date: string; maxMarks: number }>,
+): Promise<ClassTest> {
+  const result = await api.patch<{ test: ClassTest }>(
+    `/v1/institutes/${instituteId}/tests/${testId}`,
+    body,
+  );
+  return result.test;
+}
+
+/** DELETE .../tests/:testId (owner, teacher): the test and its marks; unsent cards are dropped. */
+export async function deleteTest(instituteId: string, testId: string): Promise<void> {
+  await api.delete(`/v1/institutes/${instituteId}/tests/${testId}`);
+}
+
+export interface SendResultsOutcome {
+  queued: number; // cards (students) queued now
+  alreadySent: number; // queued on an earlier tap
+  skipped: number; // absent, not marked yet, left, or no phone
+  resultsSentAt: string;
+}
+
+/** POST .../tests/:testId/send-results (owner, teacher): one card per student with marks. */
+export function sendResults(instituteId: string, testId: string): Promise<SendResultsOutcome> {
+  return api.post(`/v1/institutes/${instituteId}/tests/${testId}/send-results`);
+}
+
+/** GET .../students/:studentId/tests (any member): their results, newest first. */
+export interface StudentResult {
+  test: ClassTest;
+  marks: number | null;
+  isAbsent: boolean;
+}
+
+export async function listStudentResults(
+  instituteId: string,
+  studentId: string,
+  signal?: AbortSignal,
+): Promise<StudentResult[]> {
+  const result = await api.get<{ results: StudentResult[] }>(
+    `/v1/institutes/${instituteId}/students/${studentId}/tests`,
+    { query: { limit: 100 }, signal },
+  );
+  return result.results;
 }

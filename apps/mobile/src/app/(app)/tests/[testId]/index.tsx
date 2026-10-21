@@ -1,7 +1,7 @@
 // The marks sheet (every member reads; owner and teacher write): students in roll-number
 // order, marks or absent for each, saved together. Class stats come from the server.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, View } from 'react-native';
@@ -10,7 +10,11 @@ import {
   Button,
   Card,
   Chip,
+  Dialog,
   HelperText,
+  IconButton,
+  Portal,
+  Snackbar,
   Text,
   TextInput,
 } from 'react-native-paper';
@@ -24,7 +28,14 @@ import {
   scoresToSend,
 } from '@/class-tests/marks-sheet-rules';
 import { formatMarks } from '@/class-tests/test-rules';
-import { getSheet, type MarksSheet, saveScores, testKeys } from '@/class-tests/tests-api';
+import {
+  deleteTest,
+  getSheet,
+  type MarksSheet,
+  saveScores,
+  sendResults,
+  testKeys,
+} from '@/class-tests/tests-api';
 import { useCurrentInstitute } from '@/institutes/use-current-institute';
 import { formatLocalDate } from '@/lib/date-format';
 import { useMonthLabels } from '@/lib/use-month-labels';
@@ -118,6 +129,40 @@ function SheetForm({
       ? t('tests.notInPlan')
       : errorMessage(t, error);
 
+  // --- Send results: one card per student with marks, to the parent (and the student's own
+  // number when it has consent). Only once the marks on screen are saved.
+  const [confirmSend, setConfirmSend] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const send = useMutation({
+    mutationFn: () => sendResults(instituteId, test.id),
+    onSuccess: async (outcome) => {
+      setConfirmSend(false);
+      setNotice(
+        t('results.outcome', {
+          queued: outcome.queued,
+          already: outcome.alreadySent,
+          skipped: outcome.skipped,
+        }),
+      );
+      await queryClient.invalidateQueries({ queryKey: testKeys.all(instituteId) });
+    },
+  });
+  const sendFailure = (error: unknown) =>
+    error instanceof ApiError && error.status === 409 && error.details.date !== undefined
+      ? t('results.notYet')
+      : failure(error);
+
+  // --- Delete: the test and its marks (cards not sent yet are dropped too).
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const remove = useMutation({
+    mutationFn: () => deleteTest(instituteId, test.id),
+    onSuccess: async () => {
+      setConfirmDelete(false);
+      await queryClient.invalidateQueries({ queryKey: testKeys.all(instituteId) });
+      router.back();
+    },
+  });
+
   const stat = (label: string, value: number | null) => (
     <View style={styles.stat}>
       <Text variant="titleMedium">{value === null ? '–' : formatMarks(value)}</Text>
@@ -129,7 +174,29 @@ function SheetForm({
 
   return (
     <View style={styles.screen}>
-      <Stack.Screen options={{ title: test.name }} />
+      <Stack.Screen
+        options={{
+          title: test.name,
+          headerRight: canWrite
+            ? () => (
+                <View style={styles.headerActions}>
+                  <IconButton
+                    icon="pencil"
+                    accessibilityLabel={t('results.edit')}
+                    onPress={() =>
+                      router.push({ pathname: '/tests/[testId]/edit', params: { testId: test.id } })
+                    }
+                  />
+                  <IconButton
+                    icon="delete-outline"
+                    accessibilityLabel={t('results.delete')}
+                    onPress={() => setConfirmDelete(true)}
+                  />
+                </View>
+              )
+            : undefined,
+        }}
+      />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
           {t('tests.dateOutOf', {
@@ -218,8 +285,70 @@ function SheetForm({
           >
             {changes.length === 0 ? t('marks.saved') : t('marks.save', { count: changes.length })}
           </Button>
+          <Button
+            mode="outlined"
+            icon="send"
+            // Unsaved marks would go out as they were on the server: save them first.
+            disabled={changes.length > 0 || stats.scored === 0 || send.isPending}
+            onPress={() => {
+              send.reset();
+              setConfirmSend(true);
+            }}
+          >
+            {test.resultsSentAt ? t('results.sendAgain') : t('results.send')}
+          </Button>
+          {changes.length > 0 && (
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+              {t('results.saveFirst')}
+            </Text>
+          )}
         </View>
       )}
+
+      <Portal>
+        <Dialog visible={confirmSend} onDismiss={() => setConfirmSend(false)}>
+          <Dialog.Title>{t('results.confirmTitle')}</Dialog.Title>
+          <Dialog.Content style={styles.dialog}>
+            <Text variant="bodyMedium">{t('results.confirmBody', { count: stats.scored })}</Text>
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+              {t('results.confirmNote')}
+            </Text>
+            {send.isError && (
+              <Text style={{ color: theme.colors.error }}>{sendFailure(send.error)}</Text>
+            )}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setConfirmSend(false)}>{t('common.cancel')}</Button>
+            <Button loading={send.isPending} onPress={() => send.mutate()}>
+              {t('results.send')}
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog visible={confirmDelete} onDismiss={() => setConfirmDelete(false)}>
+          <Dialog.Title>{t('results.deleteTitle', { name: test.name })}</Dialog.Title>
+          <Dialog.Content style={styles.dialog}>
+            <Text variant="bodyMedium">{t('results.deleteBody')}</Text>
+            {remove.isError && (
+              <Text style={{ color: theme.colors.error }}>{errorMessage(t, remove.error)}</Text>
+            )}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setConfirmDelete(false)}>{t('common.cancel')}</Button>
+            <Button
+              textColor={theme.colors.error}
+              loading={remove.isPending}
+              onPress={() => remove.mutate()}
+            >
+              {t('results.delete')}
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Snackbar visible={notice !== null} onDismiss={() => setNotice(null)} duration={6000}>
+          {notice ?? ''}
+        </Snackbar>
+      </Portal>
     </View>
   );
 }
@@ -236,7 +365,9 @@ const styles = StyleSheet.create({
   inputs: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   input: { width: 80, textAlign: 'center' },
   rowError: { width: '100%', textAlign: 'right' },
-  footer: { padding: 16, borderTopWidth: StyleSheet.hairlineWidth },
+  footer: { padding: 16, gap: 8, borderTopWidth: StyleSheet.hairlineWidth },
+  headerActions: { flexDirection: 'row' },
+  dialog: { gap: 8 },
   saveError: { marginBottom: 8 },
   buttonContent: { paddingVertical: 6 },
 });
