@@ -316,5 +316,22 @@
     "howCounted": "देर से आना हाज़िरी में गिना जाता है। छुट्टी किसी तरफ़ नहीं गिनी जाती।",
     "noRecords": "इस महीने कोई हाज़िरी नहीं लगी।",
     "day": "{{weekday}}, {{date}}"
+  },
+  "fees": {
+    "collectedIn": "{{month}} में वसूली",
+    "pending": "बाकी",
+    "overdue": "तारीख़ निकल गई",
+    "overdueCount_one": "{{count}} बिल",
+    "overdueCount_other": "{{count}} बिल",
+    "topOverdue": "सबसे ज़्यादा बकाया",
+    "noneOverdue": "कोई फ़ीस बकाया नहीं।",
+    "daysOverdue_one": "{{count}} दिन से बकाया",
+    "daysOverdue_other": "{{count}} दिन से बकाया",
+    "method": {
+      "upi_link": "UPI",
+      "cash": "नकद",
+      "bank": "बैंक",
+      "other": "अन्य"
+    }
   }
 }

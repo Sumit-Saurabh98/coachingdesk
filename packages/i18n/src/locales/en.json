@@ -316,5 +316,22 @@
     "howCounted": "Late counts as attended. Leave doesn't count either way.",
     "noRecords": "No attendance marked this month.",
     "day": "{{weekday}}, {{date}}"
+  },
+  "fees": {
+    "collectedIn": "Collected in {{month}}",
+    "pending": "Pending",
+    "overdue": "Overdue",
+    "overdueCount_one": "{{count}} invoice",
+    "overdueCount_other": "{{count}} invoices",
+    "topOverdue": "Most overdue",
+    "noneOverdue": "No overdue fees.",
+    "daysOverdue_one": "{{count}} day overdue",
+    "daysOverdue_other": "{{count}} days overdue",
+    "method": {
+      "upi_link": "UPI",
+      "cash": "Cash",
+      "bank": "Bank",
+      "other": "Other"
+    }
   }
 }

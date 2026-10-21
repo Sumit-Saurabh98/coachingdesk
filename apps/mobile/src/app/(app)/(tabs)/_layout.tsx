@@ -4,6 +4,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Tabs } from 'expo-router/js-tabs';
 import { useTranslation } from 'react-i18next';
 import type { ColorValue } from 'react-native';
+import { useCurrentInstitute } from '@/institutes/use-current-institute';
 import { useAppTheme } from '@/theme/theme';
 
 type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
@@ -36,6 +37,9 @@ function tabIcon(selected: IconName, unselected: IconName) {
 export default function TabsLayout() {
   const { t } = useTranslation();
   const theme = useAppTheme();
+  const { current } = useCurrentInstitute();
+  // Fees are for owner and staff only (KB #31): teachers don't get the tab at all.
+  const canSeeFees = current?.role === 'owner' || current?.role === 'staff';
   return (
     <Tabs
       screenOptions={{
@@ -62,6 +66,7 @@ export default function TabsLayout() {
         options={{
           title: t('tabs.fees'),
           tabBarIcon: tabIcon('wallet', 'wallet-outline'),
+          href: canSeeFees ? undefined : null,
         }}
       />
       <Tabs.Screen
