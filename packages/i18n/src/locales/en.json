@@ -556,5 +556,21 @@
     "maxInvalid": "Enter the maximum, like 25 or 12.5 (up to 1000).",
     "date": "Test date",
     "create": "Create test"
+  },
+  "marks": {
+    "scored": "Scored",
+    "absent": "Absent",
+    "average": "Average",
+    "highest": "Highest",
+    "lowest": "Lowest",
+    "noStudents": "No students were in this batch on the test date.",
+    "marksFor": "Marks for {{name}}",
+    "absentShort": "Absent",
+    "invalid": "Marks like 17 or 17.5",
+    "overMax": "At most {{max}}",
+    "cleared": "Enter marks or mark absent",
+    "save_one": "Save {{count}} change",
+    "save_other": "Save {{count}} changes",
+    "saved": "All saved"
   }
 }

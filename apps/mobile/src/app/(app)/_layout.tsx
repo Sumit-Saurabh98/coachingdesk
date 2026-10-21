@@ -56,6 +56,7 @@ export default function AppLayout() {
         <Stack.Screen name="students/bulk" options={{ title: t('bulkAdd.title') }} />
         <Stack.Screen name="attendance/[batchId]" options={{ title: t('register.title') }} />
         <Stack.Screen name="batches/[id]/tests/new" options={{ title: t('tests.new') }} />
+        <Stack.Screen name="tests/[testId]" options={{ title: '' }} />
         <Stack.Screen name="fees/invoices" options={{ title: t('invoices.title') }} />
         <Stack.Screen name="notices/index" options={{ title: t('more.notices') }} />
         <Stack.Screen name="notices/new" options={{ title: t('notices.new') }} />

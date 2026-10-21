@@ -1,4 +1,5 @@
 import { api } from '@/api';
+import type { ScoreToSend, SheetRow } from './marks-sheet-rules';
 
 /** A class test as the API returns it. */
 export interface ClassTest {
@@ -22,6 +23,8 @@ export const testKeys = {
   all: (instituteId: string) => ['institutes', instituteId, 'tests'] as const,
   batch: (instituteId: string, batchId: string) =>
     [...testKeys.all(instituteId), 'batch', batchId] as const,
+  sheet: (instituteId: string, testId: string) =>
+    [...testKeys.all(instituteId), 'sheet', testId] as const,
 };
 
 /** GET .../batches/:batchId/tests (any member): newest test date first. */
@@ -48,4 +51,37 @@ export async function createTest(
     body,
   );
   return result.test;
+}
+
+export interface SheetStats {
+  students: number;
+  scored: number;
+  absent: number;
+  average: number | null; // of those with marks, 2 decimals
+  highest: number | null;
+  lowest: number | null;
+}
+
+/** GET .../tests/:testId: the marks sheet (in roll-number order) and the class stats. */
+export interface MarksSheet {
+  test: ClassTest;
+  students: SheetRow[];
+  stats: SheetStats;
+}
+
+export function getSheet(
+  instituteId: string,
+  testId: string,
+  signal?: AbortSignal,
+): Promise<MarksSheet> {
+  return api.get(`/v1/institutes/${instituteId}/tests/${testId}`, { signal });
+}
+
+/** PUT .../tests/:testId/scores (owner, teacher): only the changed ones; returns the sheet. */
+export function saveScores(
+  instituteId: string,
+  testId: string,
+  scores: ScoreToSend[],
+): Promise<MarksSheet> {
+  return api.put(`/v1/institutes/${instituteId}/tests/${testId}/scores`, { scores });
 }

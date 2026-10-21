@@ -59,6 +59,9 @@ export function BatchTests({
               ].join('\n')}
               descriptionNumberOfLines={2}
               left={(props) => <List.Icon {...props} icon="clipboard-text-outline" />}
+              onPress={() =>
+                router.push({ pathname: '/tests/[testId]', params: { testId: test.id } })
+              }
               right={() =>
                 test.resultsSentAt ? (
                   <Chip
