@@ -12,6 +12,7 @@ export interface NewStudentInput {
   guardianPhone: PhoneNumber;
   joinedOn: LocalDate;
   notes?: string | null;
+  rollNumber?: string | null;
 }
 
 /** PATCH: only the fields that change. Status changes go through leave(), not here. */
@@ -21,6 +22,7 @@ export interface StudentChanges {
   guardianPhone?: PhoneNumber;
   joinedOn?: LocalDate;
   notes?: string | null;
+  rollNumber?: string | null;
 }
 
 export interface StudentProps {
@@ -34,6 +36,8 @@ export interface StudentProps {
   joinedOn: LocalDate;
   leftOn: LocalDate | null;
   notes: string | null;
+  /** Optional, text ("12", "12A"); unique among the institute's active students (DB index). */
+  rollNumber: string | null;
   erasedAt: Date | null;
 }
 
@@ -54,6 +58,7 @@ export class Student {
   readonly joinedOn: LocalDate;
   readonly leftOn: LocalDate | null;
   readonly notes: string | null;
+  readonly rollNumber: string | null;
   readonly erasedAt: Date | null;
 
   private constructor(props: StudentProps) {
@@ -66,6 +71,7 @@ export class Student {
     this.joinedOn = props.joinedOn;
     this.leftOn = props.leftOn;
     this.notes = props.notes;
+    this.rollNumber = props.rollNumber;
     this.erasedAt = props.erasedAt;
   }
 
@@ -80,6 +86,7 @@ export class Student {
       joinedOn: input.joinedOn,
       leftOn: null,
       notes: cleanNotes(input.notes),
+      rollNumber: cleanRollNumber(input.rollNumber),
       erasedAt: null,
     });
   }
@@ -109,6 +116,8 @@ export class Student {
       guardianPhone: changes.guardianPhone ?? this.guardianPhone,
       joinedOn,
       notes: changes.notes === undefined ? this.notes : cleanNotes(changes.notes),
+      rollNumber:
+        changes.rollNumber === undefined ? this.rollNumber : cleanRollNumber(changes.rollNumber),
     });
   }
 
@@ -143,6 +152,7 @@ export class Student {
       guardianName: null,
       guardianPhone: null,
       notes: null,
+      rollNumber: null,
       status: 'left',
       leftOn,
       erasedAt: at,
@@ -160,6 +170,7 @@ export class Student {
       joinedOn: this.joinedOn.toString(),
       leftOn: this.leftOn?.toString() ?? null,
       notes: this.notes,
+      rollNumber: this.rollNumber,
     };
   }
 
@@ -174,6 +185,7 @@ export class Student {
       joinedOn: this.joinedOn,
       leftOn: this.leftOn,
       notes: this.notes,
+      rollNumber: this.rollNumber,
       erasedAt: this.erasedAt,
     };
   }
@@ -215,6 +227,14 @@ function cleanNotes(raw: string | null | undefined): string | null {
     throw invalid('notes', 'Notes must be at most 1000 characters');
   }
   return notes === '' ? null : notes;
+}
+
+function cleanRollNumber(raw: string | null | undefined): string | null {
+  const roll = tidy(raw);
+  if (roll.length > 20) {
+    throw invalid('rollNumber', 'Roll number must be at most 20 characters');
+  }
+  return roll === '' ? null : roll;
 }
 
 function invalid(field: string, message: string): AppError {

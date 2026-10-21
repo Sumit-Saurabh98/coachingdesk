@@ -92,6 +92,7 @@ students (
   guardian_name text, guardian_phone text,          -- required unless erased (check below)
   status text not null default 'active' check (status in ('active','left')),
   joined_on date not null, left_on date, notes text,
+  roll_number text,                       -- optional ("12", "12A"); cleared on erasure
   erased_at timestamptz,                  -- PII erased on request (§6.9): name → "Erased student",
                                           -- guardian name/phone and notes cleared; amounts kept
   created_at, updated_at,
@@ -99,6 +100,7 @@ students (
 )
 index (institute_id, status), index (institute_id, guardian_phone),
 index (institute_id, (lower(name) collate "C"), id)   -- name-sorted keyset paging; "C" = same order as JS
+unique (institute_id, lower(roll_number)) where status = 'active' and roll_number is not null
 
 enrollments (
   id uuid pk, institute_id uuid fk, student_id uuid fk, batch_id uuid fk,

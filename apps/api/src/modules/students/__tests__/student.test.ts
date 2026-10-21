@@ -29,6 +29,7 @@ describe('Student.create', () => {
       joinedOn: '2026-10-01',
       leftOn: null,
       notes: 'Weak in algebra',
+      rollNumber: null,
     });
   });
 

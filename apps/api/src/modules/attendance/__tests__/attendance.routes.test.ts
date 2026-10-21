@@ -147,8 +147,41 @@ describe('GET .../batches/:batchId/attendance?date=', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json().students).toEqual([
-      { studentId: expect.any(String), name: 'Aarav', status: 'present', marked: false },
-      { studentId: bhavya.id, name: 'Bhavya', status: 'absent', marked: true },
+      {
+        studentId: expect.any(String),
+        name: 'Aarav',
+        rollNumber: null,
+        status: 'present',
+        marked: false,
+      },
+      { studentId: bhavya.id, name: 'Bhavya', rollNumber: null, status: 'absent', marked: true },
+    ]);
+  });
+
+  it('in roll-number order (2 before 10), students without one last by name', async () => {
+    const { token, url, teacher, batch, aarav, bhavya } = await setup();
+    const roll = (id: string, rollNumber: string) =>
+      http.call(token, 'PATCH', `${url}/students/${id}`, { rollNumber });
+    await roll(bhavya.id, '2');
+    const { student: chirag } = (
+      await http.call(token, 'POST', `${url}/students`, {
+        name: 'Chirag',
+        guardianPhone: '9876543210',
+        joinedOn: '2026-10-01',
+        rollNumber: '10',
+        batchIds: [batch.id],
+      })
+    ).json();
+
+    const response = await http.call(
+      teacher,
+      'GET',
+      `${url}/batches/${batch.id}/attendance?date=2026-10-19`,
+    );
+    expect(response.json().students.map((s: { studentId: string }) => s.studentId)).toEqual([
+      bhavya.id,
+      chirag.id,
+      aarav.id,
     ]);
   });
 

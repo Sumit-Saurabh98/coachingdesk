@@ -26,7 +26,8 @@ export interface StudentPage {
   next: StudentCursor | null;
 }
 
-export type CreateStudentsResult = 'created' | 'limit_reached';
+export type CreateStudentsResult = 'created' | 'limit_reached' | 'roll_number_taken';
+export type UpdateStudentResult = 'updated' | 'roll_number_taken';
 
 /** Storage for students. Every read is scoped to ONE institute (AGENTS rule 1). */
 export interface StudentRepository {
@@ -49,8 +50,11 @@ export interface StudentRepository {
   activeIdsOldestFirst(instituteId: string): Promise<string[]>;
   /** Every student of this guardian at this institute (siblings), any status. */
   listByGuardianPhone(instituteId: string, phone: PhoneNumber): Promise<Student[]>;
-  /** Saves every editable field + status/leftOn. Matches id AND instituteId; throws if none. */
-  update(student: Student): Promise<void>;
+  /**
+   * Saves every editable field + status/leftOn. Matches id AND instituteId; throws if none.
+   * 'roll_number_taken': another ACTIVE student here has that roll number (nothing saved).
+   */
+  update(student: Student): Promise<UpdateStudentResult>;
 }
 
 /** The sort key, shared by both implementations (Postgres: lower(name) COLLATE "C"). */
@@ -80,6 +84,9 @@ export class InMemoryStudentRepository implements StudentRepository {
     const adding = students.filter((s) => s.isActive).length;
     if (maxActive !== null && active + adding > maxActive) {
       return 'limit_reached';
+    }
+    if (students.some((s, i) => this.rollTaken(s, students.slice(0, i)))) {
+      return 'roll_number_taken';
     }
     if (students.some((s) => this.students.has(s.id))) {
       throw new Error('InMemoryStudentRepository: duplicate student id');
@@ -132,14 +139,33 @@ export class InMemoryStudentRepository implements StudentRepository {
       .sort(compareByName);
   }
 
-  async update(student: Student): Promise<void> {
+  async update(student: Student): Promise<UpdateStudentResult> {
     const existing = this.students.get(student.id);
     if (!existing || existing.instituteId !== student.instituteId) {
       throw new Error(
         `InMemoryStudentRepository: no student ${student.id} in institute ${student.instituteId}`,
       );
     }
+    if (this.rollTaken(student)) {
+      return 'roll_number_taken';
+    }
     this.students.set(student.id, student);
+    return 'updated';
+  }
+
+  /** The same rule as Postgres' partial unique index: active students, case-insensitive. */
+  private rollTaken(student: Student, alsoAdding: Student[] = []): boolean {
+    if (!student.isActive || student.rollNumber === null) {
+      return false;
+    }
+    const roll = student.rollNumber.toLowerCase();
+    return [...this.students.values(), ...alsoAdding].some(
+      (other) =>
+        other.id !== student.id &&
+        other.instituteId === student.instituteId &&
+        other.isActive &&
+        other.rollNumber?.toLowerCase() === roll,
+    );
   }
 }
 
@@ -155,6 +181,7 @@ function matchesSearch(student: Student, q: string): boolean {
   return (
     student.name.toLowerCase().includes(text) ||
     (student.guardianName?.toLowerCase().includes(text) ?? false) ||
+    student.rollNumber?.toLowerCase() === text.trim() ||
     (digits !== null && (student.guardianPhone?.toE164().includes(digits) ?? false))
   );
 }

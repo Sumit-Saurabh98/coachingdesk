@@ -1,6 +1,7 @@
 import {
   AppError,
   type Clock,
+  compareByRollThenName,
   type CreateTestBody,
   type FeatureKey,
   type IdGenerator,
@@ -28,7 +29,13 @@ export interface TestStudentLookup {
     instituteId: string,
     ids: readonly string[],
   ): Promise<
-    Array<{ id: string; name: string; isActive: boolean; guardianPhone: PhoneNumber | null }>
+    Array<{
+      id: string;
+      name: string;
+      rollNumber: string | null;
+      isActive: boolean;
+      guardianPhone: PhoneNumber | null;
+    }>
   >;
 }
 export interface TestInstituteLookup {
@@ -70,6 +77,7 @@ export interface TestServiceDeps {
 export interface SheetRow {
   studentId: string;
   name: string;
+  rollNumber: string | null;
   marks: number | null;
   isAbsent: boolean;
   entered: boolean; // false = nothing entered yet for this student
@@ -139,7 +147,7 @@ export class TestService {
 
   /**
    * GET /tests/:testId : the marks sheet. Everyone enrolled in the batch ON THE TEST DATE, plus
-   * anyone who already has a score (e.g. moved batch since), sorted by name.
+   * anyone who already has a score (e.g. moved batch since), in roll-number order, then name.
    */
   async sheet(instituteId: string, testId: string): Promise<MarksSheet> {
     return (await this.loadSheet(instituteId, testId)).sheet;
@@ -161,12 +169,13 @@ export class TestService {
         return {
           studentId: s.id,
           name: s.name,
+          rollNumber: s.rollNumber,
           marks: score?.marks ?? null,
           isAbsent: score?.isAbsent ?? false,
           entered: score !== undefined,
         };
       })
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .sort(compareByRollThenName);
     return { sheet: { test, rows, stats: statsOf(rows) }, students };
   }
 

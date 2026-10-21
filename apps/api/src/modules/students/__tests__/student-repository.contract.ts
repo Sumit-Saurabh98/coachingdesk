@@ -21,6 +21,14 @@ const newStudent = (
     joinedOn: LocalDate.parse('2026-10-01'),
   });
 
+const withRoll = (n: number, rollNumber: string, instituteId = CONTRACT_INSTITUTE_A) =>
+  Student.create(studentId(n), instituteId, {
+    name: `Student ${n}`,
+    guardianPhone: PhoneNumber.parse('9876543210'),
+    joinedOn: LocalDate.parse('2026-10-01'),
+    rollNumber,
+  });
+
 const leftOn = LocalDate.parse('2026-12-31');
 const names = (students: Student[]) => students.map((s) => s.name);
 const query = (overrides: Partial<StudentListQuery> = {}): StudentListQuery => ({
@@ -54,6 +62,55 @@ export function describeStudentRepositoryContract(
       const repo = create();
       await seed(repo, newStudent(1));
       expect(await repo.findById(CONTRACT_INSTITUTE_B, studentId(1))).toBeNull();
+    });
+
+    describe('roll number: unique among ACTIVE students of an institute', () => {
+      it('a second active student with the same roll (any case) is refused, nothing stored', async () => {
+        const repo = create();
+        await seed(repo, withRoll(1, '12A'));
+        expect(await repo.createWithinLimit(CONTRACT_INSTITUTE_A, [withRoll(2, '12a')], null)).toBe(
+          'roll_number_taken',
+        );
+        expect(await repo.findById(CONTRACT_INSTITUTE_A, studentId(2))).toBeNull();
+      });
+
+      it('two in one request with the same roll: refused', async () => {
+        const repo = create();
+        expect(
+          await repo.createWithinLimit(
+            CONTRACT_INSTITUTE_A,
+            [withRoll(1, '5'), withRoll(2, '5')],
+            null,
+          ),
+        ).toBe('roll_number_taken');
+      });
+
+      it('a student who left frees the roll number; another institute may use it too', async () => {
+        const repo = create();
+        const first = withRoll(1, '7');
+        await seed(repo, first, withRoll(3, '7', CONTRACT_INSTITUTE_B));
+        expect(await repo.update(first.leave(leftOn))).toBe('updated');
+        expect(await repo.createWithinLimit(CONTRACT_INSTITUTE_A, [withRoll(2, '7')], null)).toBe(
+          'created',
+        );
+      });
+
+      it('update to a taken roll: refused and not saved', async () => {
+        const repo = create();
+        const other = withRoll(2, '9');
+        await seed(repo, withRoll(1, '8'), other);
+        const changed = other.withChanges({ rollNumber: '8' });
+        expect(await repo.update(changed)).toBe('roll_number_taken');
+        expect((await repo.findById(CONTRACT_INSTITUTE_A, other.id))?.rollNumber).toBe('9');
+      });
+
+      it('search finds a student by exact roll number', async () => {
+        const repo = create();
+        // Names "Student 1" / "Student 2" don't contain "12": only the roll number can match.
+        await seed(repo, withRoll(1, '12'), withRoll(2, '123'));
+        const page = await repo.list(CONTRACT_INSTITUTE_A, query({ q: '12' }));
+        expect(page.students.map((s) => s.rollNumber)).toEqual(['12']); // exact, not "123"
+      });
     });
 
     describe('plan limit', () => {
@@ -255,6 +312,7 @@ export function describeStudentRepositoryContract(
         joinedOn: '2026-10-01',
         leftOn: '2026-12-31',
         notes: 'Note',
+        rollNumber: null,
       });
     });
 

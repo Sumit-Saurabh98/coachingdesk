@@ -17,6 +17,8 @@ export const CreateStudentBody = z
     // Missing = today in the institute's time zone (the service decides "today", not the phone).
     joinedOn: zLocalDate.optional(),
     notes: z.string().max(1000).nullish(),
+    // Optional, text ("12", "12A"); unique among the institute's active students.
+    rollNumber: z.string().max(50).nullish(),
     // Enroll in these batches right away, with each batch's default fee (max 20: a sanity cap).
     batchIds: z.array(z.uuid()).max(20).optional(),
     // The "Guardian agreed to receive updates on WhatsApp" checkbox (KB: consent at add time).
@@ -32,6 +34,7 @@ export const UpdateStudentBody = z
     guardianPhone: zPhoneIN.optional(),
     joinedOn: zLocalDate.optional(),
     notes: z.string().max(1000).nullable().optional(),
+    rollNumber: z.string().max(50).nullable().optional(), // null or "" = remove it
   })
   .strict()
   .refine((body) => Object.keys(body).length > 0, { message: 'Send at least one field to change' });

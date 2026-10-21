@@ -56,6 +56,7 @@ describe('POST /v1/institutes/:instituteId/students', () => {
       joinedOn: '2026-10-18',
       leftOn: null,
       notes: null,
+      rollNumber: null,
     });
   });
 
@@ -220,6 +221,41 @@ describe('GET / PATCH /v1/institutes/:instituteId/students/:studentId', () => {
     expect(patched.json().student).toEqual({ ...student, guardianPhone: '+919123456789' });
     expect((await http.call(teacher, 'PATCH', url, { name: 'New' })).statusCode).toBe(403);
     expect((await http.call(token, 'PATCH', url, {})).statusCode).toBe(422);
+  });
+});
+
+describe('roll numbers', () => {
+  it('set when adding, tidied; a duplicate is 409 rollNumber; PATCH changes or removes it', async () => {
+    const { token, studentsUrl, createStudent } = await setup();
+    const aarav = await createStudent({ ...validStudent, rollNumber: '  12A ' });
+    expect(aarav.rollNumber).toBe('12A');
+
+    const clash = await http.call(token, 'POST', studentsUrl, {
+      ...validStudent,
+      name: 'Bhavya',
+      rollNumber: '12a',
+    });
+    expect(clash.statusCode).toBe(409);
+    expect(clash.json().error.details).toMatchObject({ field: 'rollNumber' });
+
+    const bhavya = await createStudent({ ...validStudent, name: 'Bhavya', rollNumber: '13' });
+    const toTaken = await http.call(token, 'PATCH', `${studentsUrl}/${bhavya.id}`, {
+      rollNumber: '12A',
+    });
+    expect(toTaken.statusCode).toBe(409);
+    const removed = await http.call(token, 'PATCH', `${studentsUrl}/${aarav.id}`, {
+      rollNumber: '',
+    });
+    expect(removed.json().student.rollNumber).toBeNull();
+  });
+
+  it('422 for more than 20 characters', async () => {
+    const { token, studentsUrl } = await setup();
+    const response = await http.call(token, 'POST', studentsUrl, {
+      ...validStudent,
+      rollNumber: 'x'.repeat(21),
+    });
+    expect(response.statusCode).toBe(422);
   });
 });
 

@@ -196,7 +196,9 @@ export class StudentService {
   async update(instituteId: string, studentId: string, changes: StudentChanges): Promise<Student> {
     await this.assertWritable(instituteId, [studentId]);
     const updated = (await this.get(instituteId, studentId)).withChanges(changes);
-    await this.deps.students.update(updated);
+    if ((await this.deps.students.update(updated)) === 'roll_number_taken') {
+      throw rollNumberTaken();
+    }
     return updated;
   }
 
@@ -219,6 +221,9 @@ export class StudentService {
     const result = await this.deps.students.createWithinLimit(instituteId, students, limit);
     if (result === 'limit_reached') {
       throw planLimitReached('activeStudents', limit ?? 0);
+    }
+    if (result === 'roll_number_taken') {
+      throw rollNumberTaken();
     }
   }
 
@@ -247,4 +252,11 @@ function describe(error: unknown): { field: string; message: string } {
     return { field, message: error.message };
   }
   throw error;
+}
+
+/** 409: another active student here already has this roll number. */
+function rollNumberTaken(): AppError {
+  return new AppError('CONFLICT', 'Another active student already has this roll number', {
+    field: 'rollNumber',
+  });
 }

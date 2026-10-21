@@ -154,11 +154,26 @@ describe('tests: marks', () => {
     expect(response.statusCode).toBe(200);
     const sheet = response.json();
     expect(sheet.students).toEqual([
-      { studentId: aarav.id, name: 'Aarav', marks: 42.5, isAbsent: false, entered: true },
-      { studentId: bhavya.id, name: 'Bhavya', marks: null, isAbsent: true, entered: true },
+      {
+        studentId: aarav.id,
+        name: 'Aarav',
+        rollNumber: null,
+        marks: 42.5,
+        isAbsent: false,
+        entered: true,
+      },
+      {
+        studentId: bhavya.id,
+        name: 'Bhavya',
+        rollNumber: null,
+        marks: null,
+        isAbsent: true,
+        entered: true,
+      },
       {
         studentId: expect.any(String),
         name: 'Chirag',
+        rollNumber: null,
         marks: null,
         isAbsent: false,
         entered: false,

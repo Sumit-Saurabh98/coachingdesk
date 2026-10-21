@@ -2,6 +2,7 @@ import {
   AppError,
   type AttendanceStatus,
   type Clock,
+  compareByRollThenName,
   type IdGenerator,
   InstituteClock,
   type LocalDate,
@@ -35,7 +36,7 @@ export interface StudentNamesLookup {
   findByIds(
     instituteId: string,
     ids: readonly string[],
-  ): Promise<Array<{ id: string; name: string }>>;
+  ): Promise<Array<{ id: string; name: string; rollNumber: string | null }>>;
   /** Students frozen by a downgrade (KB "Downgrade"): their marks are skipped. */
   readOnlyIds(instituteId: string): Promise<ReadonlySet<string>>;
 }
@@ -72,6 +73,7 @@ export interface SyncedAttendance {
 export interface RegisterRow {
   studentId: string;
   name: string;
+  rollNumber: string | null;
   status: AttendanceStatus;
   marked: boolean; // false = not marked yet; shown as the default "present" (FR-3.1)
 }
@@ -174,6 +176,7 @@ export class AttendanceService {
   /**
    * GET /batches/:batchId/attendance?date= : the register. Everyone enrolled that day, plus
    * anyone already marked; unmarked students show the default "present" with marked: false.
+   * In roll-number order (natural: 2 before 10), then by name for those without one.
    */
   async register(
     instituteId: string,
@@ -190,12 +193,15 @@ export class AttendanceService {
     const students = await this.deps.students.findByIds(instituteId, ids);
     return {
       session: found?.session ?? null,
-      students: students.map((s) => ({
-        studentId: s.id,
-        name: s.name,
-        status: marks.get(s.id) ?? 'present',
-        marked: marks.has(s.id),
-      })),
+      students: students
+        .map((s) => ({
+          studentId: s.id,
+          name: s.name,
+          rollNumber: s.rollNumber,
+          status: marks.get(s.id) ?? 'present',
+          marked: marks.has(s.id),
+        }))
+        .sort(compareByRollThenName),
     };
   }
 

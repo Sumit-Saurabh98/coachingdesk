@@ -2,6 +2,7 @@ import type { Db } from '@coachingdesk/db';
 import { institutes, students } from '@coachingdesk/db/schema';
 import { LocalDate, PhoneNumber, STUDENT_STATUSES, type StudentStatus } from '@coachingdesk/shared';
 import { and, asc, eq, inArray, or, type SQL, sql } from 'drizzle-orm';
+import { isUniqueViolation } from '../../lib/pg-errors';
 import { Student } from './student';
 import {
   type CreateStudentsResult,
@@ -9,9 +10,13 @@ import {
   type StudentListQuery,
   type StudentPage,
   type StudentRepository,
+  type UpdateStudentResult,
 } from './student.repository';
 
 type StudentRow = typeof students.$inferSelect;
+
+/** students_active_roll_number_unique: an active student here already has that roll number. */
+const ROLL_NUMBER_INDEX = 'students_active_roll_number_unique';
 
 // The sort key. COLLATE "C" = character-code order, the same as JavaScript's < (and the index).
 const nameKey = sql`(lower(${students.name}) collate "C")`;
@@ -27,6 +32,22 @@ export class DrizzleStudentRepository implements StudentRepository {
     if (newStudents.some((s) => s.instituteId !== instituteId)) {
       throw new Error('createWithinLimit: every student must belong to the given institute');
     }
+    try {
+      return await this.insertWithinLimit(instituteId, newStudents, maxActive);
+    } catch (error) {
+      // students_active_roll_number_unique: that roll number is already an active student's.
+      if (isUniqueViolation(error, ROLL_NUMBER_INDEX)) {
+        return 'roll_number_taken';
+      }
+      throw error;
+    }
+  }
+
+  private insertWithinLimit(
+    instituteId: string,
+    newStudents: Student[],
+    maxActive: number | null,
+  ): Promise<CreateStudentsResult> {
     return this.db.transaction(async (tx) => {
       // THE LOCK. Without it: request A counts 24, request B counts 24, both insert -> 26 on a
       // 25 plan. FOR UPDATE makes B wait at this line until A commits; B then counts 25 and stops.
@@ -131,17 +152,26 @@ export class DrizzleStudentRepository implements StudentRepository {
     return rows.map(toStudent);
   }
 
-  async update(student: Student): Promise<void> {
-    const updated = await this.db
-      .update(students)
-      .set(toColumns(student))
-      .where(and(eq(students.id, student.id), eq(students.instituteId, student.instituteId)))
-      .returning({ id: students.id });
+  async update(student: Student): Promise<UpdateStudentResult> {
+    let updated: Array<{ id: string }>;
+    try {
+      updated = await this.db
+        .update(students)
+        .set(toColumns(student))
+        .where(and(eq(students.id, student.id), eq(students.instituteId, student.instituteId)))
+        .returning({ id: students.id });
+    } catch (error) {
+      if (isUniqueViolation(error, ROLL_NUMBER_INDEX)) {
+        return 'roll_number_taken';
+      }
+      throw error;
+    }
     if (updated.length === 0) {
       throw new Error(
         `DrizzleStudentRepository: no student ${student.id} in institute ${student.instituteId}`,
       );
     }
+    return 'updated';
   }
 }
 
@@ -153,6 +183,7 @@ function searchCondition(q: string): SQL | undefined {
   return or(
     sql`lower(${students.name}) like ${pattern} escape '\\'`,
     sql`lower(${students.guardianName}) like ${pattern} escape '\\'`,
+    sql`lower(${students.rollNumber}) = ${q.trim().toLowerCase()}`, // exact: "1" is not "12"
     digits ? sql`${students.guardianPhone} like ${`%${digits}%`}` : undefined,
   );
 }
@@ -167,6 +198,7 @@ function toColumns(student: Student) {
     joinedOn: student.joinedOn.toString(),
     leftOn: student.leftOn?.toString() ?? null,
     notes: student.notes,
+    rollNumber: student.rollNumber,
     erasedAt: student.erasedAt,
   };
 }
@@ -182,6 +214,7 @@ function toStudent(row: StudentRow): Student {
     joinedOn: LocalDate.parse(row.joinedOn),
     leftOn: row.leftOn ? LocalDate.parse(row.leftOn) : null,
     notes: row.notes,
+    rollNumber: row.rollNumber,
     erasedAt: row.erasedAt,
   });
 }

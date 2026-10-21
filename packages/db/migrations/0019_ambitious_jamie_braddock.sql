@@ -1,0 +1,2 @@
+ALTER TABLE "students" ADD COLUMN "roll_number" text;--> statement-breakpoint
+CREATE UNIQUE INDEX "students_active_roll_number_unique" ON "students" USING btree ("institute_id",lower("roll_number")) WHERE "students"."status" = 'active' and "students"."roll_number" is not null;

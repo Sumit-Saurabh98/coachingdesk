@@ -87,6 +87,9 @@ export const students = pgTable(
     joinedOn: date({ mode: 'string' }).notNull(),
     leftOn: date({ mode: 'string' }),
     notes: text(),
+    // Optional, text ("12", "12A"). Unique among ACTIVE students (index below): a student who
+    // left frees it for next year's class. Cleared on erasure.
+    rollNumber: text(),
     // PII erased on request (LLD §6.9). Name -> "Erased student"; guardian + notes cleared.
     erasedAt: timestamp({ withTimezone: true }),
     ...timestamps,
@@ -106,6 +109,11 @@ export const students = pgTable(
     ),
     // The target for enrollments' composite foreign key (see enrollments below).
     unique('students_institute_id_id_unique').on(t.instituteId, t.id),
+    // Two active students can't share a roll number ("12a" = "12A"). An index, not app code,
+    // so two phones saving the same number at once can't both succeed.
+    uniqueIndex('students_active_roll_number_unique')
+      .on(t.instituteId, sql`lower(${t.rollNumber})`)
+      .where(sql`${t.status} = 'active' and ${t.rollNumber} is not null`),
     check('students_status_check', sql`${t.status} in ('active', 'left')`),
     check(
       'students_guardian_phone_check',
