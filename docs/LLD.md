@@ -90,6 +90,7 @@ index (institute_id) where archived_at is null
 students (
   id uuid pk, institute_id uuid fk, name text not null,
   guardian_name text, guardian_phone text,          -- required unless erased (check below)
+  student_phone text,                     -- the student's own mobile, optional; own consent; cleared on erasure
   status text not null default 'active' check (status in ('active','left')),
   joined_on date not null, left_on date, notes text,
   roll_number text,                       -- optional ("12", "12A"); cleared on erasure

@@ -311,6 +311,7 @@ export function describeStudentRepositoryContract(
         status: 'left',
         joinedOn: '2026-10-01',
         leftOn: '2026-12-31',
+        studentPhone: null,
         notes: 'Note',
         rollNumber: null,
       });

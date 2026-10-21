@@ -82,6 +82,8 @@ export const students = pgTable(
     guardianName: text(),
     // E.164 (+91XXXXXXXXXX). Nullable ONLY for erased students (check below).
     guardianPhone: text(),
+    // The student's OWN mobile, E.164, optional. Gets messages only with its own consent.
+    studentPhone: text(),
     status: text().notNull().default('active'),
     // mode 'string': Postgres `date` <-> "YYYY-MM-DD". No Date object, so no time-zone shift.
     joinedOn: date({ mode: 'string' }).notNull(),

@@ -108,7 +108,12 @@ export class StudentsController {
    * id must not leave a student behind), then the student is created, then enrolled.
    */
   async create(request: FastifyRequest, reply: FastifyReply): Promise<void> {
-    const { batchIds = [], guardianConsent, ...body } = CreateStudentBody.parse(request.body);
+    const {
+      batchIds = [],
+      guardianConsent,
+      studentConsent,
+      ...body
+    } = CreateStudentBody.parse(request.body);
     const { instituteId } = currentTenant(request);
     if (batchIds.length > 0) {
       await this.enrollments.assertBatchesOpen(instituteId, batchIds);
@@ -125,6 +130,10 @@ export class StudentsController {
         : [];
     if (guardianConsent) {
       await this.consent.optInAll(instituteId, [body.guardianPhone]);
+    }
+    // The student's number has its OWN consent (KB "Messaging": consent belongs to a number).
+    if (studentConsent && student.studentPhone) {
+      await this.consent.optInAll(instituteId, [student.studentPhone]);
     }
     // one_time batch fees are invoiced at enrollment; periodic ones wait for the billing day.
     const invoices = [];

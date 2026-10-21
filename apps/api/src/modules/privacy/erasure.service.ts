@@ -4,7 +4,10 @@ import type { AuditRecorder } from '../audit/audit-log';
 // Each module erases its own data, through its own service (rule 12). Nobody depends on
 // privacy, so this module can depend on all of them without an import cycle.
 export interface ErasableStudents {
-  get(instituteId: string, studentId: string): Promise<{ guardianPhone: PhoneNumber | null }>;
+  get(
+    instituteId: string,
+    studentId: string,
+  ): Promise<{ guardianPhone: PhoneNumber | null; studentPhone: PhoneNumber | null }>;
   erase(instituteId: string, studentId: string): Promise<{ toPublicJSON(): object }>;
   byGuardianPhone(instituteId: string, phone: PhoneNumber): Promise<unknown[]>;
 }
@@ -44,9 +47,19 @@ export class ErasureService {
     studentId: string,
     actorUserId: string,
   ): Promise<{ toPublicJSON(): object }> {
-    const { guardianPhone } = await this.deps.students.get(instituteId, studentId); // 404
+    const { guardianPhone, studentPhone } = await this.deps.students.get(instituteId, studentId); // 404
     const erased = await this.deps.students.erase(instituteId, studentId);
     await this.deps.messages.forgetStudent(instituteId, studentId);
+
+    // The student's own number belongs to this student alone: its consent and queued
+    // messages go too (unless, oddly, it is also some family's guardian number here).
+    if (studentPhone) {
+      const isAGuardian = await this.deps.students.byGuardianPhone(instituteId, studentPhone);
+      if (isAGuardian.length === 0) {
+        await this.deps.consent.forget(instituteId, studentPhone);
+        await this.deps.messages.forgetPhone(instituteId, studentPhone);
+      }
+    }
 
     let guardianForgotten = false;
     if (guardianPhone) {

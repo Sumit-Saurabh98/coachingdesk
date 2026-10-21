@@ -28,6 +28,7 @@ describe('Student.create', () => {
       status: 'active',
       joinedOn: '2026-10-01',
       leftOn: null,
+      studentPhone: null,
       notes: 'Weak in algebra',
       rollNumber: null,
     });

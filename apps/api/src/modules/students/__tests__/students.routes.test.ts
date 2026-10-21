@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
+import { PhoneNumber } from '@coachingdesk/shared';
 import { OTHER_PHONE, tenantHttp } from '../../../test/tenant-http';
 import { buildTestApp, loginOverHttp } from '../../../test/test-app';
 
@@ -55,6 +56,7 @@ describe('POST /v1/institutes/:instituteId/students', () => {
       status: 'active',
       joinedOn: '2026-10-18',
       leftOn: null,
+      studentPhone: null,
       notes: null,
       rollNumber: null,
     });
@@ -221,6 +223,47 @@ describe('GET / PATCH /v1/institutes/:instituteId/students/:studentId', () => {
     expect(patched.json().student).toEqual({ ...student, guardianPhone: '+919123456789' });
     expect((await http.call(teacher, 'PATCH', url, { name: 'New' })).statusCode).toBe(403);
     expect((await http.call(token, 'PATCH', url, {})).statusCode).toBe(422);
+  });
+});
+
+describe("the student's own number", () => {
+  it('optional; normalised; its own consent; never the same as the parent', async () => {
+    const { token, studentsUrl, instituteId } = await setup();
+    const created = await http.call(token, 'POST', studentsUrl, {
+      ...validStudent,
+      studentPhone: '91234 56789',
+      studentConsent: true,
+    });
+    expect(created.statusCode).toBe(201);
+    expect(created.json().student.studentPhone).toBe('+919123456789');
+    const consentOf = (phone: string) =>
+      testApp.consentRepository.consentOf(instituteId, PhoneNumber.parse(phone));
+    expect(await consentOf('9123456789')).toBe('opted_in');
+    expect(await consentOf('9876543210')).toBe('unknown'); // the parent's: not asked here
+
+    const same = await http.call(token, 'POST', studentsUrl, {
+      ...validStudent,
+      studentPhone: '9876543210',
+    });
+    expect(same.statusCode).toBe(422);
+    expect(same.json().error.details).toMatchObject({ field: 'studentPhone' });
+  });
+
+  it('PATCH sets or removes it; search finds the student by its digits', async () => {
+    const { token, studentsUrl, createStudent } = await setup();
+    const aarav = await createStudent();
+    const set = await http.call(token, 'PATCH', `${studentsUrl}/${aarav.id}`, {
+      studentPhone: '9123456789',
+    });
+    expect(set.json().student.studentPhone).toBe('+919123456789');
+
+    const found = await http.call(token, 'GET', `${studentsUrl}?q=91234`);
+    expect(found.json().students.map((s: { id: string }) => s.id)).toEqual([aarav.id]);
+
+    const removed = await http.call(token, 'PATCH', `${studentsUrl}/${aarav.id}`, {
+      studentPhone: null,
+    });
+    expect(removed.json().student.studentPhone).toBeNull();
   });
 });
 

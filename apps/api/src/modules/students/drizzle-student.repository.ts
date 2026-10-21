@@ -185,6 +185,7 @@ function searchCondition(q: string): SQL | undefined {
     sql`lower(${students.guardianName}) like ${pattern} escape '\\'`,
     sql`lower(${students.rollNumber}) = ${q.trim().toLowerCase()}`, // exact: "1" is not "12"
     digits ? sql`${students.guardianPhone} like ${`%${digits}%`}` : undefined,
+    digits ? sql`${students.studentPhone} like ${`%${digits}%`}` : undefined,
   );
 }
 
@@ -194,6 +195,7 @@ function toColumns(student: Student) {
     name: student.name,
     guardianName: student.guardianName,
     guardianPhone: student.guardianPhone?.toE164() ?? null,
+    studentPhone: student.studentPhone?.toE164() ?? null,
     status: student.status,
     joinedOn: student.joinedOn.toString(),
     leftOn: student.leftOn?.toString() ?? null,
@@ -210,6 +212,7 @@ function toStudent(row: StudentRow): Student {
     name: row.name,
     guardianName: row.guardianName,
     guardianPhone: row.guardianPhone ? PhoneNumber.parse(row.guardianPhone) : null,
+    studentPhone: row.studentPhone ? PhoneNumber.parse(row.studentPhone) : null,
     status: toStatus(row.status),
     joinedOn: LocalDate.parse(row.joinedOn),
     leftOn: row.leftOn ? LocalDate.parse(row.leftOn) : null,

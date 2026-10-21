@@ -182,7 +182,9 @@ function matchesSearch(student: Student, q: string): boolean {
     student.name.toLowerCase().includes(text) ||
     (student.guardianName?.toLowerCase().includes(text) ?? false) ||
     student.rollNumber?.toLowerCase() === text.trim() ||
-    (digits !== null && (student.guardianPhone?.toE164().includes(digits) ?? false))
+    (digits !== null &&
+      ((student.guardianPhone?.toE164().includes(digits) ?? false) ||
+        (student.studentPhone?.toE164().includes(digits) ?? false)))
   );
 }
 

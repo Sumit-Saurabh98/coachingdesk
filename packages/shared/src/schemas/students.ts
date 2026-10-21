@@ -14,6 +14,8 @@ export const CreateStudentBody = z
     name: z.string().max(200),
     guardianName: z.string().max(200).nullish(),
     guardianPhone: zPhoneIN,
+    // The student's own mobile (optional): calls, WhatsApp, and messages with its own consent.
+    studentPhone: zPhoneIN.nullish(),
     // Missing = today in the institute's time zone (the service decides "today", not the phone).
     joinedOn: zLocalDate.optional(),
     notes: z.string().max(1000).nullish(),
@@ -23,6 +25,8 @@ export const CreateStudentBody = z
     batchIds: z.array(z.uuid()).max(20).optional(),
     // The "Guardian agreed to receive updates on WhatsApp" checkbox (KB: consent at add time).
     guardianConsent: z.boolean().optional(),
+    // The same, for the student's number (asked separately: consent belongs to a number).
+    studentConsent: z.boolean().optional(),
   })
   .strict();
 
@@ -32,6 +36,7 @@ export const UpdateStudentBody = z
     name: z.string().max(200).optional(),
     guardianName: z.string().max(200).nullable().optional(),
     guardianPhone: zPhoneIN.optional(),
+    studentPhone: zPhoneIN.nullable().optional(), // null = remove it
     joinedOn: zLocalDate.optional(),
     notes: z.string().max(1000).nullable().optional(),
     rollNumber: z.string().max(50).nullable().optional(), // null or "" = remove it

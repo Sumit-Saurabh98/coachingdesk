@@ -10,6 +10,7 @@ export interface NewStudentInput {
   name: string;
   guardianName?: string | null;
   guardianPhone: PhoneNumber;
+  studentPhone?: PhoneNumber | null;
   joinedOn: LocalDate;
   notes?: string | null;
   rollNumber?: string | null;
@@ -20,6 +21,7 @@ export interface StudentChanges {
   name?: string;
   guardianName?: string | null;
   guardianPhone?: PhoneNumber;
+  studentPhone?: PhoneNumber | null;
   joinedOn?: LocalDate;
   notes?: string | null;
   rollNumber?: string | null;
@@ -32,6 +34,8 @@ export interface StudentProps {
   guardianName: string | null;
   /** null only for an erased student (DB check students_guardian_phone_check). */
   guardianPhone: PhoneNumber | null;
+  /** The student's own mobile (optional). Messages go there only with its own consent. */
+  studentPhone: PhoneNumber | null;
   status: StudentStatus;
   joinedOn: LocalDate;
   leftOn: LocalDate | null;
@@ -54,6 +58,7 @@ export class Student {
   readonly name: string;
   readonly guardianName: string | null;
   readonly guardianPhone: PhoneNumber | null;
+  readonly studentPhone: PhoneNumber | null;
   readonly status: StudentStatus;
   readonly joinedOn: LocalDate;
   readonly leftOn: LocalDate | null;
@@ -67,6 +72,7 @@ export class Student {
     this.name = props.name;
     this.guardianName = props.guardianName;
     this.guardianPhone = props.guardianPhone;
+    this.studentPhone = props.studentPhone;
     this.status = props.status;
     this.joinedOn = props.joinedOn;
     this.leftOn = props.leftOn;
@@ -82,6 +88,7 @@ export class Student {
       name: cleanName(input.name),
       guardianName: cleanGuardianName(input.guardianName),
       guardianPhone: input.guardianPhone,
+      studentPhone: checkStudentPhone(input.studentPhone ?? null, input.guardianPhone),
       status: 'active',
       joinedOn: input.joinedOn,
       leftOn: null,
@@ -106,6 +113,11 @@ export class Student {
     if (this.leftOn && this.leftOn.isBefore(joinedOn)) {
       throw invalid('joinedOn', 'Join date cannot be after the date the student left');
     }
+    const guardianPhone = changes.guardianPhone ?? this.guardianPhone;
+    const studentPhone = checkStudentPhone(
+      changes.studentPhone === undefined ? this.studentPhone : changes.studentPhone,
+      guardianPhone,
+    );
     return new Student({
       ...this.toProps(),
       name: changes.name === undefined ? this.name : cleanName(changes.name),
@@ -113,7 +125,8 @@ export class Student {
         changes.guardianName === undefined
           ? this.guardianName
           : cleanGuardianName(changes.guardianName),
-      guardianPhone: changes.guardianPhone ?? this.guardianPhone,
+      guardianPhone,
+      studentPhone,
       joinedOn,
       notes: changes.notes === undefined ? this.notes : cleanNotes(changes.notes),
       rollNumber:
@@ -151,6 +164,7 @@ export class Student {
       name: 'Erased student',
       guardianName: null,
       guardianPhone: null,
+      studentPhone: null,
       notes: null,
       rollNumber: null,
       status: 'left',
@@ -166,6 +180,7 @@ export class Student {
       guardianName: this.guardianName,
       // Members see the full number (they call parents). Logs and public pages use masked().
       guardianPhone: this.guardianPhone?.toE164() ?? null,
+      studentPhone: this.studentPhone?.toE164() ?? null,
       status: this.status,
       joinedOn: this.joinedOn.toString(),
       leftOn: this.leftOn?.toString() ?? null,
@@ -181,6 +196,7 @@ export class Student {
       name: this.name,
       guardianName: this.guardianName,
       guardianPhone: this.guardianPhone,
+      studentPhone: this.studentPhone,
       status: this.status,
       joinedOn: this.joinedOn,
       leftOn: this.leftOn,
@@ -227,6 +243,17 @@ function cleanNotes(raw: string | null | undefined): string | null {
     throw invalid('notes', 'Notes must be at most 1000 characters');
   }
   return notes === '' ? null : notes;
+}
+
+/** The student's own number can't be the parent's: that would just send everything twice. */
+function checkStudentPhone(
+  phone: PhoneNumber | null,
+  guardianPhone: PhoneNumber | null,
+): PhoneNumber | null {
+  if (phone && guardianPhone && phone.equals(guardianPhone)) {
+    throw invalid('studentPhone', "The student's number must be different from the parent's");
+  }
+  return phone;
 }
 
 function cleanRollNumber(raw: string | null | undefined): string | null {

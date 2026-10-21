@@ -90,6 +90,24 @@ describe('POST /students/:studentId/erase', () => {
     );
   });
 
+  it("the student's own number: cleared, and its consent forgotten", async () => {
+    const { call, erase, testApp, instituteId } = await setup();
+    const { student } = (
+      await call('POST', '/students', {
+        name: 'Aarav',
+        guardianPhone: NEHA,
+        studentPhone: '9123456789',
+        studentConsent: true,
+      })
+    ).json();
+    const own = PhoneNumber.parse('9123456789');
+    expect(await testApp.consentRepository.consentOf(instituteId, own)).toBe('opted_in');
+
+    const erased = await erase(student.id);
+    expect(erased.json().student.studentPhone).toBeNull();
+    expect(await testApp.consentRepository.consentOf(instituteId, own)).toBe('unknown');
+  });
+
   it('needs { confirm: true }; owner only; repeating it is harmless', async () => {
     const { instituteId, addStudent, erase } = await setup();
     const aarav = await addStudent('Aarav');
