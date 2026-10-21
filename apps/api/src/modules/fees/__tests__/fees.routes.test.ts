@@ -33,6 +33,32 @@ async function setup() {
 }
 
 describe('billing at enrollment', () => {
+  it('removed from a one_time batch and added back the same day: reopened, NOT billed again', async () => {
+    const { token, url, batch, student } = await setup();
+    const crash = await batch('Crash course', 'one_time', 500000);
+    const created = await student('Aarav', [crash.id]);
+    const [enrollment] = created.enrollments;
+
+    const removed = await http.call(token, 'PATCH', `${url}/enrollments/${enrollment.id}`, {
+      endDate: '2026-10-01',
+    });
+    expect(removed.statusCode).toBe(200);
+
+    const again = await http.call(token, 'POST', `${url}/enrollments`, {
+      studentId: created.student.id,
+      batchId: crash.id,
+      startDate: '2026-10-01',
+    });
+    expect(again.statusCode).toBe(200);
+    expect(again.json()).toMatchObject({
+      reopened: true,
+      invoice: null,
+      enrollment: { id: enrollment.id, endDate: null },
+    });
+    const invoices = (await http.call(token, 'GET', `${url}/invoices`)).json().invoices;
+    expect(invoices).toHaveLength(1); // the one from when they first joined
+  });
+
   it('a one_time batch fee is invoiced immediately when the student is added with it', async () => {
     const { batch, student } = await setup();
     const crash = await batch('Crash course', 'one_time', 500000);

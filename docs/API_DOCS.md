@@ -160,7 +160,7 @@ Batch object:
 | PATCH | `/institutes/{id}/students/{studentId}` | Owner, staff. `{ name?, guardianName?, guardianPhone?, joinedOn?, notes? }` → `200 { student }`. `409` if erased |
 | POST | `/institutes/{id}/students/{studentId}/leave` | Owner, staff. `{ leftOn? }` (default: today at the institute) → `200 { student }`. Stops invoices/reminders; frees a plan slot. Idempotent: a retry keeps the first date |
 | POST | `/institutes/{id}/students/{studentId}/erase` | Owner. `{ confirm: true }` → `200 { student }`. Irreversibly erases the student's personal data (on guardian request): name → "Erased student", guardian name/phone and notes cleared, marked left (billing stops); absence alerts about them lose their text. The guardian's phone is also removed from payments, consent and the message log **unless a sibling here still has it**. Invoice and payment amounts are kept. Audited; repeating it is harmless |
-| POST | `/institutes/{id}/enrollments` | Owner, staff. `{ studentId, batchId, feePaise?, discountPaise?, feeCycle?, startDate?, billNow? }` → `201 { enrollment, invoice }`. `feePaise`/`feeCycle` default to the batch's, `startDate` to today at the institute. `one_time` is invoiced immediately; `billNow: true` bills the current period of a periodic enrollment now (`422` if the enrollment starts after this period); otherwise `invoice` is `null` and the billing run bills it. `404` student/batch not in this institute; `409` student left, batch archived, or already enrolled then |
+| POST | `/institutes/{id}/enrollments` | Owner, staff. `{ studentId, batchId, feePaise?, discountPaise?, feeCycle?, startDate?, billNow? }` → `201 { enrollment, invoice }`. `feePaise`/`feeCycle` default to the batch's, `startDate` to today at the institute. `one_time` is invoiced immediately; `billNow: true` bills the current period of a periodic enrollment now (`422` if the enrollment starts after this period); otherwise `invoice` is `null` and the billing run bills it. `404` student/batch not in this institute; `409` student left, batch archived, or still enrolled with no end date. **Re-adding** a student whose enrollment still runs on the start date (removed today, or leaving later) reopens that enrollment → `200 { enrollment, invoice: null, reopened: true }` (same id, end date cleared, new terms applied if sent, never billed again) |
 | PATCH | `/institutes/{id}/enrollments/{enrollmentId}` | Owner, staff. `{ feePaise?, discountPaise?, feeCycle?, endDate? }` → `200 { enrollment }`. Fee changes apply from the next period; `endDate` = last day attending (can be corrected, not before `startDate`) |
 
 Create student:
@@ -183,7 +183,7 @@ Enrollment object (owner/staff):
 ```json
 { "id": "…", "studentId": "…", "batchId": "…", "feePaise": 150000, "discountPaise": 20000, "netFeePaise": 130000, "feeCycle": "monthly", "startDate": "2026-10-19", "endDate": null }
 ```
-Rules: discount ≤ fee; one open enrollment per student and batch (rejoining after `endDate` is fine); changing a batch's default fee never changes existing enrollments.
+Rules: discount ≤ fee; one open enrollment per student and batch (rejoining after `endDate` is fine; re-adding while it still runs reopens it); changing a batch's default fee never changes existing enrollments.
 
 Student object:
 ```json

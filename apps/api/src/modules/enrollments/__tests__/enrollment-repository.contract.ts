@@ -166,6 +166,17 @@ export function describeEnrollmentRepositoryContract(
       });
     });
 
+    it('a reopened enrollment is saved with no end date (and is the open one again)', async () => {
+      const repo = create();
+      const ended = enroll(1, s1, b1, { end: '2026-10-21' });
+      await seed(repo, ended);
+
+      await repo.update(ended.reopen());
+
+      expect((await repo.findById(instituteA, ended.id))?.endDate).toBeNull();
+      expect(await repo.listForStudentInBatch(instituteA, s1, b1)).toHaveLength(1);
+    });
+
     it("TENANCY: refuses to update another institute's enrollment", async () => {
       const repo = create();
       const mine = enroll(1);

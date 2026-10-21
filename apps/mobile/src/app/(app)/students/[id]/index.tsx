@@ -125,7 +125,7 @@ export default function StudentScreen() {
   const batchName = (batchId: string) =>
     batches.data?.find((batch) => batch.id === batchId)?.name ?? '…';
   const currentEnrollments = enrollments.filter((e) => isOpenOn(e, today));
-  const joinable = joinableBatches(batches.data ?? [], enrollments, today);
+  const joinable = joinableBatches(batches.data ?? [], enrollments);
   const phone = student.guardianPhone;
 
   const feeText = (enrollment: Enrollment): string | null => {

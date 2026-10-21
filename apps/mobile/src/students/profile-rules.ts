@@ -21,16 +21,16 @@ export function isOpenOn(enrollment: Enrollment, today: string): boolean {
 }
 
 /**
- * Batches the student can still join: active ones they're not in right now. (The API allows
- * one OPEN enrollment per student and batch; rejoining after leaving is fine.)
+ * Batches the student can join: active ones they're not staying in. Only an enrollment with NO
+ * end date blocks a batch: one that ends today or later (just removed, or leaving soon) can be
+ * added back, and the API reopens it instead of creating a second one.
  */
 export function joinableBatches<B extends { id: string; archivedAt: string | null }>(
   batches: readonly B[],
   enrollments: readonly Enrollment[],
-  today: string,
 ): B[] {
-  const inNow = new Set(enrollments.filter((e) => isOpenOn(e, today)).map((e) => e.batchId));
-  return batches.filter((batch) => batch.archivedAt === null && !inNow.has(batch.id));
+  const staying = new Set(enrollments.filter((e) => e.endDate === null).map((e) => e.batchId));
+  return batches.filter((batch) => batch.archivedAt === null && !staying.has(batch.id));
 }
 
 /** "tel:+919876543210": opens the phone's dialer with the number filled in. */

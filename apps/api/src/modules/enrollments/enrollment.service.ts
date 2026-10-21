@@ -55,6 +55,20 @@ export class EnrollmentService {
 
   /** POST /enrollments. 404 unknown student/batch; 409 left student, archived batch, already in. */
   async enroll(instituteId: string, request: EnrollRequest): Promise<Enrollment> {
+    return (await this.enrollOrReopen(instituteId, request)).enrollment;
+  }
+
+  /**
+   * Joins the batch, or REOPENS the enrollment that is still running on the start date (removed
+   * today, or leaving on a later date): "remove" and "add back" must not leave a student stuck,
+   * and the same-day pair would otherwise clash. Reopening keeps the start date and the history,
+   * and is never billed again (a one_time fee was billed when they first joined). With a gap
+   * (ended before the start date), a new enrollment is created as before.
+   */
+  async enrollOrReopen(
+    instituteId: string,
+    request: EnrollRequest,
+  ): Promise<{ enrollment: Enrollment; reopened: boolean }> {
     const student = await this.deps.students.get(instituteId, request.studentId);
     if (!student.isActive) {
       throw new AppError('CONFLICT', 'This student has left; they cannot join a batch', {
@@ -64,7 +78,16 @@ export class EnrollmentService {
     await this.deps.students.assertWritable(instituteId, [student.id]);
     const [batch] = await this.openBatches(instituteId, [request.batchId]);
     const startDate = request.startDate ?? (await this.todayAt(instituteId));
-    await this.assertNotEnrolledFrom(instituteId, student.id, request.batchId, startDate);
+    const running = await this.runningOn(instituteId, student.id, request.batchId, startDate);
+    if (running) {
+      const reopened = running.reopen().withTerms({
+        feePaise: request.feePaise,
+        discountPaise: request.discountPaise,
+        feeCycle: request.feeCycle,
+      });
+      await this.deps.enrollments.update(reopened);
+      return { enrollment: reopened, reopened: true };
+    }
 
     // Copy the batch defaults; what's sent overrides them (sibling discount, quarterly payer).
     const enrollment = Enrollment.create(this.deps.ids.next(), instituteId, {
@@ -76,7 +99,7 @@ export class EnrollmentService {
       startDate,
     });
     await this.save([enrollment], instituteId);
-    return enrollment;
+    return { enrollment, reopened: false };
   }
 
   /**
@@ -183,24 +206,29 @@ export class EnrollmentService {
   }
 
   /**
-   * Overlap check: an open enrollment, or one that ends on/after the new start, means the
-   * student is still in the batch then. (The unique index covers the open case even under
-   * races; this also covers "ends next month, re-added for this month".)
+   * Overlap check. Still in the batch with no end date: 409 (nothing to do). Ending on/after
+   * the new start: that enrollment is returned, to be reopened. (The unique index covers the
+   * open case even under races.) One starting AFTER the new start can't be stretched back: 409.
    */
-  private async assertNotEnrolledFrom(
+  private async runningOn(
     instituteId: string,
     studentId: string,
     batchId: string,
     startDate: LocalDate,
-  ): Promise<void> {
+  ): Promise<Enrollment | null> {
     const existing = await this.deps.enrollments.listForStudentInBatch(
       instituteId,
       studentId,
       batchId,
     );
-    if (existing.some((e) => e.endDate === null || !e.endDate.isBefore(startDate))) {
+    if (existing.some((e) => e.endDate === null)) {
       throw alreadyEnrolled(batchId);
     }
+    const running = existing.filter((e) => e.endDate !== null && !e.endDate.isBefore(startDate));
+    if (running.some((e) => e.startDate.isAfter(startDate))) {
+      throw alreadyEnrolled(batchId);
+    }
+    return running[0] ?? null;
   }
 
   private async save(enrollments: Enrollment[], instituteId: string): Promise<void> {

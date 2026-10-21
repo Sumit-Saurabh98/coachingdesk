@@ -29,17 +29,23 @@ describe('isOpenOn', () => {
 });
 
 describe('joinableBatches', () => {
-  it('active batches the student is not in now', () => {
+  it('active batches the student is not staying in', () => {
     const batches = [
       batch('maths'),
       batch('science'),
       batch('english'),
+      batch('hindi'),
       batch('old', '2026-01-01'),
     ];
-    const enrollments = [enrollment('maths'), enrollment('science', '2026-10-01')]; // left science
-    expect(joinableBatches(batches, enrollments, today).map((b) => b.id)).toEqual([
-      'science', // rejoining after leaving is fine
+    const enrollments = [
+      enrollment('maths'), // staying: no end date
+      enrollment('science', '2026-10-01'), // left earlier
+      enrollment('hindi', today), // removed today: can be added back the same day
+    ];
+    expect(joinableBatches(batches, enrollments).map((b) => b.id)).toEqual([
+      'science',
       'english',
+      'hindi',
     ]);
   });
 });

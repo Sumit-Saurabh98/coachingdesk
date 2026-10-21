@@ -125,6 +125,11 @@ export class Enrollment {
     return new Enrollment({ ...this.toProps(), endDate: on });
   }
 
+  /** Back in the batch: the end date is cleared (the start date and history stay). */
+  reopen(): Enrollment {
+    return new Enrollment({ ...this.toProps(), endDate: null });
+  }
+
   toPublicJSON() {
     return {
       id: this.id,

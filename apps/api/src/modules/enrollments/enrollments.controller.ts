@@ -27,15 +27,20 @@ export class EnrollmentsController {
   /**
    * POST /v1/institutes/:instituteId/enrollments { ..., billNow? } -> 201 { enrollment, invoice }
    * invoice: the one_time invoice, or this period's invoice with billNow; otherwise null.
+   * Re-adding a student whose enrollment is still running that day REOPENS it -> 200, with
+   * `reopened: true` and no new invoice (it was billed when they first joined).
    */
   async create(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     const { billNow = false, ...body } = CreateEnrollmentBody.parse(request.body);
     const { instituteId } = currentTenant(request);
-    const enrollment = await this.enrollments.enroll(instituteId, body);
-    const invoice = await this.billing.billAtEnrollment(instituteId, enrollment, billNow);
-    await reply.status(201).send({
+    const { enrollment, reopened } = await this.enrollments.enrollOrReopen(instituteId, body);
+    const invoice = reopened
+      ? null
+      : await this.billing.billAtEnrollment(instituteId, enrollment, billNow);
+    await reply.status(reopened ? 200 : 201).send({
       enrollment: enrollment.toPublicJSON(),
       invoice: invoice?.toPublicJSON() ?? null,
+      reopened,
     });
   }
 

@@ -103,14 +103,53 @@ describe('EnrollmentService.enroll', () => {
     await expect(service.enroll(A, again)).resolves.toBeDefined();
   });
 
-  it('409 when the old enrollment ends AFTER the new start (overlap)', async () => {
+  it('re-added while the old enrollment still runs (leaving later): it is REOPENED', async () => {
     const { service, newStudent, newBatch } = await setup();
     const [student, batch] = [await newStudent(), await newBatch()];
     const first = await service.enroll(A, { studentId: student.id, batchId: batch.id });
     await service.update(A, first.id, { endDate: day('2026-12-31') });
 
+    const result = await service.enrollOrReopen(A, {
+      studentId: student.id,
+      batchId: batch.id,
+      startDate: day('2026-12-01'),
+    });
+    expect(result.reopened).toBe(true);
+    expect(result.enrollment.id).toBe(first.id); // same enrollment: no second one
+    expect((await service.get(A, first.id)).endDate).toBeNull();
+  });
+
+  it('removed today, added back today: reopened (with the new terms if sent)', async () => {
+    const { service, newStudent, newBatch } = await setup();
+    const [student, batch] = [await newStudent(), await newBatch()];
+    const first = await service.enroll(A, { studentId: student.id, batchId: batch.id });
+    await service.update(A, first.id, { endDate: first.startDate }); // "remove": ends today
+
+    const again = await service.enrollOrReopen(A, {
+      studentId: student.id,
+      batchId: batch.id,
+      feePaise: 120000,
+    });
+    expect(again).toMatchObject({ reopened: true, enrollment: { id: first.id, endDate: null } });
+    expect(again.enrollment.fee.toPaise()).toBe(120000);
+    // Still in it now: adding once more is a 409, not a third enrollment.
     await expect(
-      service.enroll(A, { studentId: student.id, batchId: batch.id, startDate: day('2026-12-01') }),
+      service.enroll(A, { studentId: student.id, batchId: batch.id }),
+    ).rejects.toMatchObject({ code: 'CONFLICT' });
+  });
+
+  it('409 when the old enrollment starts AFTER the new start (it cannot be stretched back)', async () => {
+    const { service, newStudent, newBatch } = await setup();
+    const [student, batch] = [await newStudent(), await newBatch()];
+    const later = await service.enroll(A, {
+      studentId: student.id,
+      batchId: batch.id,
+      startDate: day('2026-12-01'),
+    });
+    await service.update(A, later.id, { endDate: day('2026-12-31') });
+
+    await expect(
+      service.enroll(A, { studentId: student.id, batchId: batch.id, startDate: day('2026-11-01') }),
     ).rejects.toMatchObject({ code: 'CONFLICT' });
   });
 
