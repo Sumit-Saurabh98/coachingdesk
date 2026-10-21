@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Card, Dialog, List, Portal, Text } from 'react-native-paper';
+import { BatchTests } from '@/class-tests/batch-tests';
 import { errorMessage } from '@/api/error-message';
 import { archiveBatch, batchKeys, getBatch } from '@/batches/batches-api';
 import { formatSchedule } from '@/batches/schedule-format';
@@ -104,6 +105,12 @@ export default function BatchScreen() {
             left={(props) => <List.Icon {...props} icon="account-group-outline" />}
           />
         </List.Section>
+
+        <BatchTests
+          instituteId={current?.id ?? ''}
+          batchId={batch.id}
+          canCreate={(current?.role === 'owner' || current?.role === 'teacher') && !archived}
+        />
 
         {canManage && !archived && (
           <View style={styles.actions}>

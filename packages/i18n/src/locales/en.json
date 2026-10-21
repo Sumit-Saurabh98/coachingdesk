@@ -538,5 +538,23 @@
     "which": "Which number?",
     "parent": "Parent",
     "student": "Student"
+  },
+  "tests": {
+    "title": "Tests",
+    "empty": "No tests yet.",
+    "new": "New test",
+    "dateOutOf": "{{date}} · out of {{max}}",
+    "progress": "{{scored}} scored · {{absent}} absent",
+    "sent": "Results sent",
+    "notInPlan": "Tests and result cards need the Pro plan."
+  },
+  "testForm": {
+    "name": "Test name",
+    "nameExample": "Unit test 1, Monthly test…",
+    "nameInvalid": "Write a name (up to 80 characters).",
+    "maxMarks": "Maximum marks",
+    "maxInvalid": "Enter the maximum, like 25 or 12.5 (up to 1000).",
+    "date": "Test date",
+    "create": "Create test"
   }
 }
