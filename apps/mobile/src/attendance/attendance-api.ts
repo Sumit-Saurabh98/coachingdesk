@@ -25,6 +25,8 @@ export const attendanceKeys = {
   today: (instituteId: string) => [...attendanceKeys.all(instituteId), 'today'] as const,
   register: (instituteId: string, batchId: string, date: string) =>
     [...attendanceKeys.all(instituteId), 'register', batchId, date] as const,
+  student: (instituteId: string, studentId: string, month: string) =>
+    [...attendanceKeys.all(instituteId), 'student', studentId, month] as const,
 };
 
 /** GET .../attendance/summary (any member): today's classes and whether each is taken. */
@@ -80,4 +82,26 @@ export function syncAttendance(
   body: SyncAttendanceRequest,
 ): Promise<SyncAttendanceResult> {
   return api.put(`/v1/institutes/${instituteId}/attendance-sessions/${clientId}`, body);
+}
+
+/** A student's marks in a date range, and the counts (GET .../students/:id/attendance). */
+export interface StudentAttendance {
+  from: string;
+  to: string;
+  records: Array<{ date: string; batchId: string; status: AttendanceStatus }>;
+  /** percentage = (present + late) / (all except leave), whole number; null if nothing counts */
+  summary: AttendanceCounts & { percentage: number | null };
+}
+
+export function getStudentAttendance(
+  instituteId: string,
+  studentId: string,
+  from: string,
+  to: string,
+  signal?: AbortSignal,
+): Promise<StudentAttendance> {
+  return api.get(`/v1/institutes/${instituteId}/students/${studentId}/attendance`, {
+    query: { from, to },
+    signal,
+  });
 }

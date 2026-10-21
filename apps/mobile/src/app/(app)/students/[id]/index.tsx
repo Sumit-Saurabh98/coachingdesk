@@ -18,6 +18,7 @@ import {
   Text,
 } from 'react-native-paper';
 import { errorMessage } from '@/api/error-message';
+import { StudentAttendance } from '@/attendance/student-attendance';
 import { batchKeys, listBatches } from '@/batches/batches-api';
 import { useCurrentInstitute } from '@/institutes/use-current-institute';
 import { formatLocalDate, toLocalDateString } from '@/lib/date-format';
@@ -228,6 +229,8 @@ export default function StudentScreen() {
             />
           ))}
         </List.Section>
+
+        <StudentAttendance instituteId={instituteId} studentId={student.id} batchName={batchName} />
 
         {student.notes !== null && (
           <List.Item

@@ -306,5 +306,15 @@
     "failedNotEnrolled": "Some students are no longer in this batch on this day. Open the class again and save.",
     "failedArchived": "This batch is archived, so its attendance can't be changed.",
     "failedNoBatch": "This batch no longer exists."
+  },
+  "studentAttendance": {
+    "title": "Attendance",
+    "previous": "Previous month",
+    "next": "Next month",
+    "percentage": "{{percent}}% attended",
+    "noPercentage": "No classes counted yet",
+    "howCounted": "Late counts as attended. Leave doesn't count either way.",
+    "noRecords": "No attendance marked this month.",
+    "day": "{{weekday}}, {{date}}"
   }
 }

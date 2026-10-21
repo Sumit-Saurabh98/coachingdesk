@@ -10,7 +10,6 @@ import { FlatList, StyleSheet, View } from 'react-native';
 import {
   ActivityIndicator,
   Button,
-  Chip,
   Dialog,
   IconButton,
   List,
@@ -31,6 +30,7 @@ import {
   withSaves,
 } from '@/attendance/register-rules';
 import { attendanceSyncer, syncFailureText, usePendingAttendance } from '@/attendance/sync';
+import { AttendanceStatusChip } from '@/attendance/status-chip';
 import { countParts } from '@/attendance/today-rules';
 import { useCurrentInstitute } from '@/institutes/use-current-institute';
 import { useAppTheme } from '@/theme/theme';
@@ -171,13 +171,6 @@ function RegisterForm({
     save.mutate();
   };
 
-  const colours: Record<AttendanceStatus, { bg: string; fg: string }> = {
-    present: { bg: theme.colors.successContainer, fg: theme.colors.onSuccessContainer },
-    absent: { bg: theme.colors.errorContainer, fg: theme.colors.onErrorContainer },
-    late: { bg: theme.colors.warningContainer, fg: theme.colors.onWarningContainer },
-    leave: { bg: theme.colors.surfaceVariant, fg: theme.colors.onSurfaceVariant },
-  };
-
   if (rows.length === 0) {
     return (
       <View style={styles.centered}>
@@ -222,13 +215,7 @@ function RegisterForm({
               onPress={() => mark(item.studentId, tapped(status))}
               right={() => (
                 <View style={styles.row}>
-                  <Chip
-                    compact
-                    style={{ backgroundColor: colours[status].bg }}
-                    textStyle={{ color: colours[status].fg }}
-                  >
-                    {t(`register.${status}`)}
-                  </Chip>
+                  <AttendanceStatusChip status={status} />
                   <Menu
                     visible={menuFor === item.studentId}
                     onDismiss={() => setMenuFor(null)}
