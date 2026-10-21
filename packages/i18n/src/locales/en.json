@@ -93,7 +93,9 @@
     "notices": "Notices",
     "noticesDescription": "Holidays, timing changes and messages to parents",
     "messages": "Messages",
-    "messagesDescription": "WhatsApp messages sent to parents, and this month's usage"
+    "messagesDescription": "WhatsApp messages sent to parents, and this month's usage",
+    "instituteSettings": "Institute settings",
+    "instituteSettingsDescription": "Fees, reminders and messages"
   },
   "comingSoon": {
     "title": "Coming soon",
@@ -591,5 +593,30 @@
     "delete": "Delete test",
     "deleteTitle": "Delete {{name}}?",
     "deleteBody": "The test and all its marks are deleted. Result cards not sent yet won't go out."
+  },
+  "instituteSettings": {
+    "institute": "Institute",
+    "fees": "Fees",
+    "billingDay": "Billing day (1–28)",
+    "dueAfter": "Due after (days)",
+    "billingDayInvalid": "Billing day: a day from 1 to 28 (every month has it)",
+    "dueAfterInvalid": "Due after: 0 to 27 days",
+    "dueExample": "Fees are billed on day {{billing}} of the month and due on day {{due}}.",
+    "dueExampleDays": "Fees are billed on day {{billing}} and due {{days}} days later.",
+    "messages": "WhatsApp messages",
+    "absenceAlerts": "Absence alerts",
+    "absenceAlertsHelp": "A message to the parent when their child is marked absent.",
+    "reminders": "Fee reminder days",
+    "daysBefore_one": "{{count}} day before",
+    "daysBefore_other": "{{count}} days before",
+    "onDueDate": "On the due date",
+    "daysAfter_one": "{{count}} day after",
+    "daysAfter_other": "{{count}} days after",
+    "remindersHelp": "Around each due date. Up to {{max}} days; at most one reminder a day per number.",
+    "remindersOff": "No automatic fee reminders (you can still send one from an invoice).",
+    "language": "Message language",
+    "languageHelp": "The language of the WhatsApp messages parents get (not this app's).",
+    "save": "Save settings",
+    "savedNote": "Settings saved"
   }
 }

@@ -1,5 +1,6 @@
 import type { CreateInstituteBody } from '@coachingdesk/shared';
 import { api } from '@/api';
+import type { InstituteDetail, InstituteUpdate } from './settings-rules';
 
 export interface CreatedInstitute {
   institute: { id: string; name: string; type: 'tuition' | 'academy' | 'home_tutor' };
@@ -13,4 +14,45 @@ export interface CreatedInstitute {
  */
 export function createInstitute(body: CreateInstituteBody): Promise<CreatedInstitute> {
   return api.post('/v1/institutes', body);
+}
+
+/** Cache keys for the current institute's own details (settings, entitlements). */
+export const instituteKeys = {
+  detail: (instituteId: string) => ['institutes', instituteId, 'detail'] as const,
+};
+
+export interface InstituteResponse {
+  institute: InstituteDetail & {
+    type: 'tuition' | 'academy' | 'home_tutor';
+    timezone: string;
+    deletion: { requestedAt: string; purgeAfter: string | null } | null;
+  };
+  role: 'owner' | 'teacher' | 'staff';
+  entitlements: {
+    plan: string;
+    maxActiveStudents: number | null;
+    maxMembers: number | null;
+    monthlyMessages: number;
+    features: string[];
+  };
+}
+
+/** GET /v1/institutes/:id (any member): the institute, its settings, and what the plan allows. */
+export function getInstitute(
+  instituteId: string,
+  signal?: AbortSignal,
+): Promise<InstituteResponse> {
+  return api.get(`/v1/institutes/${instituteId}`, { signal });
+}
+
+/** PATCH /v1/institutes/:id (owner): only the fields that change. */
+export async function updateInstitute(
+  instituteId: string,
+  body: InstituteUpdate,
+): Promise<InstituteResponse['institute']> {
+  const result = await api.patch<{ institute: InstituteResponse['institute'] }>(
+    `/v1/institutes/${instituteId}`,
+    body,
+  );
+  return result.institute;
 }

@@ -15,6 +15,15 @@ export default function MoreTab() {
   return (
     <ScrollView>
       <List.Section>
+        {current?.role === 'owner' && (
+          <List.Item
+            title={t('more.instituteSettings')}
+            description={t('more.instituteSettingsDescription')}
+            left={(props) => <List.Icon {...props} icon="cog-outline" />}
+            right={(props) => <List.Icon {...props} icon="chevron-right" />}
+            onPress={() => router.push('/settings/institute')}
+          />
+        )}
         <List.Item
           title={t('more.batches')}
           description={t('more.batchesDescription')}

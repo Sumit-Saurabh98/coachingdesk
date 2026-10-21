@@ -93,7 +93,9 @@
     "notices": "सूचनाएँ",
     "noticesDescription": "छुट्टी, समय बदलाव और अभिभावकों को संदेश",
     "messages": "मैसेज",
-    "messagesDescription": "अभिभावकों को भेजे WhatsApp मैसेज, और इस महीने का उपयोग"
+    "messagesDescription": "अभिभावकों को भेजे WhatsApp मैसेज, और इस महीने का उपयोग",
+    "instituteSettings": "संस्थान सेटिंग",
+    "instituteSettingsDescription": "फ़ीस, रिमाइंडर और मैसेज"
   },
   "comingSoon": {
     "title": "जल्द आ रहा है",
@@ -591,5 +593,30 @@
     "delete": "टेस्ट हटाएँ",
     "deleteTitle": "{{name}} हटाएँ?",
     "deleteBody": "टेस्ट और उसके सारे अंक हट जाएँगे। जो रिज़ल्ट कार्ड अभी नहीं गए, वे नहीं जाएँगे।"
+  },
+  "instituteSettings": {
+    "institute": "संस्थान",
+    "fees": "फ़ीस",
+    "billingDay": "बिल का दिन (1–28)",
+    "dueAfter": "कितने दिन बाद देय",
+    "billingDayInvalid": "बिल का दिन: 1 से 28 तक (हर महीने में होता है)",
+    "dueAfterInvalid": "देय: 0 से 27 दिन",
+    "dueExample": "फ़ीस महीने की {{billing}} तारीख़ को बनती है और {{due}} तारीख़ तक देनी है।",
+    "dueExampleDays": "फ़ीस {{billing}} तारीख़ को बनती है और {{days}} दिन बाद तक देनी है।",
+    "messages": "WhatsApp मैसेज",
+    "absenceAlerts": "अनुपस्थिति सूचना",
+    "absenceAlertsHelp": "बच्चे के अनुपस्थित होने पर अभिभावक को मैसेज।",
+    "reminders": "फ़ीस रिमाइंडर के दिन",
+    "daysBefore_one": "{{count}} दिन पहले",
+    "daysBefore_other": "{{count}} दिन पहले",
+    "onDueDate": "देय तारीख़ पर",
+    "daysAfter_one": "{{count}} दिन बाद",
+    "daysAfter_other": "{{count}} दिन बाद",
+    "remindersHelp": "हर देय तारीख़ के आसपास। ज़्यादा से ज़्यादा {{max}} दिन; हर नंबर पर दिन में एक रिमाइंडर।",
+    "remindersOff": "अपने आप कोई फ़ीस रिमाइंडर नहीं (बिल से खुद भेज सकते हैं)।",
+    "language": "मैसेज की भाषा",
+    "languageHelp": "अभिभावकों को जाने वाले WhatsApp मैसेज की भाषा (इस ऐप की नहीं)।",
+    "save": "सेटिंग सेव करें",
+    "savedNote": "सेटिंग सेव हो गई"
   }
 }
