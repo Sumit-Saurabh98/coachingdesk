@@ -274,7 +274,7 @@ export function buildTestApp(options: { apiRateLimits?: ApiRateLimitPolicy } = {
       invoiceService,
       paymentService,
     ),
-    invoicesController: new InvoicesController(invoiceService, paymentService),
+    invoicesController: new InvoicesController(invoiceService, paymentService, studentService),
     paymentsController: new PaymentsController(paymentService),
     consentController: new ConsentController(consentService),
     messagesController: new MessagesController(outboxRepository),

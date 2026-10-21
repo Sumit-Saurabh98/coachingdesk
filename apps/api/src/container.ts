@@ -135,7 +135,11 @@ export function createContainer(config: Config): Container {
       services.invoiceService,
       services.paymentService,
     ),
-    invoicesController: new InvoicesController(services.invoiceService, services.paymentService),
+    invoicesController: new InvoicesController(
+      services.invoiceService,
+      services.paymentService,
+      services.studentService,
+    ),
     paymentsController: new PaymentsController(services.paymentService),
     consentController: new ConsentController(services.consentService),
     messagesController: new MessagesController(services.outboxRepository),

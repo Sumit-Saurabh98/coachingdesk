@@ -102,6 +102,11 @@ describe('the billing run creates invoices (worker job, called directly here)', 
       'INV-000001',
       'INV-000002',
     ]);
+    // Names come with the list (an invoice stores only the student's id).
+    expect(response.json().invoices.map((i: { studentName: string }) => i.studentName)).toEqual([
+      'Aarav',
+      'Bhavya',
+    ]);
   });
 });
 
@@ -151,7 +156,9 @@ describe('GET /invoices filters and roles', () => {
     const [invoice] = (await http.call(token, 'GET', `${url}/invoices`)).json().invoices;
     const ravi = await http.ownerWithInstitute(OTHER_PHONE);
 
-    expect((await http.call(token, 'GET', `${url}/invoices/${invoice.id}`)).statusCode).toBe(200);
+    const detail = await http.call(token, 'GET', `${url}/invoices/${invoice.id}`);
+    expect(detail.statusCode).toBe(200);
+    expect(detail.json().invoice.studentName).toBe(invoice.studentName);
     expect(
       (await http.call(ravi.token, 'GET', `${ravi.url}/invoices/${invoice.id}`)).statusCode,
     ).toBe(404);
