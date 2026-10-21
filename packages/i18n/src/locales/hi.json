@@ -333,5 +333,39 @@
       "bank": "बैंक",
       "other": "अन्य"
     }
+  },
+  "invoices": {
+    "title": "बिल",
+    "overdue": "तारीख़ निकली",
+    "open": "सभी बाकी",
+    "allOpen": "सभी बाकी बिल",
+    "total_one": "{{count}} बिल · {{amount}} वसूलना है",
+    "total_other": "{{count}} बिल · {{amount}} वसूलना है",
+    "noneOpen": "कोई बिल बाकी नहीं।",
+    "studentTitle": "फ़ीस",
+    "noneForStudent": "अभी कोई बिल नहीं।"
+  },
+  "invoice": {
+    "numberDue": "{{number}} · {{date}} तक",
+    "amount": "फ़ीस",
+    "discount": "छूट",
+    "net": "छूट के बाद",
+    "paid": "जमा",
+    "remaining": "बाकी",
+    "dueOn": "{{date}} तक देना है",
+    "period": "{{from}} – {{to}} के लिए",
+    "reason": "कारण: {{reason}}",
+    "payments": "भुगतान",
+    "noPayments": "अभी कोई भुगतान नहीं।",
+    "receiptOn": "रसीद {{number}} · {{date}}",
+    "voided": "रद्द किया",
+    "status": {
+      "overdue": "तारीख़ निकली",
+      "due": "बाकी",
+      "partially_paid": "कुछ जमा",
+      "paid": "जमा",
+      "waived": "माफ़",
+      "cancelled": "रद्द"
+    }
   }
 }

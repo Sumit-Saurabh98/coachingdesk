@@ -1,4 +1,5 @@
 import { api } from '@/api';
+import { type InvoiceFilter, type InvoiceStatus, invoiceQuery } from './invoice-rules';
 
 export type PaymentMethod = 'upi_link' | 'cash' | 'bank' | 'other';
 
@@ -23,6 +24,12 @@ export const feeKeys = {
   all: (instituteId: string) => ['institutes', instituteId, 'fees'] as const,
   dashboard: (instituteId: string, month: string | null) =>
     [...feeKeys.all(instituteId), 'dashboard', month ?? 'current'] as const,
+  invoices: (instituteId: string, filter: InvoiceFilter) =>
+    [...feeKeys.all(instituteId), 'invoices', filter] as const,
+  studentInvoices: (instituteId: string, studentId: string) =>
+    [...feeKeys.all(instituteId), 'student', studentId] as const,
+  invoice: (instituteId: string, invoiceId: string) =>
+    [...feeKeys.all(instituteId), 'invoice', invoiceId] as const,
 };
 
 /** `month` null = this month at the institute (the server decides). */
@@ -35,4 +42,68 @@ export function getFeeDashboard(
     query: { month: month ?? undefined },
     signal,
   });
+}
+
+/** An invoice as the API returns it. Amounts are snapshots: fee changes never rewrite one. */
+export interface Invoice {
+  id: string;
+  number: string; // "INV-000001": per institute, never reused or skipped
+  studentId: string;
+  studentName?: string;
+  enrollmentId: string | null;
+  batchId: string | null;
+  kind: 'cycle' | 'one_time' | 'manual';
+  description: string;
+  periodStart: string | null;
+  periodEnd: string | null;
+  amountPaise: number;
+  discountPaise: number;
+  netPaise: number; // amount - discount
+  paidPaise: number;
+  remainingPaise: number;
+  dueDate: string;
+  status: InvoiceStatus;
+  closeReason: string | null; // why it was waived or cancelled
+}
+
+export interface Payment {
+  id: string;
+  receiptNumber: string;
+  guardianPhone: string | null;
+  amountPaise: number;
+  method: PaymentMethod;
+  status: 'active' | 'voided';
+  paidAt: string; // ISO time
+  note: string | null;
+  voidedAt: string | null;
+  voidReason: string | null;
+}
+
+/** GET .../invoices (owner, staff): oldest due date first, at most 200. */
+export async function listInvoices(
+  instituteId: string,
+  options: { filter?: InvoiceFilter; studentId?: string; signal?: AbortSignal },
+): Promise<Invoice[]> {
+  const result = await api.get<{ invoices: Invoice[] }>(`/v1/institutes/${instituteId}/invoices`, {
+    query: {
+      ...(options.filter ? invoiceQuery(options.filter) : {}),
+      studentId: options.studentId,
+      limit: 200,
+    },
+    signal: options.signal,
+  });
+  return result.invoices;
+}
+
+export interface InvoiceDetail {
+  invoice: Invoice;
+  payments: Array<Payment & { allocatedPaise: number }>; // allocatedPaise: paid on THIS invoice
+}
+
+export function getInvoice(
+  instituteId: string,
+  invoiceId: string,
+  signal?: AbortSignal,
+): Promise<InvoiceDetail> {
+  return api.get(`/v1/institutes/${instituteId}/invoices/${invoiceId}`, { signal });
 }

@@ -20,6 +20,7 @@ import {
 import { errorMessage } from '@/api/error-message';
 import { StudentAttendance } from '@/attendance/student-attendance';
 import { batchKeys, listBatches } from '@/batches/batches-api';
+import { StudentInvoices } from '@/fees/student-invoices';
 import { useCurrentInstitute } from '@/institutes/use-current-institute';
 import { formatLocalDate, toLocalDateString } from '@/lib/date-format';
 import { formatIndianPhone } from '@/lib/phone-format';
@@ -231,6 +232,9 @@ export default function StudentScreen() {
         </List.Section>
 
         <StudentAttendance instituteId={instituteId} studentId={student.id} batchName={batchName} />
+
+        {/* Fees: owner and staff only (KB #31). */}
+        {canManage && <StudentInvoices instituteId={instituteId} studentId={student.id} />}
 
         {student.notes !== null && (
           <List.Item

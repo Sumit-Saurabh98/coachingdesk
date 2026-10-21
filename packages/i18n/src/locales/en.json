@@ -333,5 +333,39 @@
       "bank": "Bank",
       "other": "Other"
     }
+  },
+  "invoices": {
+    "title": "Invoices",
+    "overdue": "Overdue",
+    "open": "All open",
+    "allOpen": "All open invoices",
+    "total_one": "{{count}} invoice · {{amount}} to collect",
+    "total_other": "{{count}} invoices · {{amount}} to collect",
+    "noneOpen": "No open invoices.",
+    "studentTitle": "Fees",
+    "noneForStudent": "No invoices yet."
+  },
+  "invoice": {
+    "numberDue": "{{number}} · due {{date}}",
+    "amount": "Fee",
+    "discount": "Discount",
+    "net": "After discount",
+    "paid": "Paid",
+    "remaining": "Left to pay",
+    "dueOn": "Due on {{date}}",
+    "period": "For {{from}} – {{to}}",
+    "reason": "Reason: {{reason}}",
+    "payments": "Payments",
+    "noPayments": "No payments yet.",
+    "receiptOn": "Receipt {{number}} · {{date}}",
+    "voided": "Voided",
+    "status": {
+      "overdue": "Overdue",
+      "due": "Due",
+      "partially_paid": "Part paid",
+      "paid": "Paid",
+      "waived": "Waived",
+      "cancelled": "Cancelled"
+    }
   }
 }

@@ -1,6 +1,5 @@
 // Fees (owner, staff): what came in this month, what's still pending, and who owes the most
 // (FR-4.7). Teachers never see fees (KB #31): the tab is hidden for them.
-import { Money } from '@coachingdesk/shared';
 import { useQuery } from '@tanstack/react-query';
 import { Redirect, router, Stack } from 'expo-router';
 import { useState } from 'react';
@@ -11,12 +10,11 @@ import { errorMessage } from '@/api/error-message';
 import { formatMonth, monthOf, shiftMonth } from '@/attendance/history-rules';
 import { methodParts } from '@/fees/dashboard-rules';
 import { feeKeys, getFeeDashboard } from '@/fees/fees-api';
+import { rupees } from '@/fees/rupees';
 import { useCurrentInstitute } from '@/institutes/use-current-institute';
 import { toLocalDateString } from '@/lib/date-format';
 import { useMonthLabels } from '@/lib/use-month-labels';
 import { useAppTheme } from '@/theme/theme';
-
-const rupees = (paise: number) => Money.ofPaise(paise).format();
 
 export default function FeesTab() {
   const { t } = useTranslation();
@@ -122,7 +120,11 @@ export default function FeesTab() {
       </Card>
 
       <View style={styles.pair}>
-        <Card mode="outlined" style={styles.half}>
+        <Card
+          mode="outlined"
+          style={styles.half}
+          onPress={() => router.push({ pathname: '/fees/invoices', params: { filter: 'open' } })}
+        >
           <Card.Content>
             <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
               {t('fees.pending')}
@@ -132,6 +134,7 @@ export default function FeesTab() {
         </Card>
         <Card
           mode="contained"
+          onPress={() => router.push({ pathname: '/fees/invoices', params: { filter: 'overdue' } })}
           style={[
             styles.half,
             {
@@ -150,6 +153,12 @@ export default function FeesTab() {
       </View>
 
       <List.Section>
+        <List.Item
+          title={t('invoices.allOpen')}
+          left={(props) => <List.Icon {...props} icon="file-document-multiple-outline" />}
+          right={(props) => <List.Icon {...props} icon="chevron-right" />}
+          onPress={() => router.push({ pathname: '/fees/invoices', params: { filter: 'open' } })}
+        />
         <List.Subheader>{t('fees.topOverdue')}</List.Subheader>
         {data.topOverdue.length === 0 && <List.Item title={t('fees.noneOverdue')} />}
         {data.topOverdue.map((row) => (
