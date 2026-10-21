@@ -22,6 +22,7 @@ export function registerMessagingRoutes(
 ): void {
   // Consent is recorded by whoever manages students: owner and staff.
   const write = [requireAuth, requireMember, requireRole('owner', 'staff')];
+  app.get(`${GUARDIAN}/consent`, { preHandler: write }, (req, reply) => consent.status(req, reply));
   app.post(`${GUARDIAN}/opt-in`, { preHandler: write }, (req, reply) => consent.optIn(req, reply));
   app.post(`${GUARDIAN}/opt-out`, { preHandler: write }, (req, reply) =>
     consent.optOut(req, reply),

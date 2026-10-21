@@ -1,5 +1,5 @@
 import type { PhoneNumber } from '@coachingdesk/shared';
-import type { ConsentRepository, ConsentSource } from './consent.repository';
+import type { ConsentRepository, ConsentSource, ConsentStatus } from './consent.repository';
 
 /** The public face of guardian consent (used by the consent routes and by students on create). */
 export class ConsentService {
@@ -11,6 +11,21 @@ export class ConsentService {
 
   async optOut(instituteId: string, phone: PhoneNumber, source: ConsentSource): Promise<void> {
     await this.consents.setConsent(instituteId, phone, 'opted_out', source);
+  }
+
+  /**
+   * What the app shows on a student's profile: this institute's record for the phone, and
+   * whether the parent replied STOP (then nothing automatic goes out from ANY institute).
+   */
+  async statusOf(
+    instituteId: string,
+    phone: PhoneNumber,
+  ): Promise<{ status: ConsentStatus; stoppedEverywhere: boolean }> {
+    const [status, stoppedEverywhere] = await Promise.all([
+      this.consents.consentOf(instituteId, phone),
+      this.consents.isGloballyOptedOut(phone),
+    ]);
+    return { status, stoppedEverywhere };
   }
 
   async forget(instituteId: string, phone: PhoneNumber): Promise<void> {

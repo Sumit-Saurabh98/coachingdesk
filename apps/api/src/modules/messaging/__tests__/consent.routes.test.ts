@@ -55,6 +55,35 @@ describe('POST /v1/institutes/:instituteId/guardians/:phone/opt-in | opt-out', (
   });
 });
 
+describe('GET /v1/institutes/:instituteId/guardians/:phone/consent', () => {
+  it('unknown, then what was recorded; a STOP reply shows as stoppedEverywhere', async () => {
+    const { token, url } = await setup();
+    const status = async () =>
+      (await http.call(token, 'GET', `${url}/guardians/9812345678/consent`)).json();
+
+    expect(await status()).toEqual({ status: 'unknown', stoppedEverywhere: false });
+    await http.call(token, 'POST', `${url}/guardians/9812345678/opt-in`, { source: 'verbal' });
+    expect(await status()).toEqual({ status: 'opted_in', stoppedEverywhere: false });
+
+    await testApp.consentRepository.optOutGlobally(guardian, 'stop_reply', new Date());
+    expect(await status()).toEqual({ status: 'opted_in', stoppedEverywhere: true });
+  });
+
+  it("per institute: another institute's record is not visible; teacher 403; bad phone 422", async () => {
+    const { token, url, instituteId } = await setup();
+    await http.call(token, 'POST', `${url}/guardians/9812345678/opt-in`, { source: 'verbal' });
+    const ravi = await http.ownerWithInstitute('9000000099');
+    const other = await http.call(ravi.token, 'GET', `${ravi.url}/guardians/9812345678/consent`);
+    expect(other.json()).toEqual({ status: 'unknown', stoppedEverywhere: false });
+
+    const teacher = await http.memberWithRole(instituteId, 'teacher');
+    expect(
+      (await http.call(teacher, 'GET', `${url}/guardians/9812345678/consent`)).statusCode,
+    ).toBe(403);
+    expect((await http.call(token, 'GET', `${url}/guardians/123/consent`)).statusCode).toBe(422);
+  });
+});
+
 describe('guardianConsent when adding students', () => {
   it('create with guardianConsent: true opts the guardian in; without it, nothing changes', async () => {
     const { token, url, instituteId } = await setup();

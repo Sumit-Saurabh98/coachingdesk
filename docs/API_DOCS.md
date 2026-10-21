@@ -324,7 +324,8 @@ Body — one of three kinds (KB §4 templates; offer the structured ones first, 
 |---|---|
 | GET | `/institutes/{id}/messages?status&category&limit=1–100 (50)&cursor` — owner, staff. The outbox log, newest first → `{ messages: [{ id, category, template, to (masked), status, skipReason, errorCode, attempts, scheduledFor, createdAt }], nextCursor }` |
 | GET | `/institutes/{id}/messages/usage` — owner, staff → `{ month, used, limit, todayUsed, todayLimit, trialTotalLimit }`. `limit` = the plan's monthly quota (0 on Free); `todayLimit` is set during the trial and an institute's first 7 days (100), else `null`; `trialTotalLimit` = 200 during the trial |
-| GET | `/institutes/{id}/replies?limit&cursor` — guardians' WhatsApp replies routed to this institute ("Parent replies") |
+| GET | `/institutes/{id}/replies?limit&cursor` — guardians' WhatsApp replies routed to this institute ("Parent replies"). **Not built yet:** needs the inbound WhatsApp webhook (Meta setup) |
+| GET | `/institutes/{id}/guardians/{phone}/consent` — owner, staff → `{ status: "unknown" \| "opted_in" \| "opted_out", stoppedEverywhere }` (this institute's record; `stoppedEverywhere` = the parent replied STOP) |
 | POST | `/institutes/{id}/guardians/{phone}/opt-in` — owner, staff. Record consent `{ source: "verbal" \| "form" \| "whatsapp" }` → `204`. `phone`: any Indian format (`9812345678` or URL-encoded `%2B919812345678`); bad → `422` |
 | POST | `/institutes/{id}/guardians/{phone}/opt-out` — owner, staff. Same body → `204`. The guardian gets no automatic messages from this institute |
 
