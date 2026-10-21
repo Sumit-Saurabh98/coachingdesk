@@ -16,6 +16,6 @@ export const resources = {
   hi: { translation: hi },
 } as const;
 
-// The TYPE of the English texts. The app uses it so that t('preview.typo') is a compile
+// The TYPE of the English texts. The app uses it so that t('common.typo') is a compile
 // error instead of an empty label on screen.
 export type Translations = typeof en;

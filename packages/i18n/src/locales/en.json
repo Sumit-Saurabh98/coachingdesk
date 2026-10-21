@@ -13,19 +13,6 @@
     "language": "Language",
     "languageSystem": "System"
   },
-  "preview": {
-    "today": "Today",
-    "paid": "Paid",
-    "receipt": "Receipt",
-    "remind": "Remind",
-    "guardian": "Guardian {{phone}}",
-    "feesDue_one": "{{count}} fee due this week",
-    "feesDue_other": "{{count}} fees due this week",
-    "server": "Server",
-    "serverChecking": "Checking the connection…",
-    "serverOk": "Connected · {{plans}} plans available",
-    "serverDown": "Can't reach the server"
-  },
   "auth": {
     "title": "Log in",
     "subtitle": "Fees, attendance and reminders for your institute",
@@ -277,5 +264,19 @@
     "rowInvalid": "Check this line",
     "fixFailed": "Fix the lines not added",
     "done": "Done"
+  },
+  "today": {
+    "heading": "{{weekday}}, {{date}}",
+    "classesTaken": "Attendance taken: {{taken}} of {{total}} classes",
+    "taken": "Taken",
+    "notTaken": "Not taken",
+    "now": "Now",
+    "present": "{{count}} present",
+    "absent": "{{count}} absent",
+    "late": "{{count}} late",
+    "leave": "{{count}} on leave",
+    "noClasses": "No classes today",
+    "noClassesHelp": "A batch shows here on the days it meets.",
+    "addBatch": "Add a batch"
   }
 }

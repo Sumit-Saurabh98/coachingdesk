@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { LANGUAGES, resources } from '../index';
 
-// { preview: { today: 'Today' } }  ->  { 'preview.today': 'Today' }
+// { common: { retry: 'Retry' } }  ->  { 'common.retry': 'Retry' }
 function flatten(value: unknown, prefix = ''): Record<string, string> {
   if (typeof value === 'string') {
     return { [prefix]: value };

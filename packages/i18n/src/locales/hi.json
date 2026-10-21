@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "ट्यूशनमित्र",
+    "appName": "कोचिंग डेस्क",
     "save": "सेव करें",
     "cancel": "रद्द करें",
     "retry": "फिर से कोशिश करें"
@@ -12,19 +12,6 @@
     "themeDark": "डार्क",
     "language": "भाषा",
     "languageSystem": "सिस्टम"
-  },
-  "preview": {
-    "today": "आज",
-    "paid": "भुगतान हो गया",
-    "receipt": "रसीद",
-    "remind": "याद दिलाएँ",
-    "guardian": "अभिभावक {{phone}}",
-    "feesDue_one": "इस हफ़्ते {{count}} फ़ीस बाकी है",
-    "feesDue_other": "इस हफ़्ते {{count}} फ़ीस बाकी हैं",
-    "server": "सर्वर",
-    "serverChecking": "कनेक्शन जाँच रहे हैं…",
-    "serverOk": "जुड़ गया · {{plans}} प्लान उपलब्ध",
-    "serverDown": "सर्वर से संपर्क नहीं हो पा रहा"
   },
   "auth": {
     "title": "लॉग इन करें",
@@ -277,5 +264,19 @@
     "rowInvalid": "यह लाइन जाँचें",
     "fixFailed": "न जुड़ी लाइनें ठीक करें",
     "done": "हो गया"
+  },
+  "today": {
+    "heading": "{{weekday}}, {{date}}",
+    "classesTaken": "हाज़िरी ली गई: {{total}} में से {{taken}} क्लास",
+    "taken": "ली गई",
+    "notTaken": "नहीं ली गई",
+    "now": "अभी",
+    "present": "{{count}} उपस्थित",
+    "absent": "{{count}} अनुपस्थित",
+    "late": "{{count}} देर से",
+    "leave": "{{count}} छुट्टी पर",
+    "noClasses": "आज कोई क्लास नहीं",
+    "noClassesHelp": "बैच उन दिनों यहाँ दिखता है जिन दिनों उसकी क्लास होती है।",
+    "addBatch": "बैच जोड़ें"
   }
 }
