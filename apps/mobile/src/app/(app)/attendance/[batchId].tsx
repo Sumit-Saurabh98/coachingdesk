@@ -1,7 +1,7 @@
 // The register (any member): one class on one day. Everyone starts present; the teacher taps
 // the absentees (FR-3.1) and saves once. Absence messages go out AFTER saving, never per tap.
 import type { AttendanceStatus } from '@coachingdesk/shared';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { randomUUID } from 'expo-crypto';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
@@ -19,12 +19,8 @@ import {
   Text,
 } from 'react-native-paper';
 import { errorMessage } from '@/api/error-message';
-import {
-  attendanceKeys,
-  getRegister,
-  type Register,
-  syncAttendance,
-} from '@/attendance/attendance-api';
+import { attendanceKeys, getRegister, type Register } from '@/attendance/attendance-api';
+import type { StoredError } from '@/attendance/outbox/attendance-outbox';
 import {
   allPresent,
   countMarks,
@@ -33,6 +29,7 @@ import {
   marksToSend,
   tapped,
 } from '@/attendance/register-rules';
+import { attendanceSyncer, syncFailureText } from '@/attendance/sync';
 import { countParts } from '@/attendance/today-rules';
 import { useCurrentInstitute } from '@/institutes/use-current-institute';
 import { useAppTheme } from '@/theme/theme';
@@ -79,36 +76,59 @@ export default function RegisterScreen() {
   return (
     <>
       {header}
-      <RegisterForm instituteId={instituteId} register={register.data} />
+      <RegisterForm instituteId={instituteId} batchName={name ?? ''} register={register.data} />
     </>
   );
 }
 
-function RegisterForm({ instituteId, register }: { instituteId: string; register: Register }) {
+function RegisterForm({
+  instituteId,
+  batchName,
+  register,
+}: {
+  instituteId: string;
+  batchName: string;
+  register: Register;
+}) {
   const { t } = useTranslation();
   const theme = useAppTheme();
-  const queryClient = useQueryClient();
   const rows = register.students;
 
   const [marks, setMarks] = useState<Marks>(() => initialMarks(rows));
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  // Made once per screen: if the answer is lost and the teacher taps Save again, the server
-  // sees the same id and simply applies the marks again (no second session, no second alert).
-  const [clientId] = useState(() => randomUUID());
+  const [refused, setRefused] = useState<StoredError | null>(null);
 
   const mark = (studentId: string, status: AttendanceStatus) =>
     setMarks((currentMarks) => ({ ...currentMarks, [studentId]: status }));
 
   const save = useMutation({
+    // Every save goes into the phone's queue first, then out (at once when online). Its own
+    // UUID: if the answer is lost, sending it again is harmless (no second session or alert).
     mutationFn: () =>
-      syncAttendance(instituteId, clientId, {
+      attendanceSyncer.submit({
+        clientId: randomUUID(),
+        instituteId,
         batchId: register.batchId,
+        batchName,
         date: register.date,
         records: marksToSend(rows, marks),
+        createdAt: new Date().toISOString(),
+        error: null,
       }),
-    onSuccess: async (result) => {
-      await queryClient.invalidateQueries({ queryKey: attendanceKeys.all(instituteId) });
+    onMutate: () => setRefused(null),
+    onSuccess: async (outcome) => {
+      if (outcome.kind === 'queued') {
+        setNotice(t('register.savedOffline'));
+        return;
+      }
+      if (outcome.kind === 'failed') {
+        // The teacher is right here: show why, and don't keep it on Today's list too.
+        setRefused(outcome.error);
+        await attendanceSyncer.discard(outcome.clientId);
+        return;
+      }
+      const { result } = outcome;
       // Tell the teacher what happened when it isn't simply "saved".
       if (result.skippedReadOnly.length > 0) {
         setNotice(t('register.skippedReadOnly', { count: result.skippedReadOnly.length }));
@@ -218,9 +238,9 @@ function RegisterForm({ instituteId, register }: { instituteId: string; register
       />
 
       <View style={[styles.footer, { borderTopColor: theme.colors.outlineVariant }]}>
-        {save.isError && (
+        {(refused !== null || save.isError) && (
           <Text style={[styles.error, { color: theme.colors.error }]}>
-            {errorMessage(t, save.error)}
+            {refused !== null ? syncFailureText(t, refused) : errorMessage(t, save.error)}
           </Text>
         )}
         <Button

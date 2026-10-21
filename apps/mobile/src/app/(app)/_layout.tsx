@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Text } from 'react-native-paper';
 import { errorMessage } from '@/api/error-message';
+import { useAttendanceSync } from '@/attendance/sync';
 import { logout } from '@/auth/auth-api';
 import { useCurrentInstitute } from '@/institutes/use-current-institute';
 import { useAppTheme } from '@/theme/theme';
@@ -16,6 +17,8 @@ export default function AppLayout() {
   const { t } = useTranslation();
   const theme = useAppTheme();
   const { me, current } = useCurrentInstitute();
+  // Attendance saved offline goes out by itself while someone is logged in.
+  useAttendanceSync();
 
   // We need the user's institutes before deciding which screens exist.
   if (!me.data) {

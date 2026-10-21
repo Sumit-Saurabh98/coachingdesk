@@ -277,7 +277,12 @@
     "leave": "{{count}} on leave",
     "noClasses": "No classes today",
     "noClassesHelp": "A batch shows here on the days it meets.",
-    "addBatch": "Add a batch"
+    "addBatch": "Add a batch",
+    "onPhone": "Saved on phone",
+    "waiting": "Attendance for {{count}} classes is saved on this phone and will be sent when you're online.",
+    "syncNow": "Sync now",
+    "failed": "{{batch}} · {{date}}: not saved",
+    "discard": "Discard"
   },
   "register": {
     "title": "Attendance",
@@ -294,6 +299,11 @@
     "alertsQueued": "Absence messages will go to {{count}} parents on WhatsApp.",
     "alertsTooLate": "Saved, but no absence messages were sent: it's after 10:00 the day after the class, and a late message would confuse parents.",
     "skippedReadOnly": "{{count}} students were not saved: your plan's student limit was lowered. Upgrade, or mark students who left as left.",
-    "ok": "OK"
+    "ok": "OK",
+    "savedOffline": "Saved on this phone. It will be sent by itself when you're online.",
+    "failedDate": "This day can't be changed any more: attendance can be saved up to 7 days back.",
+    "failedNotEnrolled": "Some students are no longer in this batch on this day. Open the class again and save.",
+    "failedArchived": "This batch is archived, so its attendance can't be changed.",
+    "failedNoBatch": "This batch no longer exists."
   }
 }

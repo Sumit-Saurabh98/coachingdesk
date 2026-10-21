@@ -2,11 +2,14 @@
 // server decides what "today" is (the institute's time zone), and which batches meet.
 import { useQuery } from '@tanstack/react-query';
 import { router, Stack } from 'expo-router';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Card, Chip, Text } from 'react-native-paper';
 import { errorMessage } from '@/api/error-message';
 import { attendanceKeys, type DayBatch, getTodaySummary } from '@/attendance/attendance-api';
+import type { PendingAttendance } from '@/attendance/outbox/attendance-outbox';
+import { attendanceSyncer, syncFailureText, usePendingAttendance } from '@/attendance/sync';
 import { classTiming, countParts, isoWeekday, nowHHMM, takenCount } from '@/attendance/today-rules';
 import { formatTime } from '@/batches/schedule-format';
 import { useScheduleLabels } from '@/batches/use-schedule-labels';
@@ -29,6 +32,8 @@ export default function TodayScreen() {
     queryFn: ({ signal }) => getTodaySummary(instituteId, signal),
     enabled: instituteId !== '',
   });
+  // Saves still on this phone (offline, or refused by the server).
+  const pending = usePendingAttendance(instituteId);
 
   const header = <Stack.Screen options={{ title: current?.name ?? '' }} />;
 
@@ -44,6 +49,8 @@ export default function TodayScreen() {
     return (
       <View style={styles.centered}>
         {header}
+        {/* Offline: what's waiting on the phone still shows. */}
+        <PendingBanner pending={pending} />
         <Text style={{ color: theme.colors.error }}>{errorMessage(t, summary.error)}</Text>
         <Button mode="contained" onPress={() => void summary.refetch()}>
           {t('common.retry')}
@@ -58,6 +65,9 @@ export default function TodayScreen() {
 
   const renderClass = ({ item }: { item: DayBatch }) => {
     const timing = now === null ? null : classTiming(item.start, item.end, now);
+    const onPhone = pending.some(
+      (save) => save.error === null && save.batchId === item.batchId && save.date === date,
+    );
     return (
       <Card
         mode="outlined"
@@ -71,7 +81,7 @@ export default function TodayScreen() {
         <Card.Title
           title={item.name}
           subtitle={`${formatTime(item.start, labels)} – ${formatTime(item.end, labels)}`}
-          right={() => <StatusChip batch={item} timing={timing} />}
+          right={() => <StatusChip batch={item} timing={timing} onPhone={onPhone} />}
           rightStyle={styles.chip}
         />
         {item.counts && (
@@ -114,6 +124,7 @@ export default function TodayScreen() {
                 {t('today.classesTaken', { taken: takenCount(batches), total: batches.length })}
               </Text>
             )}
+            <PendingBanner pending={pending} />
           </View>
         }
         ListEmptyComponent={
@@ -137,16 +148,101 @@ export default function TodayScreen() {
   );
 }
 
-/** Taken (green) · Now (blue) · Not taken after the class ended (amber) · nothing before. */
+/**
+ * What's on this phone and not on the server: saves waiting for internet (with "Sync now"),
+ * and saves the server refused (kept until the teacher discards them: never silently lost).
+ */
+function PendingBanner({ pending }: { pending: PendingAttendance[] }) {
+  const { t } = useTranslation();
+  const theme = useAppTheme();
+  const months = useMonthLabels();
+  const [syncing, setSyncing] = useState(false);
+  const waiting = pending.filter((save) => save.error === null);
+  const classes = new Set(waiting.map((save) => `${save.batchId}|${save.date}`)).size;
+
+  const syncNow = async () => {
+    setSyncing(true);
+    try {
+      await attendanceSyncer.syncNow();
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  return (
+    <>
+      {waiting.length > 0 && (
+        <Card mode="contained" style={{ backgroundColor: theme.colors.secondaryContainer }}>
+          <Card.Content>
+            <Text style={{ color: theme.colors.onSecondaryContainer }}>
+              {t('today.waiting', { count: classes })}
+            </Text>
+          </Card.Content>
+          <Card.Actions>
+            <Button icon="cloud-upload-outline" loading={syncing} onPress={() => void syncNow()}>
+              {t('today.syncNow')}
+            </Button>
+          </Card.Actions>
+        </Card>
+      )}
+      {pending.map(
+        (save) =>
+          save.error && (
+            <Card
+              key={save.clientId}
+              mode="contained"
+              style={{ backgroundColor: theme.colors.errorContainer }}
+            >
+              <Card.Content>
+                <Text variant="titleSmall" style={{ color: theme.colors.onErrorContainer }}>
+                  {t('today.failed', {
+                    batch: save.batchName,
+                    date: formatLocalDate(save.date, months),
+                  })}
+                </Text>
+                <Text variant="bodyMedium" style={{ color: theme.colors.onErrorContainer }}>
+                  {syncFailureText(t, save.error)}
+                </Text>
+              </Card.Content>
+              <Card.Actions>
+                <Button onPress={() => void attendanceSyncer.discard(save.clientId)}>
+                  {t('today.discard')}
+                </Button>
+              </Card.Actions>
+            </Card>
+          ),
+      )}
+    </>
+  );
+}
+
+/**
+ * Saved on phone (waiting to sync) · Taken (green) · Now (blue) · Not taken after the class
+ * ended (amber) · nothing before it starts.
+ */
 function StatusChip({
   batch,
   timing,
+  onPhone,
 }: {
   batch: DayBatch;
   timing: ReturnType<typeof classTiming> | null;
+  onPhone: boolean;
 }) {
   const { t } = useTranslation();
   const theme = useAppTheme();
+  if (onPhone) {
+    return (
+      <Chip
+        compact
+        icon="cloud-upload-outline"
+        style={{ backgroundColor: theme.colors.secondaryContainer }}
+        textStyle={{ color: theme.colors.onSecondaryContainer }}
+      >
+        {t('today.onPhone')}
+      </Chip>
+    );
+  }
   if (batch.taken) {
     return (
       <Chip
@@ -190,7 +286,7 @@ const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 },
   list: { padding: 16, gap: 12 },
   emptyContainer: { flexGrow: 1, padding: 16 },
-  heading: { gap: 4, marginBottom: 4 },
+  heading: { gap: 8, marginBottom: 4 },
   chip: { marginRight: 12 },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, padding: 24 },
   emptyHelp: { textAlign: 'center', marginBottom: 8 },
