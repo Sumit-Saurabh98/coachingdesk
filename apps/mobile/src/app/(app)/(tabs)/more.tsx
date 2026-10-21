@@ -1,5 +1,5 @@
-// More tab (LLD §8): everything that isn't used every day. Today: batches and your account;
-// later also notices, tests, plan and help.
+// More tab (LLD §8): everything that isn't used every day: batches, notices, your account;
+// later also tests, plan and help.
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ScrollView } from 'react-native';
@@ -18,6 +18,13 @@ export default function MoreTab() {
           left={(props) => <List.Icon {...props} icon="google-classroom" />}
           right={(props) => <List.Icon {...props} icon="chevron-right" />}
           onPress={() => router.push('/batches')}
+        />
+        <List.Item
+          title={t('more.notices')}
+          description={t('more.noticesDescription')}
+          left={(props) => <List.Icon {...props} icon="bullhorn-outline" />}
+          right={(props) => <List.Icon {...props} icon="chevron-right" />}
+          onPress={() => router.push('/notices')}
         />
         <List.Item
           // Your name when it's set, so you can see at a glance which account this is.

@@ -89,7 +89,9 @@
   "more": {
     "batches": "बैच",
     "batchesDescription": "कक्षाएँ, समय और डिफ़ॉल्ट फ़ीस",
-    "account": "खाता और सेटिंग"
+    "account": "खाता और सेटिंग",
+    "notices": "सूचनाएँ",
+    "noticesDescription": "छुट्टी, समय बदलाव और अभिभावकों को संदेश"
   },
   "comingSoon": {
     "title": "जल्द आ रहा है",
@@ -432,5 +434,45 @@
     "discountInvalid": "छूट रकम से कम होनी चाहिए।",
     "dueDate": "देय तारीख़",
     "create": "बिल बनाएँ"
+  },
+  "notices": {
+    "new": "नई सूचना",
+    "empty": "अभी कोई सूचना नहीं भेजी",
+    "emptyHelp": "अभिभावकों को WhatsApp पर छुट्टी, क्लास के समय में बदलाव या कोई और बात बताएँ।",
+    "sentLine_one": "{{date}} · {{count}} अभिभावक · {{batches}}",
+    "sentLine_other": "{{date}} · {{count}} अभिभावक · {{batches}}",
+    "holidaySummary": "{{date}} से छुट्टी ({{reason}})। क्लास {{resume}} से फिर शुरू।",
+    "changeSummary": "{{batch}}: {{date}} को क्लास {{time}} बजे।",
+    "kindHoliday": "छुट्टी",
+    "kindChange": "समय",
+    "kindGeneral": "संदेश",
+    "whichBatches": "कौन से बैच?",
+    "whichBatch": "कौन सा बैच?",
+    "batchesRequired": "कम से कम एक बैच चुनें।",
+    "oneBatch": "समय बदलाव एक बैच के लिए होता है।",
+    "holidayFrom": "छुट्टी कब से",
+    "resumeOn": "क्लास फिर कब से",
+    "reason": "कारण",
+    "reasonExample": "दिवाली",
+    "reasonInvalid": "छोटा कारण लिखें (80 अक्षरों तक)।",
+    "onDate": "तारीख़",
+    "newTime": "क्लास का नया समय",
+    "message": "संदेश",
+    "messageHelp": "{{count}}/500 · लिंक नहीं",
+    "textInvalid": "संदेश लिखें (500 अक्षरों तक)।",
+    "noLinks": "सूचना में लिंक नहीं डाल सकते।",
+    "datePast": "तारीख़ बीती हुई नहीं हो सकती।",
+    "resumeAfter": "क्लास छुट्टी शुरू होने के बाद ही फिर शुरू हो सकती है।",
+    "review": "देखें किसे जाएगी",
+    "confirmTitle": "यह सूचना भेजें?",
+    "goesTo_one": "यह WhatsApp पर {{count}} अभिभावक को जाएगी।",
+    "goesTo_other": "यह WhatsApp पर {{count}} अभिभावकों को जाएगी।",
+    "quotaLeft": "अभी बचे मैसेज: {{count}}",
+    "overQuota": "अभी सिर्फ़ {{count}} जा सकते हैं; बाकी छोड़ दिए जाएँगे (मैसेज सीमा)।",
+    "consentNote": "सिर्फ़ उन्हीं अभिभावकों को जाती है जिन्होंने WhatsApp अपडेट के लिए हाँ कहा है। रात 9 से सुबह 8 बजे तक कुछ नहीं भेजा जाता।",
+    "noRecipients": "भेजने के लिए कोई अभिभावक नहीं: आज इन बैचों में कोई सक्रिय छात्र नहीं।",
+    "send": "भेजें",
+    "notInPlan": "सूचनाओं के लिए WhatsApp मैसेज वाला प्लान चाहिए।",
+    "dailyLimit": "आप दिन में {{limit}} सूचनाएँ भेज सकते हैं। कल फिर कोशिश करें।"
   }
 }

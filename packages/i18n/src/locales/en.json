@@ -89,7 +89,9 @@
   "more": {
     "batches": "Batches",
     "batchesDescription": "Classes, timings and default fees",
-    "account": "Account and settings"
+    "account": "Account and settings",
+    "notices": "Notices",
+    "noticesDescription": "Holidays, timing changes and messages to parents"
   },
   "comingSoon": {
     "title": "Coming soon",
@@ -432,5 +434,45 @@
     "discountInvalid": "The discount must be less than the amount.",
     "dueDate": "Due on",
     "create": "Create invoice"
+  },
+  "notices": {
+    "new": "New notice",
+    "empty": "No notices sent yet",
+    "emptyHelp": "Tell parents about a holiday, a change of class time, or anything else, on WhatsApp.",
+    "sentLine_one": "{{date}} · {{count}} parent · {{batches}}",
+    "sentLine_other": "{{date}} · {{count}} parents · {{batches}}",
+    "holidaySummary": "Holiday from {{date}} ({{reason}}). Classes resume {{resume}}.",
+    "changeSummary": "{{batch}}: class at {{time}} on {{date}}.",
+    "kindHoliday": "Holiday",
+    "kindChange": "Timing",
+    "kindGeneral": "Message",
+    "whichBatches": "Which batches?",
+    "whichBatch": "Which batch?",
+    "batchesRequired": "Choose at least one batch.",
+    "oneBatch": "A timing change is for one batch.",
+    "holidayFrom": "Holiday from",
+    "resumeOn": "Classes resume on",
+    "reason": "Reason",
+    "reasonExample": "Diwali",
+    "reasonInvalid": "Write a short reason (up to 80 characters).",
+    "onDate": "On",
+    "newTime": "New class time",
+    "message": "Message",
+    "messageHelp": "{{count}}/500 · no links",
+    "textInvalid": "Write a message (up to 500 characters).",
+    "noLinks": "Links aren't allowed in notices.",
+    "datePast": "The date can't be in the past.",
+    "resumeAfter": "Classes must resume after the holiday starts.",
+    "review": "See who gets it",
+    "confirmTitle": "Send this notice?",
+    "goesTo_one": "It goes to {{count}} parent on WhatsApp.",
+    "goesTo_other": "It goes to {{count}} parents on WhatsApp.",
+    "quotaLeft": "Messages left now: {{count}}",
+    "overQuota": "Only {{count}} can go out now; the rest will be skipped (message limit).",
+    "consentNote": "Only parents who agreed to WhatsApp updates get it. Nothing is sent between 9 PM and 8 AM.",
+    "noRecipients": "No parents to send to: these batches have no active students today.",
+    "send": "Send",
+    "notInPlan": "Notices need a plan with WhatsApp messages.",
+    "dailyLimit": "You can send {{limit}} notices a day. Try again tomorrow."
   }
 }
