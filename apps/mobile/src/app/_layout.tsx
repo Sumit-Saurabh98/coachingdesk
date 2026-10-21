@@ -81,20 +81,15 @@ export default function RootLayout() {
         <ThemeProvider value={navigationThemeFor(theme)}>
           {/* Status bar text: light on a dark app, dark on a light one. */}
           <StatusBar style={theme.dark ? 'light' : 'dark'} />
-          {/* Which screens exist depends on the login: Stack.Protected hides a group when
-              its guard is false, and the app moves to the other group by itself. Logging in
-              or out anywhere (or the session expiring) switches screens with no navigate code.
-              While 'restoring', the login group is behind the splash screen.
-              `redirectTo` says WHERE to go when a group is hidden. Without it the router falls
-              back to the other group's own start ("/(auth)"), which has no screen: the login
-              screen is "/login", not an index, so the user saw "Unmatched route". */}
+          {/* The two groups decide for themselves from the login status: (app) sends a
+              logged-out user to /login, (auth) sends a logged-in one to "/". Logging in or out
+              anywhere (or the session expiring) switches screens with no navigate code.
+              (Not Stack.Protected: a guard that starts out false makes Expo Router try to
+              remove routes that were never open, a "REMOVE_ROUTES ... not handled" warning on
+              every reload.) */}
           <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Protected guard={status === 'signedIn'} redirectTo="/login">
-              <Stack.Screen name="(app)" />
-            </Stack.Protected>
-            <Stack.Protected guard={status !== 'signedIn'} redirectTo="/">
-              <Stack.Screen name="(auth)" />
-            </Stack.Protected>
+            <Stack.Screen name="(app)" />
+            <Stack.Screen name="(auth)" />
           </Stack>
         </ThemeProvider>
       </PaperProvider>

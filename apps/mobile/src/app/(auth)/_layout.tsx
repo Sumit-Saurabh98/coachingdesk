@@ -1,10 +1,15 @@
-// The login screens. Only reachable while logged out (Stack.Protected in the root layout):
-// after a successful login this whole group disappears and the app shows (app) instead.
-import { Stack } from 'expo-router';
+// The login screens. Only for a logged-out user: once logged in (here, or a restored login),
+// this group sends them to the app's home.
+import { Redirect, Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useSessionStatus } from '@/auth/use-session-status';
 
 export default function AuthLayout() {
   const { t } = useTranslation();
+  const status = useSessionStatus((state) => state.status);
+  if (status === 'signedIn') {
+    return <Redirect href="/" />;
+  }
   return (
     <Stack>
       {/* The first screen has its own big title, no header bar. */}
