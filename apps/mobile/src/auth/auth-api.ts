@@ -58,3 +58,12 @@ export async function updateName(name: string): Promise<User> {
 export function logout(): Promise<void> {
   return session.end();
 }
+
+/**
+ * DELETE /v1/me: the account is deleted (every device logged out), then this phone forgets the
+ * login. 409 OWNER_OF_INSTITUTES while the user still owns an institute.
+ */
+export async function deleteAccount(): Promise<void> {
+  await api.delete('/v1/me');
+  await session.end();
+}

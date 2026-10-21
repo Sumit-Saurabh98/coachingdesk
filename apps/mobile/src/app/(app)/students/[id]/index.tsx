@@ -22,6 +22,7 @@ import { StudentAttendance } from '@/attendance/student-attendance';
 import { batchKeys, listBatches } from '@/batches/batches-api';
 import { StudentResults } from '@/class-tests/student-results';
 import { StudentInvoices } from '@/fees/student-invoices';
+import { EraseStudent } from '@/privacy/erase-student';
 import { GuardianConsent } from '@/students/guardian-consent';
 import { useContactChooser } from '@/students/use-contact-chooser';
 import { useCurrentInstitute } from '@/institutes/use-current-institute';
@@ -308,6 +309,11 @@ export default function StudentScreen() {
               {t('student.markLeft')}
             </Button>
           </View>
+        )}
+
+        {/* Owner only, and not already erased (an erased student has no parent number). */}
+        {current?.role === 'owner' && student.guardianPhone !== null && (
+          <EraseStudent instituteId={instituteId} studentId={student.id} name={student.name} />
         )}
       </ScrollView>
 

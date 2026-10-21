@@ -41,7 +41,9 @@
     "otpInvalid_other": "That code is not correct. {{count}} attempts left.",
     "otpLocked": "Too many wrong attempts. Please request a new code.",
     "otpExpired": "This code has expired. Please request a new one.",
-    "planLimit": "Your plan allows {{limit}} active students. Upgrade, or mark students who left as left."
+    "planLimit": "Your plan allows {{limit}} active students. Upgrade, or mark students who left as left.",
+    "pendingDeletion": "This institute is scheduled for deletion. Cancel the deletion (More → Your data) to make changes.",
+    "ownerOfInstitutes": "You own an institute. Delete it first (More → Your data), then your account."
   },
   "me": {
     "title": "Me",
@@ -58,7 +60,11 @@
     "appearance": "Appearance",
     "logout": "Log out",
     "logoutTitle": "Log out?",
-    "logoutBody": "You will need a new code by SMS to log in again on this phone."
+    "logoutBody": "You will need a new code by SMS to log in again on this phone.",
+    "deleteAccount": "Delete my account",
+    "deleteTitle": "Delete your account?",
+    "deleteBody": "Your login, name and phone number are deleted and you're logged out on every phone. You leave every institute you're part of. If you own an institute, delete it (or hand it over) first.",
+    "deleteConfirm": "Delete account"
   },
   "institute": {
     "typeLabel": "What kind of institute is it?",
@@ -698,6 +704,24 @@
       "ready": "Ready",
       "failed": "Failed: prepare a new one",
       "expired": "Expired"
-    }
+    },
+    "deleteTitle": "Delete this institute",
+    "deleteBody": "Deletes every student, batch, fee, payment and message of this institute after 30 days. Download your data first if you need it.",
+    "deleteButton": "Delete institute…",
+    "deleteConfirm": "We'll send a code by SMS to your phone to confirm it's you. Teachers and staff lose access at once; nothing is sent to parents; you have 30 days to cancel.",
+    "sendCode": "Send code",
+    "codeSent": "Enter the 6-digit code we sent to your phone.",
+    "code": "Code",
+    "deleteNow": "Delete",
+    "pendingTitle": "This institute is being deleted",
+    "pendingBody": "Everything will be deleted on {{date}}. Until then teachers and staff can't open it and no messages are sent. You can still download your data.",
+    "cancelDeletion": "Cancel deletion"
+  },
+  "erase": {
+    "button": "Delete personal data",
+    "title": "Delete {{name}}'s personal data?",
+    "body": "For a parent's request: the name, parent, phone numbers and notes are removed for good. Invoices and payments keep their amounts (without the name).",
+    "warning": "This can't be undone.",
+    "confirm": "Delete for good"
   }
 }

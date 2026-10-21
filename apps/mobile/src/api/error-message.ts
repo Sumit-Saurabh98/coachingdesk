@@ -39,6 +39,10 @@ export function errorMessage(t: TFunction, error: unknown): string {
       return t('errors.validation');
     case 'SERVICE_UNAVAILABLE':
       return t('errors.unavailable');
+    case 'INSTITUTE_PENDING_DELETION':
+      return t('errors.pendingDeletion');
+    case 'OWNER_OF_INSTITUTES':
+      return t('errors.ownerOfInstitutes');
     default:
       return t('errors.generic');
   }

@@ -19,7 +19,7 @@ import {
   TextInput,
 } from 'react-native-paper';
 import { errorMessage } from '@/api/error-message';
-import { logout, updateName } from '@/auth/auth-api';
+import { deleteAccount, logout, updateName } from '@/auth/auth-api';
 import { ME_KEY, type MeData, useMe } from '@/auth/use-me';
 import type { MyInstitute } from '@/institutes/current-institute';
 import { useCurrentInstitute } from '@/institutes/use-current-institute';
@@ -57,6 +57,9 @@ export default function MeScreen() {
 
   // Logging out ends the session; the root layout's guard then shows the login screen.
   const logOut = useMutation({ mutationFn: logout });
+  // Deleting the account: every device is logged out; the login screen follows by itself.
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const removeAccount = useMutation({ mutationFn: deleteAccount });
 
   const roleLabel: Record<MyInstitute['role'], string> = {
     owner: t('me.roleOwner'),
@@ -187,6 +190,16 @@ export default function MeScreen() {
       >
         {t('me.logout')}
       </Button>
+      <Button
+        icon="account-cancel-outline"
+        textColor={theme.colors.error}
+        onPress={() => {
+          removeAccount.reset();
+          setConfirmingDelete(true);
+        }}
+      >
+        {t('me.deleteAccount')}
+      </Button>
 
       {/* Portal draws dialogs ABOVE the whole screen (PaperProvider hosts them). */}
       <Portal>
@@ -233,6 +246,29 @@ export default function MeScreen() {
               disabled={logOut.isPending}
             >
               {t('me.logout')}
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog visible={confirmingDelete} onDismiss={() => setConfirmingDelete(false)}>
+          <Dialog.Title>{t('me.deleteTitle')}</Dialog.Title>
+          <Dialog.Content style={styles.dialogContent}>
+            <Text>{t('me.deleteBody')}</Text>
+            {removeAccount.isError && (
+              <Text style={{ color: theme.colors.error }}>
+                {errorMessage(t, removeAccount.error)}
+              </Text>
+            )}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setConfirmingDelete(false)}>{t('common.cancel')}</Button>
+            <Button
+              textColor={theme.colors.error}
+              loading={removeAccount.isPending}
+              disabled={removeAccount.isPending}
+              onPress={() => removeAccount.mutate()}
+            >
+              {t('me.deleteConfirm')}
             </Button>
           </Dialog.Actions>
         </Dialog>

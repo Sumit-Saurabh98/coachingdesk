@@ -41,3 +41,26 @@ export async function downloadExport(item: DataExport): Promise<File> {
     { headers: token ? { Authorization: `Bearer ${token}` } : {}, idempotent: true },
   );
 }
+
+/**
+ * POST .../students/:id/erase { confirm: true } (owner): the student's personal data is removed
+ * for good (name, parent, phones, notes). Amounts on invoices and payments stay.
+ */
+export async function eraseStudent(instituteId: string, studentId: string): Promise<void> {
+  await api.post(`/v1/institutes/${instituteId}/students/${studentId}/erase`, { confirm: true });
+}
+
+/** POST .../delete/otp (owner): an SMS code to the owner's OWN phone, to confirm it's them. */
+export async function sendDeletionCode(instituteId: string): Promise<void> {
+  await api.post(`/v1/institutes/${instituteId}/delete/otp`);
+}
+
+/** POST .../delete { otp } (owner): scheduled for deletion in 30 days (can be cancelled). */
+export async function deleteInstitute(instituteId: string, otp: string): Promise<void> {
+  await api.post(`/v1/institutes/${instituteId}/delete`, { otp });
+}
+
+/** POST .../delete/cancel (owner): back to normal. */
+export async function cancelDeletion(instituteId: string): Promise<void> {
+  await api.post(`/v1/institutes/${instituteId}/delete/cancel`);
+}

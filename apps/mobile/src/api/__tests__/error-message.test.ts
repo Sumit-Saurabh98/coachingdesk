@@ -22,6 +22,8 @@ describe('errorMessage', () => {
     [http('PLAN_LIMIT_REACHED', { limit: 25 }, 402), 'errors.planLimit {"limit":25}'],
     [http('VALIDATION_FAILED', {}, 422), 'errors.validation'],
     [http('SERVICE_UNAVAILABLE', {}, 503), 'errors.unavailable'],
+    [http('INSTITUTE_PENDING_DELETION', {}, 409), 'errors.pendingDeletion'],
+    [http('OWNER_OF_INSTITUTES', {}, 409), 'errors.ownerOfInstitutes'],
     [http('SOMETHING_NEW_FROM_A_NEWER_SERVER'), 'errors.generic'],
     [new Error('not ours'), 'errors.generic'],
   ])('%s -> %s', (error, expected) => {
