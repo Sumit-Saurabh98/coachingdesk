@@ -99,7 +99,9 @@
     "team": "Team",
     "teamDescription": "Teachers and staff who use the app",
     "plan": "Plan and usage",
-    "planDescription": "Your plan, limits and what's used"
+    "planDescription": "Your plan, limits and what's used",
+    "data": "Your data",
+    "dataDescription": "Download everything; delete data"
   },
   "comingSoon": {
     "title": "Coming soon",
@@ -677,5 +679,25 @@
     "featureResults": "Tests and result cards",
     "upgrade": "Upgrade",
     "upgradeSoon": "Paying for a plan in the app is coming soon. Until then, contact us to change your plan."
+  },
+  "data": {
+    "exportTitle": "Download all your data",
+    "exportBody": "A ZIP file with one spreadsheet per area: students, batches, attendance, fees, payments, tests, messages and more.",
+    "exportNote": "It holds parents' phone numbers: keep it safe. It is ready in a minute or two and kept for 7 days.",
+    "prepare": "Prepare export",
+    "preparing": "Preparing…",
+    "recent": "Recent exports",
+    "none": "No exports yet.",
+    "save": "Save",
+    "saved": "Saved {{name}}",
+    "keptUntil": "kept until {{date}}",
+    "dailyLimit": "At most 5 exports a day. Try again tomorrow.",
+    "status": {
+      "queued": "Waiting",
+      "running": "Being prepared",
+      "ready": "Ready",
+      "failed": "Failed: prepare a new one",
+      "expired": "Expired"
+    }
   }
 }

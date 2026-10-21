@@ -65,6 +65,7 @@ export default function AppLayout() {
         <Stack.Screen name="settings/institute" options={{ title: t('more.instituteSettings') }} />
         <Stack.Screen name="settings/team" options={{ title: t('more.team') }} />
         <Stack.Screen name="settings/plan" options={{ title: t('more.plan') }} />
+        <Stack.Screen name="settings/data" options={{ title: t('more.data') }} />
         <Stack.Screen name="fees/new" options={{ title: t('manualInvoice.title') }} />
         <Stack.Screen name="fees/[invoiceId]/index" options={{ title: '' }} />
         <Stack.Screen name="fees/[invoiceId]/pay" options={{ title: t('payment.title') }} />
