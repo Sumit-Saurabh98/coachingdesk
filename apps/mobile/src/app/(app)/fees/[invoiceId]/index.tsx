@@ -8,6 +8,7 @@ import { ActivityIndicator, Button, Card, Chip, List, Text } from 'react-native-
 import { errorMessage } from '@/api/error-message';
 import { feeKeys, getInvoice } from '@/fees/fees-api';
 import { InvoiceActions } from '@/fees/invoice-actions';
+import { InvoiceOwnerActions } from '@/fees/invoice-owner-actions';
 import { invoiceTone, isOpen } from '@/fees/invoice-rules';
 import { InvoiceStatusChip } from '@/fees/invoice-status-chip';
 import { rupees } from '@/fees/rupees';
@@ -109,6 +110,9 @@ export default function InvoiceScreen() {
           isOwner={current?.role === 'owner'}
           invoice={invoice}
         />
+      )}
+      {current?.role === 'owner' && (
+        <InvoiceOwnerActions instituteId={instituteId} invoice={invoice} />
       )}
 
       <View style={styles.facts}>

@@ -406,5 +406,31 @@
     "payFromCredit": "Pay from family credit ({{amount}} available)",
     "creditApplied": "{{amount}} paid from family credit.",
     "parentMessage": "Hello, this is a reminder from {{institute}}: {{student}}'s fee ({{description}}) of {{amount}} is due on {{date}}. Thank you!"
+  },
+  "ownerActions": {
+    "reason": "Reason",
+    "reasonInvalid": "Write a reason (it is kept in the records).",
+    "waive": "Waive",
+    "waiveTitle": "Waive this fee?",
+    "waiveBody": "{{amount}} still due will be forgiven. Payments already made stay.",
+    "cancel": "Cancel invoice",
+    "cancelTitle": "Cancel this invoice?",
+    "cancelBody": "Use this for an invoice made by mistake. It will no longer be due.",
+    "conflict": "This invoice changed meanwhile (for example, a payment arrived). Go back and open it again.",
+    "void": "Void payment",
+    "voidTitle": "Void this payment?",
+    "voidBody": "Use this for {{amount}} entered by mistake. The invoices it paid will be due again."
+  },
+  "manualInvoice": {
+    "title": "Add invoice",
+    "open": "Add invoice",
+    "description": "What is it for?",
+    "descriptionExample": "Exam fee, books, trip…",
+    "descriptionInvalid": "Write what this invoice is for (up to 200 characters).",
+    "amount": "Amount",
+    "discount": "Discount (optional)",
+    "discountInvalid": "The discount must be less than the amount.",
+    "dueDate": "Due on",
+    "create": "Create invoice"
   }
 }

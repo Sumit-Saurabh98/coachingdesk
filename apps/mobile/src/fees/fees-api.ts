@@ -1,5 +1,6 @@
 import { api } from '@/api';
 import { type InvoiceFilter, type InvoiceStatus, invoiceQuery } from './invoice-rules';
+import type { ManualInvoiceRequest } from './owner-actions-rules';
 
 export type PaymentMethod = 'upi_link' | 'cash' | 'bank' | 'other';
 
@@ -183,4 +184,51 @@ export function applyCredit(
   invoiceId: string,
 ): Promise<{ invoice: Invoice; appliedPaise: number; creditPaise: number }> {
   return api.post(`/v1/institutes/${instituteId}/invoices/${invoiceId}/apply-credit`);
+}
+
+/** POST .../invoices/:id/waive (owner): forgive what's left of an open invoice. */
+export async function waiveInvoice(
+  instituteId: string,
+  invoiceId: string,
+  reason: string,
+): Promise<Invoice> {
+  const result = await api.post<{ invoice: Invoice }>(
+    `/v1/institutes/${instituteId}/invoices/${invoiceId}/waive`,
+    { reason },
+  );
+  return result.invoice;
+}
+
+/** POST .../invoices/:id/cancel (owner): only an unpaid "due" invoice (made by mistake). */
+export async function cancelInvoice(
+  instituteId: string,
+  invoiceId: string,
+  reason: string,
+): Promise<Invoice> {
+  const result = await api.post<{ invoice: Invoice }>(
+    `/v1/institutes/${instituteId}/invoices/${invoiceId}/cancel`,
+    { reason },
+  );
+  return result.invoice;
+}
+
+/** POST .../payments/:id/void (owner): undo an offline payment; its invoices reopen. */
+export function voidPayment(
+  instituteId: string,
+  paymentId: string,
+  reason: string,
+): Promise<{ payment: Payment; invoices: Invoice[] }> {
+  return api.post(`/v1/institutes/${instituteId}/payments/${paymentId}/void`, { reason });
+}
+
+/** POST .../invoices (owner): a one-off charge (exam fee, books...). */
+export async function createManualInvoice(
+  instituteId: string,
+  body: ManualInvoiceRequest,
+): Promise<Invoice> {
+  const result = await api.post<{ invoice: Invoice }>(
+    `/v1/institutes/${instituteId}/invoices`,
+    body,
+  );
+  return result.invoice;
 }

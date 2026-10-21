@@ -1,16 +1,20 @@
 // A payment's receipt (owner, staff), and "Share" to send it to the parent: on the Free plan
 // nothing is sent automatically, so the owner shares it (e.g. on WhatsApp) from here.
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Redirect, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, Share, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Card, Chip, Divider, Text } from 'react-native-paper';
 import { errorMessage } from '@/api/error-message';
-import { feeKeys, getReceipt, type Receipt } from '@/fees/fees-api';
+import { feeKeys, getReceipt, type Receipt, voidPayment } from '@/fees/fees-api';
+import { canVoid } from '@/fees/owner-actions-rules';
+import { ReasonDialog } from '@/fees/reason-dialog';
 import { rupees } from '@/fees/rupees';
 import { useCurrentInstitute } from '@/institutes/use-current-institute';
 import { formatLocalDate, toLocalDateString } from '@/lib/date-format';
 import { useMonthLabels } from '@/lib/use-month-labels';
+import { studentKeys } from '@/students/students-api';
 import { useAppTheme } from '@/theme/theme';
 
 export default function ReceiptScreen() {
@@ -26,6 +30,20 @@ export default function ReceiptScreen() {
     queryKey: feeKeys.receipt(instituteId, paymentId),
     queryFn: ({ signal }) => getReceipt(instituteId, paymentId, signal),
     enabled: instituteId !== '' && canSeeFees,
+  });
+
+  // Owner: undo a payment entered by mistake (its invoices reopen, reminders resume).
+  const queryClient = useQueryClient();
+  const [voiding, setVoiding] = useState(false);
+  const voidIt = useMutation({
+    mutationFn: (reason: string) => voidPayment(instituteId, paymentId, reason),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: feeKeys.all(instituteId) }),
+        queryClient.invalidateQueries({ queryKey: studentKeys.all(instituteId) }),
+      ]);
+      setVoiding(false);
+    },
   });
 
   if (!canSeeFees) {
@@ -137,6 +155,31 @@ export default function ReceiptScreen() {
         >
           {t('receipt.share')}
         </Button>
+      )}
+
+      {current?.role === 'owner' && canVoid(r) && (
+        <Button
+          icon="undo-variant"
+          textColor={theme.colors.error}
+          onPress={() => {
+            voidIt.reset();
+            setVoiding(true);
+          }}
+        >
+          {t('ownerActions.void')}
+        </Button>
+      )}
+      {voiding && (
+        <ReasonDialog
+          visible={voiding}
+          title={t('ownerActions.voidTitle')}
+          body={t('ownerActions.voidBody', { amount: rupees(r.amountPaise) })}
+          confirmLabel={t('ownerActions.void')}
+          pending={voidIt.isPending}
+          error={voidIt.error ? errorMessage(t, voidIt.error) : null}
+          onConfirm={(reason) => voidIt.mutate(reason)}
+          onDismiss={() => setVoiding(false)}
+        />
       )}
     </ScrollView>
   );

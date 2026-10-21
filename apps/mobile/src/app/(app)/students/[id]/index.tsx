@@ -234,7 +234,14 @@ export default function StudentScreen() {
         <StudentAttendance instituteId={instituteId} studentId={student.id} batchName={batchName} />
 
         {/* Fees: owner and staff only (KB #31). */}
-        {canManage && <StudentInvoices instituteId={instituteId} studentId={student.id} />}
+        {canManage && (
+          <StudentInvoices
+            instituteId={instituteId}
+            studentId={student.id}
+            studentName={student.name}
+            canAddInvoice={current?.role === 'owner' && !isLeft}
+          />
+        )}
 
         {student.notes !== null && (
           <List.Item

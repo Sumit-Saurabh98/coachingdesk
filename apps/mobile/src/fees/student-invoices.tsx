@@ -13,9 +13,13 @@ import { forProfile } from './invoice-rules';
 export function StudentInvoices({
   instituteId,
   studentId,
+  studentName,
+  canAddInvoice,
 }: {
   instituteId: string;
   studentId: string;
+  studentName: string;
+  canAddInvoice: boolean; // owner, and the student is active
 }) {
   const { t } = useTranslation();
   const theme = useAppTheme();
@@ -55,6 +59,16 @@ export function StudentInvoices({
             />
           ))}
         </>
+      )}
+      {canAddInvoice && (
+        <Button
+          icon="file-document-plus-outline"
+          onPress={() =>
+            router.push({ pathname: '/fees/new', params: { studentId, name: studentName } })
+          }
+        >
+          {t('manualInvoice.open')}
+        </Button>
       )}
     </List.Section>
   );
