@@ -5,10 +5,13 @@ import { useTranslation } from 'react-i18next';
 import { ScrollView } from 'react-native';
 import { List } from 'react-native-paper';
 import { useMe } from '@/auth/use-me';
+import { useCurrentInstitute } from '@/institutes/use-current-institute';
 
 export default function MoreTab() {
   const { t } = useTranslation();
   const me = useMe();
+  const { current } = useCurrentInstitute();
+  const canSeeMessages = current?.role === 'owner' || current?.role === 'staff';
   return (
     <ScrollView>
       <List.Section>
@@ -26,6 +29,15 @@ export default function MoreTab() {
           right={(props) => <List.Icon {...props} icon="chevron-right" />}
           onPress={() => router.push('/notices')}
         />
+        {canSeeMessages && (
+          <List.Item
+            title={t('more.messages')}
+            description={t('more.messagesDescription')}
+            left={(props) => <List.Icon {...props} icon="message-text-clock-outline" />}
+            right={(props) => <List.Icon {...props} icon="chevron-right" />}
+            onPress={() => router.push('/messages')}
+          />
+        )}
         <List.Item
           // Your name when it's set, so you can see at a glance which account this is.
           title={me.data?.user.name ?? t('me.title')}

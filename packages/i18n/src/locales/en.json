@@ -91,7 +91,9 @@
     "batchesDescription": "Classes, timings and default fees",
     "account": "Account and settings",
     "notices": "Notices",
-    "noticesDescription": "Holidays, timing changes and messages to parents"
+    "noticesDescription": "Holidays, timing changes and messages to parents",
+    "messages": "Messages",
+    "messagesDescription": "WhatsApp messages sent to parents, and this month's usage"
   },
   "comingSoon": {
     "title": "Coming soon",
@@ -474,5 +476,43 @@
     "send": "Send",
     "notInPlan": "Notices need a plan with WhatsApp messages.",
     "dailyLimit": "You can send {{limit}} notices a day. Try again tomorrow."
+  },
+  "messages": {
+    "thisMonth": "This month",
+    "usedOf": "{{used}} of {{limit}} messages",
+    "noneInPlan": "No WhatsApp messages in your plan",
+    "today": "Today: {{used}} of {{limit}} (new institutes and the trial have a daily limit)",
+    "trialTotal": "During the free trial: at most {{limit}} messages in total",
+    "all": "All",
+    "empty": "No messages yet.",
+    "toLine": "To {{to}} · {{when}}",
+    "scheduledFor": "Goes out {{when}} (no messages at night)",
+    "failedHelp": "WhatsApp couldn't deliver it. Check the number, or contact the parent yourself.",
+    "category": {
+      "fee_reminder": "Fee reminder",
+      "receipt": "Receipt",
+      "absence": "Absence alert",
+      "result": "Result",
+      "notice": "Notice"
+    },
+    "status": {
+      "waiting": "Waiting",
+      "sent": "Sent",
+      "delivered": "Delivered",
+      "read": "Read",
+      "failed": "Failed",
+      "skipped": "Not sent"
+    },
+    "skip": {
+      "opted_out": "Not sent: the parent turned off WhatsApp updates.",
+      "no_consent": "Not sent: the parent hasn't agreed to WhatsApp updates.",
+      "over_quota": "Not sent: the message limit was reached.",
+      "plan_disallows": "Not sent: your plan doesn't include these messages.",
+      "nothing_due": "Not sent: nothing was due any more.",
+      "stale": "Not sent: it was out of date by sending time.",
+      "expired": "Not sent: it waited too long (e.g. quiet hours, no internet).",
+      "institute_paused": "Not sent: messaging is paused for this institute.",
+      "platform_limit": "Not sent: WhatsApp's sending limit was reached. It wasn't counted."
+    }
   }
 }
