@@ -115,7 +115,7 @@ export default function StudentsTab() {
               onPress={() =>
                 router.push({ pathname: '/students/[id]', params: { id: student.id } })
               }
-              title={student.name}
+              title={student.rollNumber ? `${student.rollNumber} · ${student.name}` : student.name}
               description={[student.guardianName, formatIndianPhone(student.guardianPhone)]
                 .filter(Boolean)
                 .join(' · ')}

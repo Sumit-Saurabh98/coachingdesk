@@ -15,6 +15,7 @@ export interface Student {
   joinedOn: string; // "YYYY-MM-DD"
   leftOn: string | null;
   notes: string | null;
+  rollNumber: string | null; // optional, text ("12", "12A"); unique among active students
   /** Frozen after a plan downgrade: can't be edited until upgrade or others leave (KB #46). */
   readOnly?: boolean;
 }

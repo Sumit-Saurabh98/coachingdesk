@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { ApiError } from '../../api/api-error';
 import {
+  isRollNumberTaken,
   isValidIndianPhone,
   NEW_STUDENT,
   samePhone,
@@ -79,6 +81,7 @@ describe('editing a student', () => {
     guardianPhone: '+919876543210',
     joinedOn: '2026-10-01',
     notes: null,
+    rollNumber: '12',
   };
 
   it('nothing changed -> null (no request)', () => {
@@ -110,5 +113,51 @@ describe('editing a student', () => {
     expect(samePhone('98765 43210', '+919876543210')).toBe(true);
     expect(samePhone('9123456789', '+919876543210')).toBe(false);
     expect(samePhone('', null)).toBe(false);
+  });
+});
+
+describe('roll number', () => {
+  it('optional; tidied; sent only when given', () => {
+    expect(toCreateStudentRequest(filled({ rollNumber: '  12  A ' })).rollNumber).toBe('12 A');
+    expect(toCreateStudentRequest(filled({ rollNumber: '  ' }))).not.toHaveProperty('rollNumber');
+  });
+
+  it('at most 20 characters', () => {
+    expect(validateStudentForm(filled({ rollNumber: 'x'.repeat(21) })).rollNumber).toBe(
+      'studentForm.rollInvalid',
+    );
+    expect(validateStudentForm(filled({ rollNumber: 'x'.repeat(20) })).rollNumber).toBeUndefined();
+  });
+
+  it('editing: a changed roll is sent; cleared -> null', () => {
+    const original = {
+      name: 'Aarav',
+      guardianName: null,
+      guardianPhone: '+919876543210',
+      joinedOn: '2026-10-01',
+      notes: null,
+      rollNumber: '12',
+    };
+    const values = valuesFromStudent(original);
+    expect(toUpdateStudentRequest(original, { ...values, rollNumber: '13' })).toEqual({
+      rollNumber: '13',
+    });
+    expect(toUpdateStudentRequest(original, { ...values, rollNumber: ' ' })).toEqual({
+      rollNumber: null,
+    });
+  });
+
+  it('recognises the "already used" 409', () => {
+    const taken = new ApiError({
+      kind: 'http',
+      status: 409,
+      code: 'CONFLICT',
+      message: 'x',
+      details: { field: 'rollNumber' },
+    });
+    expect(isRollNumberTaken(taken)).toBe(true);
+    expect(isRollNumberTaken(new ApiError({ kind: 'http', status: 409, message: 'x' }))).toBe(
+      false,
+    );
   });
 });

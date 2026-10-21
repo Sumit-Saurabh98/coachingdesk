@@ -1,6 +1,7 @@
 // Pure TypeScript: the "add student" form's rules, unit-tested in Node. They mirror the API
 // (Student.create); the API checks again and decides.
 import { CreateStudentBody } from '@coachingdesk/shared';
+import { ApiError } from '../api/api-error';
 
 export interface StudentFormValues {
   name: string;
@@ -8,11 +9,12 @@ export interface StudentFormValues {
   guardianPhone: string; // as typed: any common Indian format
   joinedOn: string | null; // "YYYY-MM-DD"; null = today at the institute (the API's default)
   notes: string;
+  rollNumber: string; // optional: '' = none
   batchIds: string[];
   guardianConsent: boolean;
 }
 
-export type StudentFormField = 'name' | 'guardianName' | 'guardianPhone' | 'notes';
+export type StudentFormField = 'name' | 'guardianName' | 'guardianPhone' | 'notes' | 'rollNumber';
 /** Problems per field: the value is the i18n key of the message. */
 export type StudentFormErrors = Partial<Record<StudentFormField, string>>;
 
@@ -27,6 +29,7 @@ export interface CreateStudentRequest {
   guardianPhone: string;
   joinedOn?: string;
   notes: string | null;
+  rollNumber?: string;
   batchIds?: string[];
   guardianConsent: boolean;
 }
@@ -37,6 +40,7 @@ export const NEW_STUDENT: StudentFormValues = {
   guardianPhone: '',
   joinedOn: null,
   notes: '',
+  rollNumber: '',
   batchIds: [],
   guardianConsent: false, // consent must be a real "yes", never pre-ticked (KB "Messaging")
 };
@@ -63,18 +67,23 @@ export function validateStudentForm(values: StudentFormValues): StudentFormError
   if (values.notes.trim().length > 1000) {
     errors.notes = 'studentForm.notesInvalid';
   }
+  if (tidy(values.rollNumber).length > 20) {
+    errors.rollNumber = 'studentForm.rollInvalid';
+  }
   return errors;
 }
 
 export function toCreateStudentRequest(values: StudentFormValues): CreateStudentRequest {
   const guardianName = tidy(values.guardianName);
   const notes = values.notes.trim();
+  const rollNumber = tidy(values.rollNumber);
   return {
     name: tidy(values.name),
     guardianName: guardianName === '' ? null : guardianName,
     guardianPhone: values.guardianPhone.trim(),
     ...(values.joinedOn ? { joinedOn: values.joinedOn } : {}),
     notes: notes === '' ? null : notes,
+    ...(rollNumber === '' ? {} : { rollNumber }),
     ...(values.batchIds.length > 0 ? { batchIds: values.batchIds } : {}),
     guardianConsent: values.guardianConsent,
   };
@@ -87,6 +96,7 @@ export interface UpdateStudentRequest {
   guardianPhone?: string;
   joinedOn?: string;
   notes?: string | null;
+  rollNumber?: string | null;
 }
 
 /** The fields the edit screen works with (a student as the API returns it). */
@@ -96,6 +106,7 @@ export interface EditableStudent {
   guardianPhone: string | null;
   joinedOn: string;
   notes: string | null;
+  rollNumber: string | null;
 }
 
 /** The form's starting values for an existing student. */
@@ -107,6 +118,7 @@ export function valuesFromStudent(student: EditableStudent): StudentFormValues {
     guardianPhone: student.guardianPhone ?? '',
     joinedOn: student.joinedOn,
     notes: student.notes ?? '',
+    rollNumber: student.rollNumber ?? '',
   };
 }
 
@@ -143,5 +155,14 @@ export function toUpdateStudentRequest(
   if (next.notes !== original.notes) {
     body.notes = next.notes;
   }
+  const rollNumber = next.rollNumber ?? null;
+  if (rollNumber !== original.rollNumber) {
+    body.rollNumber = rollNumber;
+  }
   return Object.keys(body).length === 0 ? null : body;
+}
+
+/** 409 because another active student already has this roll number (API: field rollNumber). */
+export function isRollNumberTaken(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 409 && error.details.field === 'rollNumber';
 }

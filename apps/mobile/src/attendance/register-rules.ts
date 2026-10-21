@@ -6,6 +6,7 @@ import type { AttendanceCounts } from './attendance-api';
 export interface RegisterRow {
   studentId: string;
   name: string;
+  rollNumber: string | null; // the server sends the register in roll-number order
   status: AttendanceStatus;
   marked: boolean; // false = nobody marked them yet; shown as the default "present" (FR-3.1)
 }

@@ -211,7 +211,7 @@ function RegisterForm({
           const status = marks[item.studentId] ?? item.status;
           return (
             <List.Item
-              title={item.name}
+              title={item.rollNumber ? `${item.rollNumber} · ${item.name}` : item.name}
               onPress={() => mark(item.studentId, tapped(status))}
               right={() => (
                 <View style={styles.row}>

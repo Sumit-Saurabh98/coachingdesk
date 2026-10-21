@@ -217,7 +217,10 @@
     "noBatches": "No batches yet. You can add the student to batches later.",
     "consent": "The parent agreed to receive updates on WhatsApp",
     "consentHelp": "Without this, no automatic WhatsApp messages are sent to this number.",
-    "create": "Add student"
+    "create": "Add student",
+    "rollLabel": "Roll number (optional)",
+    "rollInvalid": "The roll number can be at most 20 characters",
+    "rollTaken": "Another student already has this roll number"
   },
   "student": {
     "guardian": "Parent / guardian",
@@ -244,7 +247,8 @@
     "leftTitle": "Mark {{name}} as left?",
     "leftBody": "From today: no new fees and no reminders. Their history stays and they no longer count toward your plan.",
     "leftBadge": "Left",
-    "edit": "Edit"
+    "edit": "Edit",
+    "roll": "Roll no. {{roll}}"
   },
   "studentEdit": {
     "title": "Edit student",

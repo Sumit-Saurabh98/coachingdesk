@@ -13,7 +13,7 @@ const row = (
   studentId: string,
   status: RegisterRow['status'] = 'present',
   marked = false,
-): RegisterRow => ({ studentId, name: studentId, status, marked });
+): RegisterRow => ({ studentId, name: studentId, rollNumber: null, status, marked });
 
 describe('initialMarks', () => {
   it('starts from what the server has (unmarked = present)', () => {

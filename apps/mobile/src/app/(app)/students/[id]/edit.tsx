@@ -20,6 +20,7 @@ import { formatLocalDate, fromLocalDateString, toLocalDateString } from '@/lib/d
 import { formatIndianPhone } from '@/lib/phone-format';
 import { useMonthLabels } from '@/lib/use-month-labels';
 import {
+  isRollNumberTaken,
   type EditableStudent,
   isValidIndianPhone,
   samePhone,
@@ -119,6 +120,8 @@ function EditForm({
 
   const errors = validateStudentForm(values);
   const shown = triedToSubmit ? errors : {};
+  // 409: another active student already has this roll number (shown under the field).
+  const rollTaken = save.isError && isRollNumberTaken(save.error);
   const submit = () => {
     setTriedToSubmit(true);
     if (Object.keys(errors).length === 0 && !save.isPending) {
@@ -138,6 +141,19 @@ function EditForm({
       />
       <HelperText type="error" visible={shown.name !== undefined}>
         {t('studentForm.nameInvalid')}
+      </HelperText>
+
+      <TextInput
+        mode="outlined"
+        label={t('studentForm.rollLabel')}
+        value={values.rollNumber}
+        onChangeText={(text) => set('rollNumber', text)}
+        autoCapitalize="characters"
+        maxLength={20}
+        error={shown.rollNumber !== undefined || rollTaken}
+      />
+      <HelperText type="error" visible={shown.rollNumber !== undefined || rollTaken}>
+        {rollTaken ? t('studentForm.rollTaken') : t('studentForm.rollInvalid')}
       </HelperText>
 
       <TextInput
@@ -201,7 +217,7 @@ function EditForm({
         {t('studentForm.notesInvalid')}
       </HelperText>
 
-      {save.isError && (
+      {save.isError && !rollTaken && (
         <Text style={{ color: theme.colors.error }}>{errorMessage(t, save.error)}</Text>
       )}
 

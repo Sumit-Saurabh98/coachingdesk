@@ -157,6 +157,11 @@ export default function StudentScreen() {
                 : t('student.leftBadge')}
             </Chip>
           )}
+          {student.rollNumber !== null && (
+            <Chip compact icon="pound">
+              {t('student.roll', { roll: student.rollNumber })}
+            </Chip>
+          )}
           <Chip compact icon="calendar-check-outline">
             {t('student.joinedOn', { date: formatLocalDate(student.joinedOn, months) })}
           </Chip>

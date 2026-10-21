@@ -14,6 +14,7 @@ import { useCurrentInstitute } from '@/institutes/use-current-institute';
 import { formatLocalDate, fromLocalDateString, toLocalDateString } from '@/lib/date-format';
 import { useMonthLabels } from '@/lib/use-month-labels';
 import {
+  isRollNumberTaken,
   NEW_STUDENT,
   type StudentFormValues,
   toCreateStudentRequest,
@@ -61,6 +62,8 @@ export default function NewStudentScreen() {
 
   const errors = validateStudentForm(values);
   const shown = triedToSubmit ? errors : {};
+  // 409: another active student already has this roll number (shown under the field).
+  const rollTaken = create.isError && isRollNumberTaken(create.error);
   const submit = () => {
     setTriedToSubmit(true);
     if (Object.keys(errors).length === 0 && !create.isPending) {
@@ -95,6 +98,19 @@ export default function NewStudentScreen() {
       />
       <HelperText type="error" visible={shown.name !== undefined}>
         {t('studentForm.nameInvalid')}
+      </HelperText>
+
+      <TextInput
+        mode="outlined"
+        label={t('studentForm.rollLabel')}
+        value={values.rollNumber}
+        onChangeText={(text) => set('rollNumber', text)}
+        autoCapitalize="characters"
+        maxLength={20}
+        error={shown.rollNumber !== undefined || rollTaken}
+      />
+      <HelperText type="error" visible={shown.rollNumber !== undefined || rollTaken}>
+        {rollTaken ? t('studentForm.rollTaken') : t('studentForm.rollInvalid')}
       </HelperText>
 
       <TextInput
@@ -177,7 +193,7 @@ export default function NewStudentScreen() {
         {t('studentForm.consentHelp')}
       </Text>
 
-      {create.isError && (
+      {create.isError && !rollTaken && (
         <Text style={[styles.error, { color: theme.colors.error }]}>
           {errorMessage(t, create.error)}
         </Text>
