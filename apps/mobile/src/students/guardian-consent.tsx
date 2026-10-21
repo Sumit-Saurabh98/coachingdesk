@@ -10,7 +10,15 @@ import { useAppTheme } from '@/theme/theme';
 import { consentView } from './consent-rules';
 import { getConsent, recordConsent, recordOptOut, studentKeys } from './students-api';
 
-export function GuardianConsent({ instituteId, phone }: { instituteId: string; phone: string }) {
+export function GuardianConsent({
+  instituteId,
+  phone,
+  title,
+}: {
+  instituteId: string;
+  phone: string;
+  title?: string; // default: "WhatsApp updates" (the parent's number)
+}) {
   const { t } = useTranslation();
   const theme = useAppTheme();
   const queryClient = useQueryClient();
@@ -37,7 +45,7 @@ export function GuardianConsent({ instituteId, phone }: { instituteId: string; p
   return (
     <View style={styles.box}>
       <View style={styles.row}>
-        <Text variant="bodyLarge">{t('consent.title')}</Text>
+        <Text variant="bodyLarge">{title ?? t('consent.title')}</Text>
         <Switch
           value={view.on}
           disabled={change.isPending}

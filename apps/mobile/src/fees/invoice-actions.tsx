@@ -12,7 +12,9 @@ import { useScheduleLabels } from '@/batches/use-schedule-labels';
 import { nowHHMM } from '@/attendance/today-rules';
 import { formatLocalDate } from '@/lib/date-format';
 import { useMonthLabels } from '@/lib/use-month-labels';
+import { contactsOf } from '@/students/profile-rules';
 import { getStudent, studentKeys } from '@/students/students-api';
+import { useContactChooser } from '@/students/use-contact-chooser';
 import { applyCredit, feeKeys, type Invoice, sendReminder } from './fees-api';
 import { reminderTiming, remindRefusal, whatsAppMessageLink } from './reminder-rules';
 import { rupees } from './rupees';
@@ -42,6 +44,10 @@ export function InvoiceActions({
   });
   const credit = student.data?.guardianCreditPaise ?? 0;
   const phone = student.data?.student.guardianPhone ?? null;
+  // "Parent or Student?" when the student has their own number.
+  const chooser = useContactChooser(
+    contactsOf(student.data?.student ?? { guardianPhone: null, studentPhone: null }),
+  );
 
   const remind = useMutation({
     mutationFn: (force: boolean) => sendReminder(instituteId, invoice.id, force),
@@ -87,7 +93,7 @@ export function InvoiceActions({
       date: formatLocalDate(invoice.dueDate, months),
       institute: instituteName,
     });
-    void Linking.openURL(whatsAppMessageLink(phone, text));
+    chooser.choose((to) => void Linking.openURL(whatsAppMessageLink(to, text)));
   };
 
   return (
@@ -128,6 +134,7 @@ export function InvoiceActions({
         {t('invoiceActions.help')}
       </Text>
 
+      {chooser.dialog}
       <Portal>
         <Dialog visible={askForce} onDismiss={() => setAskForce(false)}>
           <Dialog.Title>{t('invoiceActions.forceTitle')}</Dialog.Title>

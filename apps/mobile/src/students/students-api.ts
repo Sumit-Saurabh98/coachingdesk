@@ -11,6 +11,7 @@ export interface Student {
   name: string;
   guardianName: string | null;
   guardianPhone: string | null; // E.164; null only for an erased student
+  studentPhone: string | null; // the student's own mobile (optional), E.164
   status: StudentStatus;
   joinedOn: string; // "YYYY-MM-DD"
   leftOn: string | null;

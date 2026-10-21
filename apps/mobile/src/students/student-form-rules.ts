@@ -7,16 +7,28 @@ export interface StudentFormValues {
   name: string;
   guardianName: string;
   guardianPhone: string; // as typed: any common Indian format
+  studentPhone: string; // optional, the student's own mobile: '' = none
   joinedOn: string | null; // "YYYY-MM-DD"; null = today at the institute (the API's default)
   notes: string;
   rollNumber: string; // optional: '' = none
   batchIds: string[];
   guardianConsent: boolean;
+  studentConsent: boolean; // for the student's number: asked separately, never pre-ticked
 }
 
-export type StudentFormField = 'name' | 'guardianName' | 'guardianPhone' | 'notes' | 'rollNumber';
+export type StudentFormField =
+  'name' | 'guardianName' | 'guardianPhone' | 'studentPhone' | 'notes' | 'rollNumber';
+/** The i18n keys of the form's messages. */
+export type StudentFormError =
+  | 'studentForm.nameInvalid'
+  | 'studentForm.guardianNameInvalid'
+  | 'studentForm.phoneInvalid'
+  | 'studentForm.studentPhoneSame'
+  | 'studentForm.notesInvalid'
+  | 'studentForm.rollInvalid';
+
 /** Problems per field: the value is the i18n key of the message. */
-export type StudentFormErrors = Partial<Record<StudentFormField, string>>;
+export type StudentFormErrors = Partial<Record<StudentFormField, StudentFormError>>;
 
 /**
  * What POST /students receives. Its own type because the shared Zod schema's TypeScript type
@@ -27,22 +39,26 @@ export interface CreateStudentRequest {
   name: string;
   guardianName: string | null;
   guardianPhone: string;
+  studentPhone?: string;
   joinedOn?: string;
   notes: string | null;
   rollNumber?: string;
   batchIds?: string[];
   guardianConsent: boolean;
+  studentConsent?: boolean;
 }
 
 export const NEW_STUDENT: StudentFormValues = {
   name: '',
   guardianName: '',
   guardianPhone: '',
+  studentPhone: '',
   joinedOn: null,
   notes: '',
   rollNumber: '',
   batchIds: [],
   guardianConsent: false, // consent must be a real "yes", never pre-ticked (KB "Messaging")
+  studentConsent: false,
 };
 
 const tidy = (text: string) => text.trim().replace(/\s+/g, ' ');
@@ -64,6 +80,14 @@ export function validateStudentForm(values: StudentFormValues): StudentFormError
   if (!isValidIndianPhone(values.guardianPhone)) {
     errors.guardianPhone = 'studentForm.phoneInvalid';
   }
+  const studentPhone = values.studentPhone.trim();
+  if (studentPhone !== '') {
+    if (!isValidIndianPhone(studentPhone)) {
+      errors.studentPhone = 'studentForm.phoneInvalid';
+    } else if (samePhone(studentPhone, values.guardianPhone)) {
+      errors.studentPhone = 'studentForm.studentPhoneSame';
+    }
+  }
   if (values.notes.trim().length > 1000) {
     errors.notes = 'studentForm.notesInvalid';
   }
@@ -77,10 +101,14 @@ export function toCreateStudentRequest(values: StudentFormValues): CreateStudent
   const guardianName = tidy(values.guardianName);
   const notes = values.notes.trim();
   const rollNumber = tidy(values.rollNumber);
+  const studentPhone = values.studentPhone.trim();
   return {
     name: tidy(values.name),
     guardianName: guardianName === '' ? null : guardianName,
     guardianPhone: values.guardianPhone.trim(),
+    ...(studentPhone === ''
+      ? {}
+      : { studentPhone, ...(values.studentConsent ? { studentConsent: true } : {}) }),
     ...(values.joinedOn ? { joinedOn: values.joinedOn } : {}),
     notes: notes === '' ? null : notes,
     ...(rollNumber === '' ? {} : { rollNumber }),
@@ -94,6 +122,7 @@ export interface UpdateStudentRequest {
   name?: string;
   guardianName?: string | null;
   guardianPhone?: string;
+  studentPhone?: string | null;
   joinedOn?: string;
   notes?: string | null;
   rollNumber?: string | null;
@@ -104,6 +133,7 @@ export interface EditableStudent {
   name: string;
   guardianName: string | null;
   guardianPhone: string | null;
+  studentPhone: string | null;
   joinedOn: string;
   notes: string | null;
   rollNumber: string | null;
@@ -116,6 +146,7 @@ export function valuesFromStudent(student: EditableStudent): StudentFormValues {
     name: student.name,
     guardianName: student.guardianName ?? '',
     guardianPhone: student.guardianPhone ?? '',
+    studentPhone: student.studentPhone ?? '',
     joinedOn: student.joinedOn,
     notes: student.notes ?? '',
     rollNumber: student.rollNumber ?? '',
@@ -148,6 +179,15 @@ export function toUpdateStudentRequest(
   }
   if (!samePhone(next.guardianPhone, original.guardianPhone)) {
     body.guardianPhone = next.guardianPhone;
+  }
+  // The student's number: removed (''), or a different number than before.
+  const studentPhone = next.studentPhone ?? null;
+  if (
+    studentPhone === null
+      ? original.studentPhone !== null
+      : !samePhone(studentPhone, original.studentPhone)
+  ) {
+    body.studentPhone = studentPhone;
   }
   if (next.joinedOn !== undefined && next.joinedOn !== original.joinedOn) {
     body.joinedOn = next.joinedOn;

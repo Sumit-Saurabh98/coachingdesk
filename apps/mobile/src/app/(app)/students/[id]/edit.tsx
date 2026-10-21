@@ -90,6 +90,7 @@ function EditForm({
     ...valuesFromStudent(original),
     // Shown the way people write it; samePhone() still sees it as the same number.
     guardianPhone: formatIndianPhone(original.guardianPhone),
+    studentPhone: original.studentPhone ? formatIndianPhone(original.studentPhone) : '',
   }));
   const [triedToSubmit, setTriedToSubmit] = useState(false);
   const [pickingDate, setPickingDate] = useState(false);
@@ -100,6 +101,10 @@ function EditForm({
   const newNumber =
     isValidIndianPhone(values.guardianPhone) &&
     !samePhone(values.guardianPhone, original.guardianPhone);
+  // The same for the student's own number (it has its own consent).
+  const newStudentNumber =
+    isValidIndianPhone(values.studentPhone) &&
+    !samePhone(values.studentPhone, original.studentPhone);
 
   const save = useMutation({
     mutationFn: async () => {
@@ -110,6 +115,9 @@ function EditForm({
       // After the number is saved: record the parent's "yes" for the NEW number.
       if (newNumber && values.guardianConsent) {
         await recordConsent(instituteId, values.guardianPhone.trim());
+      }
+      if (newStudentNumber && values.studentConsent) {
+        await recordConsent(instituteId, values.studentPhone.trim());
       }
     },
     onSuccess: async () => {
@@ -195,6 +203,28 @@ function EditForm({
             {t('studentEdit.newNumberHelp')}
           </Text>
         </>
+      )}
+
+      <TextInput
+        mode="outlined"
+        label={t('studentForm.studentPhoneLabel')}
+        value={values.studentPhone}
+        onChangeText={(text) => set('studentPhone', text)}
+        keyboardType="phone-pad"
+        error={shown.studentPhone !== undefined}
+      />
+      <HelperText type="error" visible={shown.studentPhone !== undefined}>
+        {shown.studentPhone ? t(shown.studentPhone) : ''}
+      </HelperText>
+      {newStudentNumber && (
+        <Checkbox.Item
+          label={t('studentForm.studentConsent')}
+          status={values.studentConsent ? 'checked' : 'unchecked'}
+          onPress={() => set('studentConsent', !values.studentConsent)}
+          position="leading"
+          labelVariant="bodyMedium"
+          style={styles.checkbox}
+        />
       )}
 
       <View style={styles.row}>

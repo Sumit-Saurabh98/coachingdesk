@@ -220,7 +220,11 @@
     "create": "Add student",
     "rollLabel": "Roll number (optional)",
     "rollInvalid": "The roll number can be at most 20 characters",
-    "rollTaken": "Another student already has this roll number"
+    "rollTaken": "Another student already has this roll number",
+    "studentPhoneLabel": "Student's own mobile (optional)",
+    "studentPhoneHelp": "If the student has a phone: calls, WhatsApp and (with consent) the same updates as the parent.",
+    "studentPhoneSame": "This is the parent's number. Leave it empty if the student has no phone of their own.",
+    "studentConsent": "The parent agreed the student's number gets updates on WhatsApp"
   },
   "student": {
     "guardian": "Parent / guardian",
@@ -401,7 +405,7 @@
   },
   "invoiceActions": {
     "remind": "Send reminder",
-    "messageParent": "WhatsApp parent",
+    "messageParent": "WhatsApp",
     "help": "\"Send reminder\" sends our WhatsApp fee reminder (covering all of this family's dues). \"WhatsApp parent\" opens a chat with the message typed for you.",
     "reminded": "Reminder queued: it goes out in a moment.",
     "remindLater": "Reminder queued for {{time}} (no messages at night).",
@@ -527,6 +531,12 @@
     "stoppedEverywhere": "The parent replied STOP on WhatsApp: no automatic messages until they send START.",
     "confirmTitle": "Did the parent agree?",
     "confirmBody": "Turn this on only if the parent said yes to getting fee reminders, absence alerts and notices on WhatsApp.",
-    "confirmYes": "Yes, they agreed"
+    "confirmYes": "Yes, they agreed",
+    "studentTitle": "WhatsApp updates to the student"
+  },
+  "contact": {
+    "which": "Which number?",
+    "parent": "Parent",
+    "student": "Student"
   }
 }

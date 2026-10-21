@@ -42,3 +42,20 @@ export function telLink(e164: string): string {
 export function whatsAppLink(e164: string): string {
   return `https://wa.me/${e164.replace(/^\+/, '')}`;
 }
+
+/** A number to call or message: the parent's, or the student's own. */
+export interface Contact {
+  who: 'parent' | 'student';
+  phone: string; // E.164
+}
+
+/** Who can be reached, parent first. One entry = no need to ask "Parent or Student?". */
+export function contactsOf(student: {
+  guardianPhone: string | null;
+  studentPhone: string | null;
+}): Contact[] {
+  return [
+    ...(student.guardianPhone ? [{ who: 'parent' as const, phone: student.guardianPhone }] : []),
+    ...(student.studentPhone ? [{ who: 'student' as const, phone: student.studentPhone }] : []),
+  ];
+}

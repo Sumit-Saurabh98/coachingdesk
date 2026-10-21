@@ -79,6 +79,7 @@ describe('editing a student', () => {
     name: 'Aarav Sharma',
     guardianName: 'Neha Sharma',
     guardianPhone: '+919876543210',
+    studentPhone: null,
     joinedOn: '2026-10-01',
     notes: null,
     rollNumber: '12',
@@ -134,6 +135,7 @@ describe('roll number', () => {
       name: 'Aarav',
       guardianName: null,
       guardianPhone: '+919876543210',
+      studentPhone: null,
       joinedOn: '2026-10-01',
       notes: null,
       rollNumber: '12',
@@ -159,5 +161,47 @@ describe('roll number', () => {
     expect(isRollNumberTaken(new ApiError({ kind: 'http', status: 409, message: 'x' }))).toBe(
       false,
     );
+  });
+});
+
+describe("the student's own number", () => {
+  it('optional; must be valid and different from the parent', () => {
+    expect(validateStudentForm(filled({ studentPhone: '' })).studentPhone).toBeUndefined();
+    expect(validateStudentForm(filled({ studentPhone: '12345' })).studentPhone).toBe(
+      'studentForm.phoneInvalid',
+    );
+    expect(validateStudentForm(filled({ studentPhone: '098765 43210' })).studentPhone).toBe(
+      'studentForm.studentPhoneSame',
+    );
+  });
+
+  it('sent with its own consent only when given', () => {
+    expect(toCreateStudentRequest(filled())).not.toHaveProperty('studentPhone');
+    expect(
+      toCreateStudentRequest(filled({ studentPhone: '91234 56789', studentConsent: true })),
+    ).toMatchObject({ studentPhone: '91234 56789', studentConsent: true });
+    expect(toCreateStudentRequest(filled({ studentPhone: '9123456789' }))).not.toHaveProperty(
+      'studentConsent',
+    );
+  });
+
+  it('editing: same number written differently is no change; cleared -> null', () => {
+    const original = {
+      name: 'Aarav',
+      guardianName: null,
+      guardianPhone: '+919876543210',
+      studentPhone: '+919123456789',
+      joinedOn: '2026-10-01',
+      notes: null,
+      rollNumber: null,
+    };
+    const values = valuesFromStudent(original);
+    expect(toUpdateStudentRequest(original, { ...values, studentPhone: '91234 56789' })).toBeNull();
+    expect(toUpdateStudentRequest(original, { ...values, studentPhone: '' })).toEqual({
+      studentPhone: null,
+    });
+    expect(toUpdateStudentRequest(original, { ...values, studentPhone: '9000000001' })).toEqual({
+      studentPhone: '9000000001',
+    });
   });
 });

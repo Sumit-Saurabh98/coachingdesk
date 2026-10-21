@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  contactsOf,
   type Enrollment,
   isOpenOn,
   joinableBatches,
@@ -54,5 +55,18 @@ describe('contact links', () => {
   it('tel: keeps the +; wa.me drops it', () => {
     expect(telLink('+919876543210')).toBe('tel:+919876543210');
     expect(whatsAppLink('+919876543210')).toBe('https://wa.me/919876543210');
+  });
+});
+
+describe('contactsOf', () => {
+  it('parent first; the student only when they have a number', () => {
+    expect(contactsOf({ guardianPhone: '+919876543210', studentPhone: null })).toEqual([
+      { who: 'parent', phone: '+919876543210' },
+    ]);
+    expect(contactsOf({ guardianPhone: '+919876543210', studentPhone: '+919123456789' })).toEqual([
+      { who: 'parent', phone: '+919876543210' },
+      { who: 'student', phone: '+919123456789' },
+    ]);
+    expect(contactsOf({ guardianPhone: null, studentPhone: null })).toEqual([]); // erased
   });
 });

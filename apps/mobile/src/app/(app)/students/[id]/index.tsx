@@ -22,6 +22,7 @@ import { StudentAttendance } from '@/attendance/student-attendance';
 import { batchKeys, listBatches } from '@/batches/batches-api';
 import { StudentInvoices } from '@/fees/student-invoices';
 import { GuardianConsent } from '@/students/guardian-consent';
+import { useContactChooser } from '@/students/use-contact-chooser';
 import { useCurrentInstitute } from '@/institutes/use-current-institute';
 import { formatLocalDate, toLocalDateString } from '@/lib/date-format';
 import { formatIndianPhone } from '@/lib/phone-format';
@@ -30,6 +31,7 @@ import {
   type Enrollment,
   isOpenOn,
   joinableBatches,
+  contactsOf,
   telLink,
   whatsAppLink,
 } from '@/students/profile-rules';
@@ -98,6 +100,11 @@ export default function StudentScreen() {
     markLeft.reset();
     setDialog(next);
   };
+
+  // "Parent or Student?" for Call / WhatsApp, when the student has their own number.
+  const chooser = useContactChooser(
+    contactsOf(detail.data?.student ?? { guardianPhone: null, studentPhone: null }),
+  );
 
   // Saved data (also from the phone, when offline) wins over a failed refresh.
   if (!detail.data) {
@@ -184,16 +191,39 @@ export default function StudentScreen() {
               left={(props) => <List.Icon {...props} icon="account-child-outline" />}
             />
             {canManage && <GuardianConsent instituteId={instituteId} phone={phone} />}
+            {student.studentPhone !== null && (
+              <>
+                <List.Item
+                  title={t('contact.student')}
+                  description={formatIndianPhone(student.studentPhone)}
+                  left={(props) => <List.Icon {...props} icon="school-outline" />}
+                />
+                {canManage && (
+                  <GuardianConsent
+                    instituteId={instituteId}
+                    phone={student.studentPhone}
+                    title={t('consent.studentTitle')}
+                  />
+                )}
+              </>
+            )}
             <Card.Actions>
-              <Button icon="phone" onPress={() => void Linking.openURL(telLink(phone))}>
+              <Button
+                icon="phone"
+                onPress={() => chooser.choose((to) => void Linking.openURL(telLink(to)))}
+              >
                 {t('student.call')}
               </Button>
-              <Button icon="whatsapp" onPress={() => void Linking.openURL(whatsAppLink(phone))}>
+              <Button
+                icon="whatsapp"
+                onPress={() => chooser.choose((to) => void Linking.openURL(whatsAppLink(to)))}
+              >
                 {t('student.whatsapp')}
               </Button>
             </Card.Actions>
           </Card>
         )}
+        {chooser.dialog}
 
         {/* Family credit: only sent to owner/staff, and only worth showing when there is some. */}
         {guardianCreditPaise !== undefined && guardianCreditPaise > 0 && (

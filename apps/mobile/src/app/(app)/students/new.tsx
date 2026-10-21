@@ -14,6 +14,7 @@ import { useCurrentInstitute } from '@/institutes/use-current-institute';
 import { formatLocalDate, fromLocalDateString, toLocalDateString } from '@/lib/date-format';
 import { useMonthLabels } from '@/lib/use-month-labels';
 import {
+  isValidIndianPhone,
   isRollNumberTaken,
   NEW_STUDENT,
   type StudentFormValues,
@@ -141,6 +142,20 @@ export default function NewStudentScreen() {
           : t('studentForm.phoneHelp')}
       </HelperText>
 
+      <TextInput
+        mode="outlined"
+        label={t('studentForm.studentPhoneLabel')}
+        value={values.studentPhone}
+        onChangeText={(text) => set('studentPhone', text)}
+        keyboardType="phone-pad"
+        error={shown.studentPhone !== undefined}
+      />
+      <HelperText type={shown.studentPhone !== undefined ? 'error' : 'info'} visible>
+        {shown.studentPhone !== undefined
+          ? t(shown.studentPhone)
+          : t('studentForm.studentPhoneHelp')}
+      </HelperText>
+
       <View style={styles.row}>
         <Text variant="labelLarge">{t('studentForm.joinedOn')}</Text>
         <Button mode="outlined" icon="calendar" onPress={() => setPickingDate(true)}>
@@ -192,6 +207,17 @@ export default function NewStudentScreen() {
       <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
         {t('studentForm.consentHelp')}
       </Text>
+      {/* The student's number has its OWN consent: asked only once there is a number. */}
+      {isValidIndianPhone(values.studentPhone) && (
+        <Checkbox.Item
+          label={t('studentForm.studentConsent')}
+          status={values.studentConsent ? 'checked' : 'unchecked'}
+          onPress={() => set('studentConsent', !values.studentConsent)}
+          position="leading"
+          labelVariant="bodyMedium"
+          style={styles.checkbox}
+        />
+      )}
 
       {create.isError && !rollTaken && (
         <Text style={[styles.error, { color: theme.colors.error }]}>
