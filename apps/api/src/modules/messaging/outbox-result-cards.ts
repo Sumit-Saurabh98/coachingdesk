@@ -37,7 +37,7 @@ export class OutboxResultCards implements ResultCardQueue {
       { card, to: card.guardianPhone, copy: 'guardian' as const },
       ...(card.studentPhone ? [{ card, to: card.studentPhone, copy: 'student' as const }] : []),
     ]);
-    const messages: NewOutboxMessage[] = copies.map(({ card, to, copy }) => ({
+    const message = ({ card, to, copy }: (typeof copies)[number]): NewOutboxMessage => ({
       id: this.deps.ids.next(),
       instituteId,
       to,
@@ -51,8 +51,14 @@ export class OutboxResultCards implements ResultCardQueue {
       expiresAt: new Date(now.getTime() + EXPIRES_AFTER_MS),
       dedupeKey: resultDedupeKey(card.testId, card.studentId, copy),
       related: { type: 'test', id: card.testId },
-    }));
-    return this.deps.outbox.enqueueAll(messages);
+    });
+    // The answer counts CARDS (one per student), not messages: the parents' messages decide
+    // what is new; the students' copies go along without changing the count.
+    const newCards = await this.deps.outbox.enqueueAll(
+      copies.filter((c) => c.copy === 'guardian').map(message),
+    );
+    await this.deps.outbox.enqueueAll(copies.filter((c) => c.copy === 'student').map(message));
+    return newCards;
   }
 }
 

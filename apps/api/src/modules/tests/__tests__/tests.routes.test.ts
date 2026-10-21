@@ -390,6 +390,19 @@ describe('tests: send results', () => {
     );
   });
 
+  it('a student with their own number: a copy goes there, but counts as ONE card (KB #50)', async () => {
+    const { send, testApp, instituteId, token, url, aarav } = await scored();
+    await http.call(token, 'PATCH', `${url}/students/${aarav.id}`, { studentPhone: '9000000011' });
+
+    expect((await send()).json()).toMatchObject({ queued: 1, alreadySent: 0 });
+    const cards = await testApp.outboxRepository.listForInstitute(instituteId, {
+      category: 'result',
+      limit: 10,
+    });
+    expect(cards.map((c) => c.to.toE164()).sort()).toEqual(['+919000000011', '+919812345678']);
+    expect((await send()).json()).toMatchObject({ queued: 0, alreadySent: 1 });
+  });
+
   it('tapping again repeats nothing; a mark entered later is sent on the next tap', async () => {
     const { send, token, testUrl, bhavya } = await scored();
     await send();
