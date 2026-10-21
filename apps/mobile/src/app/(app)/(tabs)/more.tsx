@@ -33,6 +33,15 @@ export default function MoreTab() {
             onPress={() => router.push('/settings/team')}
           />
         )}
+        {current?.role === 'owner' && (
+          <List.Item
+            title={t('more.plan')}
+            description={t('more.planDescription')}
+            left={(props) => <List.Icon {...props} icon="card-account-details-star-outline" />}
+            right={(props) => <List.Icon {...props} icon="chevron-right" />}
+            onPress={() => router.push('/settings/plan')}
+          />
+        )}
         <List.Item
           title={t('more.batches')}
           description={t('more.batchesDescription')}

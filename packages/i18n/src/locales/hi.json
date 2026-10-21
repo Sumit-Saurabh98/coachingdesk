@@ -97,7 +97,9 @@
     "instituteSettings": "संस्थान सेटिंग",
     "instituteSettingsDescription": "फ़ीस, रिमाइंडर और मैसेज",
     "team": "टीम",
-    "teamDescription": "ऐप इस्तेमाल करने वाले शिक्षक और स्टाफ़"
+    "teamDescription": "ऐप इस्तेमाल करने वाले शिक्षक और स्टाफ़",
+    "plan": "प्लान और उपयोग",
+    "planDescription": "आपका प्लान, सीमाएँ और उपयोग"
   },
   "comingSoon": {
     "title": "जल्द आ रहा है",
@@ -643,5 +645,37 @@
       "teacher": "शिक्षक",
       "staff": "स्टाफ़"
     }
+  },
+  "plan": {
+    "current": "आपका प्लान",
+    "name": {
+      "free": "फ़्री",
+      "starter": "स्टार्टर",
+      "pro": "प्रो",
+      "academy": "अकैडमी"
+    },
+    "status": {
+      "trialing": "{{date}} तक फ़्री ट्रायल",
+      "active": "{{date}} को रिन्यू होगा",
+      "past_due": "भुगतान बाकी: {{date}} तक चलता रहेगा",
+      "cancelled": "रद्द: {{date}} को खत्म",
+      "free": "फ़्री प्लान, कोई अंतिम तारीख़ नहीं"
+    },
+    "students": "सक्रिय छात्र",
+    "team": "टीम सदस्य",
+    "messages": "इस महीने WhatsApp मैसेज",
+    "usedOf": "{{limit}} में से {{used}}",
+    "usedUnlimited": "{{used}} (कोई सीमा नहीं)",
+    "unlimited": "कोई सीमा नहीं",
+    "choose": "प्लान",
+    "yours": "आपका प्लान",
+    "freePrice": "₹0",
+    "price": "{{monthly}}/महीना या {{yearly}}/साल",
+    "limits": "{{students}} छात्र · {{team}} टीम सदस्य · महीने में {{messages}} मैसेज",
+    "featureMessages": "अपने आप WhatsApp रिमाइंडर, सूचना और नोटिस",
+    "featureManual": "रिमाइंडर खुद WhatsApp पर भेजें",
+    "featureResults": "टेस्ट और रिज़ल्ट कार्ड",
+    "upgrade": "अपग्रेड करें",
+    "upgradeSoon": "ऐप में प्लान का भुगतान जल्द आ रहा है। तब तक प्लान बदलने के लिए हमसे संपर्क करें।"
   }
 }

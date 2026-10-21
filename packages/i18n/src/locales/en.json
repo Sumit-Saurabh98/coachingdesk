@@ -97,7 +97,9 @@
     "instituteSettings": "Institute settings",
     "instituteSettingsDescription": "Fees, reminders and messages",
     "team": "Team",
-    "teamDescription": "Teachers and staff who use the app"
+    "teamDescription": "Teachers and staff who use the app",
+    "plan": "Plan and usage",
+    "planDescription": "Your plan, limits and what's used"
   },
   "comingSoon": {
     "title": "Coming soon",
@@ -643,5 +645,37 @@
       "teacher": "Teacher",
       "staff": "Staff"
     }
+  },
+  "plan": {
+    "current": "Your plan",
+    "name": {
+      "free": "Free",
+      "starter": "Starter",
+      "pro": "Pro",
+      "academy": "Academy"
+    },
+    "status": {
+      "trialing": "Free trial until {{date}}",
+      "active": "Renews on {{date}}",
+      "past_due": "Payment due: keeps working until {{date}}",
+      "cancelled": "Cancelled: ends on {{date}}",
+      "free": "Free plan, no end date"
+    },
+    "students": "Active students",
+    "team": "Team members",
+    "messages": "WhatsApp messages this month",
+    "usedOf": "{{used}} of {{limit}}",
+    "usedUnlimited": "{{used}} (no limit)",
+    "unlimited": "no limit",
+    "choose": "Plans",
+    "yours": "Your plan",
+    "freePrice": "₹0",
+    "price": "{{monthly}}/month or {{yearly}}/year",
+    "limits": "{{students}} students · {{team}} team members · {{messages}} messages a month",
+    "featureMessages": "Automatic WhatsApp reminders, alerts and notices",
+    "featureManual": "Share reminders yourself on WhatsApp",
+    "featureResults": "Tests and result cards",
+    "upgrade": "Upgrade",
+    "upgradeSoon": "Paying for a plan in the app is coming soon. Until then, contact us to change your plan."
   }
 }

@@ -1,6 +1,7 @@
 import type { CreateInstituteBody } from '@coachingdesk/shared';
 import { api } from '@/api';
 import type { InstituteDetail, InstituteUpdate } from './settings-rules';
+import type { PlanInfo, Subscription } from './plan-rules';
 import type { Member } from './team-rules';
 
 export interface CreatedInstitute {
@@ -85,4 +86,20 @@ export async function addMember(
 /** DELETE .../members/:userId (owner): they lose access at once. */
 export async function removeMember(instituteId: string, userId: string): Promise<void> {
   await api.delete(`/v1/institutes/${instituteId}/members/${userId}`);
+}
+
+export const planKeys = {
+  subscription: (instituteId: string) => ['institutes', instituteId, 'subscription'] as const,
+  plans: ['plans'] as const,
+};
+
+/** GET .../subscription (owner): the plan that applies now, its limits, and usage. */
+export function getSubscription(instituteId: string, signal?: AbortSignal): Promise<Subscription> {
+  return api.get(`/v1/institutes/${instituteId}/subscription`, { signal });
+}
+
+/** GET /v1/plans (public): every plan with its limits and prices. */
+export async function getPlans(signal?: AbortSignal): Promise<PlanInfo[]> {
+  const result = await api.get<{ plans: PlanInfo[] }>('/v1/plans', { signal });
+  return result.plans;
 }
