@@ -21,6 +21,7 @@ import { errorMessage } from '@/api/error-message';
 import { StudentAttendance } from '@/attendance/student-attendance';
 import { batchKeys, listBatches } from '@/batches/batches-api';
 import { StudentInvoices } from '@/fees/student-invoices';
+import { GuardianConsent } from '@/students/guardian-consent';
 import { useCurrentInstitute } from '@/institutes/use-current-institute';
 import { formatLocalDate, toLocalDateString } from '@/lib/date-format';
 import { formatIndianPhone } from '@/lib/phone-format';
@@ -177,6 +178,7 @@ export default function StudentScreen() {
               subtitle={formatIndianPhone(phone)}
               left={(props) => <List.Icon {...props} icon="account-child-outline" />}
             />
+            {canManage && <GuardianConsent instituteId={instituteId} phone={phone} />}
             <Card.Actions>
               <Button icon="phone" onPress={() => void Linking.openURL(telLink(phone))}>
                 {t('student.call')}

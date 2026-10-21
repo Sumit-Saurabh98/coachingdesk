@@ -514,5 +514,15 @@
       "institute_paused": "Not sent: messaging is paused for this institute.",
       "platform_limit": "Not sent: WhatsApp's sending limit was reached. It wasn't counted."
     }
+  },
+  "consent": {
+    "title": "WhatsApp updates",
+    "on": "The parent agreed: fee reminders, absence alerts and notices go to this number.",
+    "off": "Turned off: no automatic WhatsApp messages to this number.",
+    "unknown": "Not asked yet: no automatic WhatsApp messages until the parent agrees.",
+    "stoppedEverywhere": "The parent replied STOP on WhatsApp: no automatic messages until they send START.",
+    "confirmTitle": "Did the parent agree?",
+    "confirmBody": "Turn this on only if the parent said yes to getting fee reminders, absence alerts and notices on WhatsApp.",
+    "confirmYes": "Yes, they agreed"
   }
 }

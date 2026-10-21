@@ -2,6 +2,7 @@ import type { StudentStatus } from '@coachingdesk/shared';
 import { api } from '@/api';
 import type { CreateStudentRequest, UpdateStudentRequest } from './student-form-rules';
 import type { BulkFailure } from './bulk-paste-rules';
+import type { ConsentStatus } from './consent-rules';
 import type { Enrollment } from './profile-rules';
 
 /** A student as the API returns them (Student.toPublicJSON + readOnly on lists). */
@@ -27,6 +28,8 @@ export const studentKeys = {
     [...studentKeys.all(instituteId), 'list', filter] as const,
   detail: (instituteId: string, studentId: string) =>
     [...studentKeys.all(instituteId), 'detail', studentId] as const,
+  consent: (instituteId: string, phone: string) =>
+    [...studentKeys.all(instituteId), 'consent', phone] as const,
 };
 
 export interface StudentPage {
@@ -153,6 +156,24 @@ export async function updateStudent(
  */
 export async function recordConsent(instituteId: string, phone: string): Promise<void> {
   await api.post(`/v1/institutes/${instituteId}/guardians/${encodeURIComponent(phone)}/opt-in`, {
+    source: 'verbal',
+  });
+}
+
+/** GET .../guardians/:phone/consent (owner, staff): this institute's record, and STOP. */
+export function getConsent(
+  instituteId: string,
+  phone: string,
+  signal?: AbortSignal,
+): Promise<{ status: ConsentStatus; stoppedEverywhere: boolean }> {
+  return api.get(`/v1/institutes/${instituteId}/guardians/${encodeURIComponent(phone)}/consent`, {
+    signal,
+  });
+}
+
+/** POST .../guardians/:phone/opt-out (owner, staff): no automatic messages to this parent. */
+export async function recordOptOut(instituteId: string, phone: string): Promise<void> {
+  await api.post(`/v1/institutes/${instituteId}/guardians/${encodeURIComponent(phone)}/opt-out`, {
     source: 'verbal',
   });
 }
