@@ -59,7 +59,15 @@ export default function TodayScreen() {
   const renderClass = ({ item }: { item: DayBatch }) => {
     const timing = now === null ? null : classTiming(item.start, item.end, now);
     return (
-      <Card mode="outlined" style={styles.card}>
+      <Card
+        mode="outlined"
+        onPress={() =>
+          router.push({
+            pathname: '/attendance/[batchId]',
+            params: { batchId: item.batchId, date, name: item.name },
+          })
+        }
+      >
         <Card.Title
           title={item.name}
           subtitle={`${formatTime(item.start, labels)} – ${formatTime(item.end, labels)}`}
@@ -183,7 +191,6 @@ const styles = StyleSheet.create({
   list: { padding: 16, gap: 12 },
   emptyContainer: { flexGrow: 1, padding: 16 },
   heading: { gap: 4, marginBottom: 4 },
-  card: {},
   chip: { marginRight: 12 },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, padding: 24 },
   emptyHelp: { textAlign: 'center', marginBottom: 8 },

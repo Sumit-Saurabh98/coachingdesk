@@ -278,5 +278,22 @@
     "noClasses": "No classes today",
     "noClassesHelp": "A batch shows here on the days it meets.",
     "addBatch": "Add a batch"
+  },
+  "register": {
+    "title": "Attendance",
+    "help": "Tap a student who is absent. Everyone else is present.",
+    "allPresent": "Everyone present",
+    "noStudents": "No students in this batch on this day.",
+    "save": "Save attendance",
+    "saved": "Attendance saved",
+    "present": "Present",
+    "absent": "Absent",
+    "late": "Late",
+    "leave": "On leave",
+    "changeStatus": "Change status",
+    "alertsQueued": "Absence messages will go to {{count}} parents on WhatsApp.",
+    "alertsTooLate": "Saved, but no absence messages were sent: it's after 10:00 the day after the class, and a late message would confuse parents.",
+    "skippedReadOnly": "{{count}} students were not saved: your plan's student limit was lowered. Upgrade, or mark students who left as left.",
+    "ok": "OK"
   }
 }

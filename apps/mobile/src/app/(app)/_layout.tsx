@@ -51,6 +51,7 @@ export default function AppLayout() {
         <Stack.Screen name="batches/[id]/edit" options={{ title: t('batch.editTitle') }} />
         <Stack.Screen name="students/new" options={{ title: t('studentForm.title') }} />
         <Stack.Screen name="students/bulk" options={{ title: t('bulkAdd.title') }} />
+        <Stack.Screen name="attendance/[batchId]" options={{ title: t('register.title') }} />
         {/* The profile sets its own title: the student's name. */}
         <Stack.Screen name="students/[id]/index" options={{ title: '' }} />
         <Stack.Screen name="students/[id]/edit" options={{ title: t('studentEdit.title') }} />
