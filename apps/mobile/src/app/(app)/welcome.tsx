@@ -1,8 +1,8 @@
 // First stop after login when no institute is chosen yet:
 //  - no institutes at all  -> "Set up your institute" (the owner's first minute in the app)
 //  - several institutes    -> "Choose an institute"
-// Choosing or creating one makes the (app) layout's guard switch to the home screen by itself.
-import { router, Stack } from 'expo-router';
+// Once one is chosen (or created), this screen sends the user home itself.
+import { Redirect, router, Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet } from 'react-native';
 import { Button, IconButton, List, Text } from 'react-native-paper';
@@ -14,8 +14,13 @@ import { useAppTheme } from '@/theme/theme';
 export default function WelcomeScreen() {
   const { t } = useTranslation();
   const theme = useAppTheme();
-  const { institutes } = useCurrentInstitute();
+  const { institutes, current } = useCurrentInstitute();
   const setCurrentInstitute = usePreferences((state) => state.setCurrentInstitute);
+
+  // Not wrapped in a Stack.Protected (see the (app) layout): it leaves on its own.
+  if (current !== null) {
+    return <Redirect href="/" />;
+  }
 
   const roleLabel = {
     owner: t('me.roleOwner'),

@@ -74,10 +74,11 @@ export default function AppLayout() {
         <Stack.Screen name="students/[id]/index" options={{ title: '' }} />
         <Stack.Screen name="students/[id]/edit" options={{ title: t('studentEdit.title') }} />
       </Stack.Protected>
-      {/* Create / choose: only while there is none. Once one is chosen, go home. */}
-      <Stack.Protected guard={!hasInstitute} redirectTo="/">
-        <Stack.Screen name="welcome" />
-      </Stack.Protected>
+      {/* Create / choose an institute. Always registered, and it redirects home itself once one
+          is chosen. (Inside a Stack.Protected, every time an institute became current the
+          router tried to remove a welcome screen that was never open: "REMOVE_ROUTES ... was
+          not handled by any navigator".) */}
+      <Stack.Screen name="welcome" />
       {/* Always open: "create another" and Me (logout must always be reachable). */}
       <Stack.Screen name="create-institute" options={{ title: t('welcome.newInstitute') }} />
       <Stack.Screen name="me" options={{ title: t('me.title') }} />
