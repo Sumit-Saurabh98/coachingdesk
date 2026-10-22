@@ -48,7 +48,8 @@ export const CloseInvoiceBody = z.object({ reason: z.string().max(500) }).strict
 export const RecordPaymentBody = z
   .object({
     amountPaise: zMoneyPaise,
-    method: z.enum(['cash', 'bank', 'other']), // upi_link payments arrive by webhook, not here
+    // upi = paid to the institute's own UPI ID (no payment gateway for parents, KB #51)
+    method: z.enum(['upi', 'cash', 'bank', 'other']),
     // ISO 8601 with a time zone ("2026-10-18T09:00:00Z" or "+05:30"). Missing = now.
     paidAt: z.iso
       .datetime({ offset: true })
@@ -66,8 +67,8 @@ export const ListPaymentsQuery = z
   .object({
     from: zLocalDate.optional(),
     to: zLocalDate.optional(),
-    method: z.enum(['upi_link', 'cash', 'bank', 'other']).optional(),
-    status: z.enum(['active', 'voided', 'refunded']).default('active'),
+    method: z.enum(['upi', 'cash', 'bank', 'other']).optional(),
+    status: z.enum(['active', 'voided']).default('active'),
     limit: z.coerce.number().int().min(1).max(200).default(100),
   })
   .strict();

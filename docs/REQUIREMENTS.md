@@ -39,7 +39,7 @@ A mobile app for **small offline tuition centers, home tutors, and non-academic 
 | F-06 | Attendance | One-tap present/absent per batch per day. Works offline, syncs later. |
 | F-07 | Absence alerts | Optional automatic WhatsApp message to guardian when a student is absent. |
 | F-08 | Fee invoices | Auto-generate dues per cycle (monthly/quarterly/half-yearly/yearly/one-time). |
-| F-09 | UPI payment links | Each guardian gets one pay page covering all their open dues (siblings included); paying there uses a Razorpay UPI link. Paid status updates automatically. |
+| F-09 | Payments at the institute | Parents pay the institute directly (cash, its UPI ID, bank); the owner records it in seconds and a receipt goes out on WhatsApp. No payment links or gateway for parents (KB #51). |
 | F-10 | Fee reminders | Automatic WhatsApp reminders on a schedule; manual "remind now". |
 | F-11 | Record offline payment | Mark cash/bank payments manually; partial payments supported. |
 | F-12 | Receipts | Auto-send receipt link to guardian on every payment. |
@@ -106,11 +106,11 @@ Summary: four tiers — Free (manual sharing, no automatic WhatsApp), Starter (a
 ### 4.4 Fees & payments
 - FR-4.1 Invoices are generated automatically per enrollment fee cycle on the institute's billing day (default: 1st of month; due date default: 7th). The fee cycle is set per enrollment (defaults to the batch's). If generation is missed on the billing day, it runs on the next day it can. `one_time` fees are invoiced once, at enrollment. Invoices with a net amount of ₹0 are not created.
 - FR-4.2 Invoice amounts are stored in **paise (integer)**. Discounts are stored separately.
-- FR-4.3 Each guardian has one pay page showing all their open dues at the institute; paying there creates a UPI payment link for the current total. When the provider confirms payment via webhook, the payment is applied to the oldest dues first and the invoices move to `paid` or `partially_paid` within 1 minute. Any amount that can't be applied is kept as guardian credit.
-- FR-4.4 Owners can record offline payments (cash/bank/other) with optional note; partial payments allowed. Owners can void an offline payment entered by mistake (reason required, audited); the invoice reopens and reminders resume. Online payments are reversed only via provider refund.
-- FR-4.4a When an invoice's remaining amount changes, any outstanding payment link with the old amount is cancelled so a guardian can't pay twice.
+- FR-4.3 *(Changed, KB #51.)* No pay page or payment links. A recorded payment is applied to the invoice it was recorded on; anything above what's due is kept as guardian credit, which the owner can apply to other dues.
+- FR-4.4 Owners and staff record payments (UPI to the institute, cash, bank, other) with an optional note; partial payments allowed. The owner can void a payment entered by mistake (reason required, audited); the invoice reopens and reminders resume.
+- FR-4.4a *(Removed, KB #51: no payment links.)*
 - FR-4.5 Owners can waive or cancel an invoice with a reason.
-- FR-4.6 A receipt link is sent to the guardian after each successful payment (if messaging is enabled for the plan).
+- FR-4.6 A receipt is sent to the guardian on WhatsApp after each recorded payment (if messaging is enabled for the plan); the message text itself is the receipt (no link).
 - FR-4.7 Fee dashboard shows: collected this month, total pending, overdue count, list sorted by amount overdue.
 - FR-4.8 Money from guardians goes **directly to the institute's own account** (via the payment provider's linked/sub-merchant account). The platform never holds institute money in MVP. (See KNOWLEDGE_BASE → Payments.)
 
@@ -136,18 +136,18 @@ Summary: four tiers — Free (manual sharing, no automatic WhatsApp), Starter (a
 - FR-7.3 Payment success activates the plan immediately; failure triggers grace period.
 
 ### 4.7a Payouts
-- FR-7.4 Owner can start payment-provider onboarding (KYC) from the app and see its status.
-- FR-7.5 Until payouts are active, owner can set the institute's UPI ID; the pay page then shows a UPI QR / app button for that ID, and payments are recorded manually.
+- FR-7.4 *(Removed, KB #51: no payment gateway for parents, so no payout onboarding.)*
+- FR-7.5 Owner can set the institute's UPI ID (optional), e.g. for a "pay to this UPI ID" line in reminders (off by default).
 
 ### 4.7b Data rights
 - FR-7.6 Owner can export all institute data (CSV ZIP).
 - FR-7.7 Owner can delete the institute (fresh OTP required); it can be undone for 30 days, then all its data is purged.
 - FR-7.8 Owner can erase one student's personal data on a guardian's request; amounts stay for the institute's books.
 
-### 4.8 Public guardian pages (web)
-- FR-8.1 Receipt, pay, and result pages are accessed via unguessable random tokens (stored hashed); no login. Opening a page never changes data; a payment link is created only when the guardian taps "Pay".
+### 4.8 Website (web)
+- *(Changed, KB #51.)* No public parent pages: receipts and results are complete in the WhatsApp text.
+- FR-8.1 A small static website on coachingdesk.in: home, privacy policy, terms, how to delete your account, contact (needed for Google Play and Meta business verification). No analytics on pages parents might visit.
 - FR-8.2 Pages load under 2 seconds on 3G and work on any mobile browser.
-- FR-8.3 Tokens expire (pay pages: 30 days, and show "nothing due" once everything is paid; receipts/results: 180 days). Provider payment links expire after 24 hours.
 
 ## 5. Non-functional requirements
 
@@ -182,7 +182,7 @@ Summary: four tiers — Free (manual sharing, no automatic WhatsApp), Starter (a
 ## 7. Success metrics
 
 - Activation: % of new institutes that add ≥ 10 students and generate first invoices within 7 days.
-- Core value: ₹ collected through payment links per institute per month.
+- Core value: ₹ recorded as collected per institute per month (and how quickly dues are cleared after reminders).
 - Retention: weekly active institutes (attendance taken ≥ 3 days/week).
 - Conversion: trial → paid %.
 - Cost: messaging cost per institute vs. plan price.

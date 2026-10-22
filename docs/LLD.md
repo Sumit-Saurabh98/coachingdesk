@@ -58,10 +58,7 @@ institutes (
   billing_day smallint not null default 1 check (billing_day between 1 and 28),
   due_after_days smallint not null default 6,
   settings jsonb not null default '{}',   -- absenceAlerts, reminderOffsets, quietHours...
-  payout_account_id text,                 -- provider linked account id
-  payout_status text not null default 'not_started'
-    check (payout_status in ('not_started','pending','active','rejected')),
-  upi_vpa text,                           -- institute's own UPI ID; used on the pay page until payouts are active
+  upi_vpa text,                           -- institute's own UPI ID (optional; parents pay it directly, KB #51)
   messaging_paused_at timestamptz,        -- set by quality guard (§6.8); blocks automatic messages
   deletion_requested_at timestamptz,      -- institute deletion: purge after 30 days (§6.9)
   purged_at timestamptz,                  -- set by the purge (with archived_at): the row is a tombstone
@@ -210,9 +207,7 @@ payments (                                -- money received; one row per provide
   id uuid pk, institute_id uuid fk,
   guardian_phone text not null,
   amount_paise bigint not null check (amount_paise > 0),
-  method text check (method in ('upi_link','cash','bank','other')),
-  provider text, provider_payment_id text unique,  -- null for offline
-  payment_link_id uuid fk null,           -- FK added with payment_links
+  method text check (method in ('upi','cash','bank','other')),  -- all recorded by owner/staff (KB #51)
   idempotency_key text,                   -- unique (institute_id, idempotency_key): AGENTS rule 6
   receipt_number text,                    -- RCT-000001, unique (institute_id, receipt_number); null before Step 24
   status text not null default 'active' check (status in ('active','voided','refunded')),
@@ -231,6 +226,7 @@ payment_allocations (                     -- how a payment is split across invoi
 index (institute_id, invoice_id)
 -- payment.amount - sum(allocations) = unallocated guardian credit (applied manually in MVP)
 
+-- Not in the MVP (KB #51): payment_links / payment_link_invoices were never created.
 payment_links (                           -- provider link for one guardian's open dues at one moment
   id uuid pk, institute_id uuid fk, guardian_phone text not null,
   provider text, provider_link_id text unique, short_url text,
@@ -605,6 +601,8 @@ for msg:
 
 ### 6.4 Payment event processing
 
+> **Not in the MVP (KB #51):** payments are recorded by the owner/staff (`upi`/`cash`/`bank`/`other`); there are no provider payment events for parents.
+
 ```
 BEGIN
   event = SELECT ... FROM webhook_events WHERE id=? FOR UPDATE
@@ -647,6 +645,8 @@ enqueue payment-links.reconcile for each touched invoice
 
 ### 6.6 Guardian pay page and payment-link lifecycle
 
+> **Not in the MVP (KB #51):** no payment gateway, pay page or payment links for parents; `payments.provider*`, `payment_link_id` and `institutes.payout_*` were dropped (migration 0021). Kept for reference only.
+
 One pay page per guardian per institute. It always shows **live** open dues, so it can't go stale the way a per-invoice link would.
 
 ```
@@ -679,7 +679,7 @@ The guardian simply taps "Pay" again and gets a fresh link for the correct amoun
 
 ### 6.7 Voiding a payment
 
-`POST /payments/{paymentId}/void { reason }` — owner only, offline payments only (`method != 'upi_link'`; online money is reversed via provider refund, §6.4).
+`POST /payments/{paymentId}/void { reason }` — owner only, any method (every payment is recorded by hand, KB #51).
 ```
 BEGIN
   payment = SELECT ... FOR UPDATE; require status = 'active'

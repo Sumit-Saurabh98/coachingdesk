@@ -4,7 +4,7 @@ Instructions for AI coding agents (Claude Code, Codex, Cursor, etc.) working in 
 
 ## Project in one paragraph
 
-**Coaching Desk** (working name) is a mobile app for small offline tuition centers, home tutors, and academies in India. Owners/teachers use the app; guardians (parents) only receive WhatsApp messages and open web links. Core value: automatic fee reminders with UPI payment links, attendance with absence alerts, receipts, results, and notices.
+**Coaching Desk** (working name) is a mobile app for small offline tuition centers, home tutors, and academies in India. Owners/teachers use the app; guardians (parents) only receive WhatsApp messages. Core value: automatic fee reminders, attendance with absence alerts, receipts, results, and notices. Parents pay the institute directly (cash or its own UPI ID) and the owner records it: no payment gateway for parents (KB #51).
 
 ## Read before working
 

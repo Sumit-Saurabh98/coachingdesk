@@ -26,7 +26,7 @@ flowchart LR
   WORKER --> PG
   WORKER -->|templates| WA[WhatsApp Cloud API]
   WORKER -->|OTP / fallback| SMS[SMS Provider]
-  API -->|create links| PAY[Razorpay]
+  API -->|own subscriptions only, KB #51| PAY[Razorpay]
   PAY -->|webhooks| API
   WA -->|status + replies webhooks| API
   WA -->|messages| Guardian
@@ -51,8 +51,8 @@ flowchart LR
 auth · users · institutes · members · batches · students · enrollments
 attendance · fees (invoices, payments, payment-links) · reminders
 messaging (outbox, templates, opt-ins) · tests · notices
-subscriptions (plans, entitlements, usage) · payouts (KYC onboarding, UPI ID)
-data-rights (export, deletion, erasure) · public (token pages) · webhooks (incl. WhatsApp inbound) · admin
+subscriptions (plans, entitlements, usage) · ~~payouts~~ (not in the MVP, KB #51)
+data-rights (export, deletion, erasure) · webhooks (WhatsApp, subscription billing) · admin
 ```
 
 ## 5. Key flows
@@ -102,6 +102,8 @@ sequenceDiagram
 4. `messages.send` worker picks due outbox rows, checks opt-in, **re-validates against current data** (skips if everything was paid meanwhile, recomputes totals otherwise), checks plan quota, mints the guardian link token, and sends via provider.
 
 ### 5.4 Online payment
+
+> **Not in the MVP (KB #51).** Parents pay the institute directly (cash, its own UPI ID) and the owner records it; receipts go out as WhatsApp text. No pay page, payment links or Razorpay for parents. This flow is kept for a possible later opt-in.
 
 ```mermaid
 sequenceDiagram

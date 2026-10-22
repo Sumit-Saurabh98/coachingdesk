@@ -376,7 +376,6 @@ export class DrizzleTenantDataRepository implements TenantDataSource, TenantPurg
               'note',
               'voided_at',
               'void_reason',
-              'provider_payment_id',
             ],
             rows: paymentRows.map((p) => [
               p.id,
@@ -389,7 +388,6 @@ export class DrizzleTenantDataRepository implements TenantDataSource, TenantPurg
               p.note,
               iso(p.voidedAt),
               p.voidReason,
-              p.providerPaymentId,
             ]),
           },
           {
@@ -543,7 +541,6 @@ export class DrizzleTenantDataRepository implements TenantDataSource, TenantPurg
           logoUrl: null,
           settings: {},
           upiVpa: null,
-          payoutAccountId: null,
           archivedAt: now,
           purgedAt: now,
           updatedAt: sql`now()`,

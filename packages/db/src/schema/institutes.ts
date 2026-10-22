@@ -25,8 +25,8 @@ export const institutes = pgTable(
     billingDay: smallint().notNull().default(1),
     dueAfterDays: smallint().notNull().default(6),
     settings: jsonb().notNull().default({}),
-    payoutAccountId: text(),
-    payoutStatus: text().notNull().default('not_started'),
+    // The institute's OWN UPI ID (e.g. sharmaclasses@okhdfc). Parents pay it directly; the owner
+    // records the payment. No payment gateway for parents in the MVP (KB #51).
     upiVpa: text(),
     messagingPausedAt: timestamp({ withTimezone: true }),
     // Institute deletion (FR-7.7): set on request, cleared on cancel; purged 30 days later.
@@ -43,10 +43,6 @@ export const institutes = pgTable(
   (t) => [
     check('institutes_type_check', sql`${t.type} in ('tuition', 'academy', 'home_tutor')`),
     check('institutes_billing_day_check', sql`${t.billingDay} between 1 and 28`),
-    check(
-      'institutes_payout_status_check',
-      sql`${t.payoutStatus} in ('not_started', 'pending', 'active', 'rejected')`,
-    ),
   ],
 );
 

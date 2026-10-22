@@ -20,7 +20,7 @@ The "why" behind the product. Read this before changing business logic.
 | Guardian | Parent/relative who pays and receives messages. Identified by phone. One guardian may have several students (siblings). |
 | Enrollment | Student ↔ batch link with its own fee. |
 | Fee cycle | `monthly` (most common), `quarterly`, `half_yearly`, `yearly` (e.g. academies billing per term/session), `one_time` (e.g. crash course), `none` (free batch). Set per enrollment; the batch only provides the default. |
-| Pay page | One web page per guardian per institute listing all their open dues (siblings included). The link in every reminder points here. |
+| Pay page | *Not in the MVP (decision #51).* Was: one web page per guardian listing their open dues, linked from reminders. |
 | Credit | Money received that couldn't be applied to an open due (overpayment, or a late payment on an already-paid invoice). |
 | Billing day | Day of month when invoices are generated (default 1st). |
 | Invoice / Due | Amount a student owes for a period. UI calls it "Fee due", not "invoice". |
@@ -40,7 +40,7 @@ The "why" behind the product. Read this before changing business logic.
 - If invoice generation misses the billing day (outage), it catches up the next day; the period is never skipped.
 - Partial payments allowed. A payment covering several dues is applied **oldest due date first**. Anything left over is recorded as credit (applied manually in MVP).
 - An offline payment entered by mistake can be **voided** by the owner (reason required, audited). The invoice reopens and reminders resume. Online payments can't be voided — they're reversed only by a refund through the provider.
-- A payment link must never ask for an outdated amount: whenever a due's remaining amount changes, outstanding links for it are cancelled. Links also expire after 24 h.
+- *(Not in the MVP, decision #51: no payment links for parents.)* If links return: a link must never ask for an outdated amount (cancel outstanding links when a due changes; expire after 24 h).
 - Waive/cancel require a reason; both are audited.
 - A student marked "left" → no new invoices; existing dues remain until owner cancels.
 
@@ -70,13 +70,13 @@ The "why" behind the product. Read this before changing business logic.
 
 ### Payments
 - Guardian money should settle to the **institute's own account**, not the platform's, using the provider's linked/sub-merchant accounts. This avoids the platform acting as a payment intermediary holding funds.
-- Institute onboarding to payouts (KYC) is done through the provider's flow, started from the app. Until it's active, the owner can set the institute's own UPI ID: the pay page shows a UPI QR / "Pay with UPI app" button for it, and the owner records the payment manually (no automatic reconciliation). With neither set, the pay page shows the dues and "please pay at the center".
+- *(Not in the MVP, decision #51.)* Parents pay the institute directly: cash, the institute's own UPI ID, or a bank transfer; the owner records it (method `upi`/`cash`/`bank`/`other`). Earlier plan, kept for reference: institute onboarding to payouts (KYC) through the provider's flow; until it's active, the owner can set the institute's own UPI ID: the pay page shows a UPI QR / "Pay with UPI app" button for it, and the owner records the payment manually (no automatic reconciliation). With neither set, the pay page shows the dues and "please pay at the center".
 - Gateway fees: configurable — absorbed by institute (default) or added as convenience fee (check provider rules).
 
 ### Plans (single source of truth — `packages/shared/src/plans.ts` must match this table)
 | Plan | Active students | Members besides owner | Messages/mo | Price | Included |
 |---|---|---|---|---|---|
-| Free | 25 | 0 | 0 automatic | ₹0 | Batches, attendance, manual fee tracking, pay page & payment links. "Share via WhatsApp" opens WhatsApp manually. |
+| Free | 25 | 0 | 0 automatic | ₹0 | Batches, attendance, manual fee tracking and receipts. "WhatsApp" opens WhatsApp manually. |
 | Starter | 100 | 0 | 1,000 | ₹299/mo · ₹2,999/yr | Free + automatic reminders, absence alerts, receipts, notices |
 | Pro | 300 | 5 | 3,000 | ₹699/mo · ₹6,999/yr | Starter + tests/result cards, team members, progress reports (v2) |
 | Academy | ∞ | ∞ | 8,000 | ₹1,499/mo · ₹14,999/yr | Pro + multi-branch (v2), priority support |
@@ -181,6 +181,7 @@ Each needs Hindi version. Template approval takes time — submit early.
 | 48 | 2026-10 | Re-adding a student to a batch whose enrollment still runs on the start date (removed today, or leaving on a later date) **reopens** that enrollment (end date cleared, same id, new terms if sent, no new invoice) instead of `409`; with a gap, a new enrollment as before; one that starts after the new start date stays `409` | "Remove" sets the last day to today, so a same-day "add back" clashed and left the student stuck (owner feedback). A new enrollment would bill a `one_time` fee twice; reopening keeps one record and one invoice |
 | 49 | 2026-10 | **Roll number** per student: optional text (≤ 20 chars, "12", "12A"), set when adding and editable; unique among the institute's **active** students, case-insensitive (partial unique index; `409 field=rollNumber`); cleared on erasure. Registers and marks sheets are ordered by roll number naturally (2 before 10; `compareRollNumbers` in shared), students without one last by name. Search matches an exact roll number | Owner request. Text, because schools use "12A"/"B-07". Unique only among active students so a left student's number can be reused next session. One comparator in `packages/shared` so API and app order alike |
 | 50 | 2026-10 | **Student's own number** (`students.student_phone`, optional, ≠ guardian phone). It has its **own** consent record (consent belongs to a number; `studentConsent` at add time, a separate switch on the profile, asked again for a new number). The app's Call / WhatsApp ask "Parent or Student?" when it exists. Automatic messages (fee reminders, absence alerts, notices, results, receipts) go to it too as separate messages (own dedupe keys), **only with its consent** (checked at send time), each counting against the quota; a fee reminder there covers only that student's dues; "remind now" queues both. Erasure clears it and forgets its consent and queued messages | Owner request: older students have phones. Students are often minors (DPDP: verifiable parental consent), so a parent-confirmed, per-number consent is required before anything automatic goes to a child's phone |
+| 51 | 2026-10 | **No payment gateway for parents in the MVP.** Parents pay the institute directly (cash, its own UPI ID, bank transfer); the owner or staff records it (`payments.method`: `upi`/`cash`/`bank`/`other`; every payment can be voided). Reminders, receipts and result cards carry **no links**: the text says what's due / what was received / the marks. No pay page, payment links, payouts/KYC, payment webhooks or public parent pages; removed from the schema (`payments.provider`, `provider_payment_id`, `payment_link_id`, `institutes.payout_*`; `upi_vpa` kept for an optional "pay to this UPI ID" line). **Razorpay is used only for Coaching Desk's own subscriptions** (owners paying for plans). The website on coachingdesk.in is a small static site (home, privacy policy, terms, account-deletion instructions, contact) for Google Play and Meta verification. Supersedes #8, #9, #24, P-1, P-2 | Owner feedback: small institutes refuse the ~2% + GST gateway cut, want money instantly (no T+2 settlement), and parents are easy phishing targets: if real messages NEVER contain a payment link, any fee link a parent receives is fake. Can return later as an opt-in (the `PaymentProvider` slot stays in the architecture) |
 
 ## 7. Open questions
 

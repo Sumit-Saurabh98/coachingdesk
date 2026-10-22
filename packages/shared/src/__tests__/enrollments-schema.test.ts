@@ -95,6 +95,8 @@ describe('payment schemas', () => {
       paidAt: '2026-10-18T09:00:00+05:30',
     });
     expect(body.paidAt?.toISOString()).toBe('2026-10-18T03:30:00.000Z');
+    // No gateway (KB #51): a UPI payment to the institute is recorded by hand like cash.
+    expect(RecordPaymentBody.safeParse({ amountPaise: 100, method: 'upi' }).success).toBe(true);
     expect(RecordPaymentBody.safeParse({ amountPaise: 100, method: 'upi_link' }).success).toBe(
       false,
     );

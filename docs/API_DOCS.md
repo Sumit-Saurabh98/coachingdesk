@@ -88,9 +88,7 @@ Roles are institute-wide in MVP (`memberships.batch_scope` stays null). Fixed pe
 | GET | `/institutes/{id}/members` | Owner. `200 { members: [{ userId, name, phone, role }] }`, owner first |
 | POST | `/institutes/{id}/members` | Owner. `{ phone, name, role: "teacher"\|"staff" }` → `201 { member }` — adds by phone. Creates the `users` row if the phone is new; they get access on first OTP login. `name` is used only if the person hasn't set their own. `409` already a member; member count (excluding owner) checked against plan atomically → `402 PLAN_LIMIT_REACHED` |
 | DELETE | `/institutes/{id}/members/{userId}` | Owner. Remove → `204`; they lose access immediately. `409` for the owner, `404` not a member |
-| GET | `/institutes/{id}/payouts` | `{ status: "not_started"\|"pending"\|"active"\|"rejected", upiVpa, providerMessage? }` |
-| POST | `/institutes/{id}/payouts/onboarding` | Starts provider linked-account KYC → `{ onboardingUrl }`. Status updates arrive via provider webhook |
-| PUT | `/institutes/{id}/payouts/upi` | `{ upiVpa }` — institute's own UPI ID, shown on the pay page until payouts are active (validated format `name@bank`) |
+| *(planned)* PATCH | `/institutes/{id}` with `upiVpa` | The institute's own UPI ID (optional), e.g. for a "pay to this UPI ID" line in reminders. No payouts/KYC: no payment gateway for parents (KB #51) |
 | POST | `/institutes/{id}/exports` | Owner, any plan. Queues a full data export → `202 { export }`; if one is already queued/running → `200 { export }` (the same one). At most 5 a day → `429 DAILY_LIMIT_REACHED` |
 | GET | `/institutes/{id}/exports?limit=1–50 (10)` | Owner → `{ exports }`, newest first |
 | GET | `/institutes/{id}/exports/{exportId}` | Owner → `{ export }`. Export object: `{ id, status: queued\|running\|ready\|failed\|expired, byteSize, createdAt, readyAt, expiresAt, downloadPath }`; `downloadPath` is set when ready |
@@ -240,12 +238,11 @@ PUT body (`clientId` = a UUID the phone generated offline; a retry with the same
 | GET | `/institutes/{id}/invoices` | Owner, staff. `?status=due,partially_paid&studentId&batchId&overdue=true&limit=1–200 (100)` → `200 { invoices }` (each with `studentName`), oldest due date first. `overdue` = open and due before today (institute time) |
 | GET | `/institutes/{id}/invoices/{invoiceId}` | Owner, staff → `200 { invoice, payments }` (`invoice.studentName` included); each payment has `allocatedPaise` (what it paid on THIS invoice). Messages sent arrive with reminders |
 | POST | `/institutes/{id}/invoices` | Owner. Manual one-off invoice `{ studentId, amountPaise, discountPaise?, dueDate, description }` (`description` required, 1–200 chars; discount < amount) → `201 { invoice }` |
-| POST | `/institutes/{id}/invoices/{invoiceId}/payments` | Owner, staff. Record an offline payment (body below; header `Idempotency-Key` recommended) → `201 { payment, invoice, creditPaise, replayed: false }`. Amount above the remaining due is kept as guardian credit. Same `Idempotency-Key` again → `200` with the first payment and `replayed: true` (nothing recorded twice). `409` if the invoice is paid, waived or cancelled; `422` for a future `paidAt` (> 5 min) or `method: upi_link` |
-| POST | `/institutes/{id}/payments/{paymentId}/void` | `{ reason }` — owner only, offline payments only → `200 { payment, invoices }`. Reopens the invoice(s) (waived/cancelled ones stay so). `409 CONFLICT` if already voided or if `method = upi_link` (refund via provider instead) |
+| POST | `/institutes/{id}/invoices/{invoiceId}/payments` | Owner, staff. Record a payment (body below; header `Idempotency-Key` recommended) → `201 { payment, invoice, creditPaise, replayed: false }`. Amount above the remaining due is kept as guardian credit. Same `Idempotency-Key` again → `200` with the first payment and `replayed: true` (nothing recorded twice). `409` if the invoice is paid, waived or cancelled; `422` for a future `paidAt` (> 5 min) or an unknown `method` |
+| POST | `/institutes/{id}/payments/{paymentId}/void` | `{ reason }` — owner only (any method: every payment is recorded by hand) → `200 { payment, invoices }`. Reopens the invoice(s) (waived/cancelled ones stay so). `409 CONFLICT` if already voided |
 | POST | `/institutes/{id}/invoices/{invoiceId}/remind` | Owner, staff. `{ force?: boolean }` → `202 { scheduledFor }` (queued; the worker sends it). Refused with `409 ALREADY_REMINDED_TODAY` if the guardian already got a fee reminder today (automatic or manual); `force` (owner only, else `403`) allows one extra per day. Quiet hours always apply (`scheduledFor` = 08:00 institute time). `409 NOTHING_DUE` if the invoice is not open; `402 FEATURE_NOT_IN_PLAN` on Free. The text covers ALL the guardian's open dues and is decided at send time |
 | POST | `/institutes/{id}/invoices/{invoiceId}/waive` | Owner. `{ reason }` → `200 { invoice }`. Only open invoices (`due`, `partially_paid`); otherwise `409` |
 | POST | `/institutes/{id}/invoices/{invoiceId}/cancel` | Owner. `{ reason }` → `200 { invoice }`. Only `due` invoices with nothing paid (part-paid: waive the rest instead); otherwise `409`. A concurrent change (e.g. a payment) → `409`, reload |
-| POST | `/institutes/{id}/invoices/{invoiceId}/share-link` | Mints a guardian pay-page token for this invoice's guardian → `{ url, whatsappText }` (Free plan manual share). POST because it creates a token |
 | GET | `/institutes/{id}/payments?from&to&method&status&limit` | Owner, staff. Collections list, newest first. `from`/`to` are institute-local days (inclusive); `status=active` by default |
 | GET | `/institutes/{id}/payments/{paymentId}` | Owner, staff → `200 { payment, allocations: [{ invoiceId, amountPaise }], creditPaise }` |
 | GET | `/institutes/{id}/payments/{paymentId}/receipt` | Owner, staff → `{ receipt: { ...payment, institute: { name, city }, lines: [{ invoiceId, invoiceNumber, description, studentId, studentName, amountPaise }], creditPaise } }`. For the app's share sheet (Free plan shares by hand) and later the public receipt page. A voided payment still has one (`status: "voided"`) |
@@ -266,14 +263,14 @@ Dashboard response:
   "collectedPaise": 4250000,
   "pendingPaise": 1800000,
   "overdueCount": 12,
-  "byMethod": { "upi_link": 3100000, "cash": 1150000 },
+  "byMethod": { "upi": 3100000, "cash": 1150000 },
   "topOverdue": [
     { "studentId": "...", "name": "Aarav Sharma", "guardianPhone": "+9198XXXXX210", "overduePaise": 300000, "daysOverdue": 14 }   // days since the OLDEST overdue due date
   ]
 }
 ```
 
-Record payment (`method`: `cash` \| `bank` \| `other`; `paidAt` ISO 8601 with a zone, default now; `note` optional):
+Record payment (`method`: `upi` \| `cash` \| `bank` \| `other`; `upi` = paid to the institute's own UPI ID; `paidAt` ISO 8601 with a zone, default now; `note` optional):
 ```json
 { "amountPaise": 150000, "method": "cash", "paidAt": "2026-10-18T09:00:00Z", "note": "Paid at center" }
 ```
@@ -356,11 +353,13 @@ Only guardians with consent (`opted_in`) are ever messaged; the check happens at
 
 ## 13. Public (guardian) endpoints — no auth, token-based
 
+> **Not in the MVP (KB #51).** No payment gateway for parents and no public parent pages: receipts and result cards are complete in the WhatsApp text. Kept below for reference only.
+
 | Method | Path | Description |
 |---|---|---|
 | GET | `/public/pay/{token}` | **Read-only.** All open dues of this guardian at this institute (live): institute name, per invoice student first name + description/period + remaining, total. No side effects — safe for link previews and prefetch |
 | POST | `/public/pay/{token}/checkout` | Creates or reuses a payment link for the **current** total → `{ payUrl }`. Links expire in 24 h; a link whose amounts no longer match is cancelled and replaced. `409 NOTHING_DUE` if everything is already paid |
-| GET | `/public/receipts/{token}` | Receipt data (shows "cancelled" if the payment was voided/refunded) |
+| GET | `/public/receipts/{token}` | Receipt data (shows "cancelled" if the payment was voided) |
 | GET | `/public/results/{token}` | Result card data |
 
 Tokens: 128-bit random, only the hash is stored, minted by the worker at send time (never stored raw). Pay tokens are per guardian and expire after 30 days; receipt/result tokens after 180 days. Expired or unknown token → `404`.
@@ -371,16 +370,14 @@ Responses never include full guardian phone, students of other guardians, or ins
 
 | Method | Path | Verification |
 |---|---|---|
-| POST | `/webhooks/razorpay` | HMAC-SHA256 of raw body with webhook secret (`X-Razorpay-Signature`) |
 | GET | `/webhooks/whatsapp` | Meta verify-token handshake |
 | POST | `/webhooks/whatsapp` | `X-Hub-Signature-256` with app secret |
-| POST | `/webhooks/billing` | Store/RevenueCat or Razorpay subscriptions (TBD) |
+| POST | `/webhooks/billing` | Coaching Desk's own subscriptions: store/RevenueCat or Razorpay Subscriptions (TBD). The only Razorpay use (KB #51) |
 
 Behavior: verify → insert into `webhook_events` (unique `(provider, event_id)`) → enqueue → `200` fast. Duplicates return `200` without reprocessing.
 
 WhatsApp inbound `STOP` / `UNSUBSCRIBE` replies → **global** opt-out from all institutes (one shared sender number); `START` resumes. Other replies get one auto-reply per 24 h and appear under `/replies` for the resolved institute. See LLD §6.8.
 
-Razorpay account/KYC webhooks (linked account activated/rejected) update `institutes.payout_status`.
 
 ## 15. Health
 

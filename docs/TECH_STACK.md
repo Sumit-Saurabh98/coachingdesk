@@ -21,7 +21,7 @@ Principle: **one language (TypeScript) end to end, boring managed infrastructure
 | Cache / rate limits | Redis (same instance in MVP), `maxmemory-policy noeviction`, AOF on | OTP throttling, idempotency keys, rate limiting |
 | WhatsApp | **WhatsApp Business Platform** via Meta Cloud API, behind a `MessagingProvider` interface (BSP like Gupshup/Interakt can be swapped in) | Templates, delivery webhooks |
 | SMS / OTP | MSG91 (or similar DLT-registered Indian SMS provider) behind `SmsProvider` interface | OTP + fallback; DLT compliance handled by provider |
-| Guardian payments | **Razorpay** (Payment Links + Route/linked accounts) behind `PaymentProvider` interface; Cashfree as alternate | UPI links, webhooks, settlement to institute |
+| Guardian payments | **None in the MVP** (KB #51): parents pay the institute directly; owners record it. The `PaymentProvider` slot stays for a later opt-in | No gateway cut, instant money for the institute, no payment links to imitate (phishing) |
 | Subscription billing | Decide after store-policy check: RevenueCat (store billing) **or** Razorpay Subscriptions (web checkout) | See KNOWLEDGE_BASE open questions |
 | File storage | AWS S3 (ap-south-1) + CloudFront | Logos, generated PDFs |
 | PDF generation | `@react-pdf/renderer` in worker (v2 reports) | No headless browser needed |

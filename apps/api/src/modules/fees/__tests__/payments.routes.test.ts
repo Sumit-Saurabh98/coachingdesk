@@ -95,12 +95,13 @@ describe('POST /invoices/:invoiceId/payments', () => {
     expect(after.invoice.paidPaise).toBe(50000);
   });
 
-  it('409 on a paid invoice; 422 for a UPI method, a future date, a bad key', async () => {
+  it('409 on a paid invoice; 422 for an unknown method, a future date, a bad key', async () => {
     const { invoice, pay } = await setup();
     await pay(invoice.id, { amountPaise: 150000, method: 'cash' });
 
     expect((await pay(invoice.id, { amountPaise: 100, method: 'cash' })).statusCode).toBe(409);
     expect((await pay(invoice.id, { amountPaise: 100, method: 'upi_link' })).statusCode).toBe(422);
+    expect((await pay(invoice.id, { amountPaise: 100, method: 'card' })).statusCode).toBe(422);
     expect(
       (await pay(invoice.id, { amountPaise: 100, method: 'cash', paidAt: '2030-01-01T00:00:00Z' }))
         .statusCode,

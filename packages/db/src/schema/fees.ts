@@ -136,7 +136,8 @@ export const invoices = pgTable(
 );
 
 /**
- * Money received: one row per provider payment or offline entry (docs/LLD.md §2.1, §6.4).
+ * Money received, recorded by the owner or staff (cash, the institute's own UPI, bank, other).
+ * No payment gateway for parents in the MVP (KB #51).
  * Never deleted: a mistake is VOIDED (kept for history, stops counting).
  */
 export const payments = pgTable(
@@ -149,10 +150,7 @@ export const payments = pgTable(
     // E.164 snapshot of who paid. NULL after the guardian's data was erased (amount kept).
     guardianPhone: text(),
     amountPaise: bigint({ mode: 'number' }).notNull(),
-    method: text().notNull(), // upi_link | cash | bank | other
-    provider: text(), // null for offline
-    providerPaymentId: text().unique('payments_provider_payment_id_unique'),
-    paymentLinkId: uuid(), // FK added with payment_links (pay page step)
+    method: text().notNull(), // upi | cash | bank | other
     // AGENTS rule 6: the Idempotency-Key of the request that recorded it. A double tap on
     // "Record payment" finds this row instead of recording the money twice.
     idempotencyKey: text(),
@@ -173,8 +171,8 @@ export const payments = pgTable(
     unique('payments_institute_receipt_number_unique').on(t.instituteId, t.receiptNumber),
     index('payments_institute_paid_at_idx').on(t.instituteId, t.paidAt),
     check('payments_amount_check', sql`${t.amountPaise} > 0`),
-    check('payments_method_check', sql`${t.method} in ('upi_link', 'cash', 'bank', 'other')`),
-    check('payments_status_check', sql`${t.status} in ('active', 'voided', 'refunded')`),
+    check('payments_method_check', sql`${t.method} in ('upi', 'cash', 'bank', 'other')`),
+    check('payments_status_check', sql`${t.status} in ('active', 'voided')`),
     // Voided <-> voided_at set: no half-voided payment.
     check('payments_voided_check', sql`(${t.status} = 'voided') = (${t.voidedAt} is not null)`),
   ],

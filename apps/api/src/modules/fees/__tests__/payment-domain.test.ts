@@ -111,9 +111,10 @@ describe('Payment', () => {
       expect.objectContaining({ code: 'CONFLICT' }),
     );
     expect(() => record().void('owner-1', '  ', now)).toThrow(fieldError('reason'));
-    const online = Payment.restore({ ...record().toProps(), method: 'upi_link' });
-    expect(() => online.void('owner-1', 'x', now)).toThrow(
-      expect.objectContaining({ code: 'CONFLICT', message: expect.stringMatching(/refund/) }),
-    );
+    // A UPI payment is recorded by hand like cash (KB #51), so it can be voided too.
+    const upi = Payment.restore({ ...record().toProps(), method: 'upi' });
+    expect(upi.void('owner-1', 'Wrong family', now).toPublicJSON()).toMatchObject({
+      status: 'voided',
+    });
   });
 });

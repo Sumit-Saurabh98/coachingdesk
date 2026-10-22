@@ -1,9 +1,14 @@
 import { AppError, InvalidMoneyError, Money, type PhoneNumber } from '@coachingdesk/shared';
 
-export const PAYMENT_METHODS = ['upi_link', 'cash', 'bank', 'other'] as const;
+/**
+ * How the money came in. Every payment is recorded by the owner or staff: parents pay the
+ * institute directly (cash, its own UPI ID, a bank transfer). No payment gateway (KB #51).
+ */
+export const PAYMENT_METHODS = ['upi', 'cash', 'bank', 'other'] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
-export type OfflineMethod = Exclude<PaymentMethod, 'upi_link'>;
-export const PAYMENT_STATUSES = ['active', 'voided', 'refunded'] as const;
+/** Every method is recorded by hand now (kept as a name for the places that record them). */
+export type OfflineMethod = PaymentMethod;
+export const PAYMENT_STATUSES = ['active', 'voided'] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
 export interface PaymentProps {
@@ -123,14 +128,8 @@ export class Payment {
     return this.status === 'active';
   }
 
-  /**
-   * LLD §6.7: owner voids an OFFLINE payment entered by mistake. Online (UPI link) money is
-   * reversed only by a provider refund, so it can't be voided here.
-   */
+  /** LLD §6.7: the owner voids a payment entered by mistake (any method: all are recorded by hand). */
   void(by: string, reason: string, at: Date): Payment {
-    if (this.method === 'upi_link') {
-      throw new AppError('CONFLICT', 'Online payments are reversed by a refund, not voided');
-    }
     if (!this.isActive) {
       throw new AppError('CONFLICT', `This payment is already ${this.status}`);
     }
