@@ -45,28 +45,28 @@ export const PLANS: Readonly<Record<PlanId, Readonly<Plan>>> = Object.freeze({
   starter: plan({
     id: 'starter',
     maxActiveStudents: 100,
-    maxMembers: 0,
-    monthlyMessages: 1_000,
-    monthlyPricePaise: 29_900, // Rs 299
-    yearlyPricePaise: 2_99_900, // Rs 2,999 (Indian digit grouping: 2,99,900 paise)
+    maxMembers: 1, // one helper (assistant or second teacher): common in small centres
+    monthlyMessages: 500,
+    monthlyPricePaise: 19_900, // Rs 199 (KB #52: priced for tier-3 tutors)
+    yearlyPricePaise: 1_99_900, // Rs 1,999 = 10 months (Indian digit grouping: 1,99,900 paise)
     features: ['automatic_messages'],
   }),
   pro: plan({
     id: 'pro',
     maxActiveStudents: 300,
     maxMembers: 5,
-    monthlyMessages: 3_000,
-    monthlyPricePaise: 69_900,
-    yearlyPricePaise: 6_99_900,
+    monthlyMessages: 1_500,
+    monthlyPricePaise: 44_900, // Rs 449
+    yearlyPricePaise: 4_49_900, // Rs 4,499
     features: ['automatic_messages', 'result_cards'],
   }),
   academy: plan({
     id: 'academy',
     maxActiveStudents: null,
     maxMembers: null,
-    monthlyMessages: 8_000,
-    monthlyPricePaise: 1_49_900,
-    yearlyPricePaise: 14_99_900,
+    monthlyMessages: 4_000,
+    monthlyPricePaise: 99_900, // Rs 999
+    yearlyPricePaise: 9_99_900, // Rs 9,999
     features: ['automatic_messages', 'result_cards'],
   }),
 });

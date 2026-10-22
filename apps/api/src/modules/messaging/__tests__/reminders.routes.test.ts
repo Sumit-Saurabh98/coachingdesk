@@ -130,7 +130,7 @@ describe('GET /messages/usage', () => {
     expect(response.json()).toEqual({
       month: '2026-10',
       used: 0,
-      limit: 3000,
+      limit: 1500,
       todayUsed: 0,
       todayLimit: 100,
       trialTotalLimit: 200,

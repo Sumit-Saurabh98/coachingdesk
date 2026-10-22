@@ -77,9 +77,9 @@ The "why" behind the product. Read this before changing business logic.
 | Plan | Active students | Members besides owner | Messages/mo | Price | Included |
 |---|---|---|---|---|---|
 | Free | 25 | 0 | 0 automatic | ₹0 | Batches, attendance, manual fee tracking and receipts. "WhatsApp" opens WhatsApp manually. |
-| Starter | 100 | 0 | 1,000 | ₹299/mo · ₹2,999/yr | Free + automatic reminders, absence alerts, receipts, notices |
-| Pro | 300 | 5 | 3,000 | ₹699/mo · ₹6,999/yr | Starter + tests/result cards, team members, progress reports (v2) |
-| Academy | ∞ | ∞ | 8,000 | ₹1,499/mo · ₹14,999/yr | Pro + multi-branch (v2), priority support |
+| Starter | 100 | 1 | 500 | ₹199/mo · ₹1,999/yr | Free + automatic reminders, absence alerts, receipts, notices, one helper |
+| Pro | 300 | 5 | 1,500 | ₹449/mo · ₹4,499/yr | Starter + tests/result cards, more team members, progress reports (v2) |
+| Academy | ∞ | ∞ | 4,000 | ₹999/mo · ₹9,999/yr | Pro + multi-branch (v2), priority support |
 
 - "Active students" = `status = 'active'`; students marked left are not counted.
 - **Trial:** 30 days of Pro on signup, then Free unless they subscribe. Automatic messages during the trial are capped at **200 total and 100/day** (not the Pro quota) — the trial must not be usable as a free bulk-messaging channel.
@@ -87,17 +87,17 @@ The "why" behind the product. Read this before changing business logic.
 - **Notices:** max 2 per institute per day (5 on paid plans), 1–500 chars, no third-party links.
 - **Grace:** 7 days after a failed renewal before downgrade.
 - **Downgrade:** data is never deleted; over-limit students become read-only until upgrade or archive.
-- **Message packs:** extra 1,000 messages for ₹149 (must stay above provider cost — see cost check below).
+- **Message packs:** extra 1,000 messages for ₹199 (cost ≈ ₹130; must stay above provider cost — see cost check below).
 - Whether prices include 18% GST is not yet decided (open question 8).
 
-**Cost check (NFR-14: infra + messaging < 25% of plan price)** — rough, recompute with Meta's current India rate card:
-| Plan | Price (pre-GST, if GST-inclusive) | Store fee if billed via Play (~15%) | Messages at full quota × ~₹0.12–0.20 utility | Messaging as % of net |
-|---|---|---|---|---|
-| Starter ₹299 | ≈ ₹253 | ≈ ₹38 → net ≈ ₹215 | ≈ ₹120–200 | **≈ 55–95%** ❌ |
-| Pro ₹699 | ≈ ₹592 | ≈ ₹89 → net ≈ ₹503 | ≈ ₹360–600 | **≈ 70–120%** ❌ |
-| Academy ₹1,499 | ≈ ₹1,270 | ≈ ₹190 → net ≈ ₹1,080 | ≈ ₹960–1,600 | **≈ 90–150%** ❌ |
+**Cost check (decision #52)** — prices for tier-3 tutors, billed on our website through Razorpay (≈ 2.36% with GST), WhatsApp utility ≈ ₹0.13/message (Meta India rate + GST; recheck the current rate card). Every student copy (KB #50) counts as a message.
+| Plan | Price | Messages at FULL quota | Payment fee | Profit at full quota | Typical (≈ half the quota) |
+|---|---|---|---|---|---|
+| Starter ₹199 | ₹199 | 500 × ₹0.13 ≈ ₹65 | ≈ ₹5 | **≈ ₹129 (65%)** | ≈ ₹161 |
+| Pro ₹449 | ₹449 | 1,500 × ₹0.13 ≈ ₹195 | ≈ ₹11 | **≈ ₹243 (54%)** | ≈ ₹341 |
+| Academy ₹999 | ₹999 | 4,000 × ₹0.13 ≈ ₹520 | ≈ ₹24 | **≈ ₹455 (46%)** | ≈ ₹715 |
 
-At full quota every paid plan breaks NFR-14; message packs at ₹149/1,000 are near or below cost. Typical usage will be well under quota, but the numbers can't be left like this. Open question 9 must be decided before launch.
+NFR-14 is now read against **expected** usage (messaging + payment fees ≤ 25% of price) with full-quota use still profitable; infra per institute is a few rupees at this scale. If plans were sold through Google Play Billing (~15%), recompute before launch.
 
 ## 4. WhatsApp templates (draft list)
 
@@ -182,6 +182,7 @@ Each needs Hindi version. Template approval takes time — submit early.
 | 49 | 2026-10 | **Roll number** per student: optional text (≤ 20 chars, "12", "12A"), set when adding and editable; unique among the institute's **active** students, case-insensitive (partial unique index; `409 field=rollNumber`); cleared on erasure. Registers and marks sheets are ordered by roll number naturally (2 before 10; `compareRollNumbers` in shared), students without one last by name. Search matches an exact roll number | Owner request. Text, because schools use "12A"/"B-07". Unique only among active students so a left student's number can be reused next session. One comparator in `packages/shared` so API and app order alike |
 | 50 | 2026-10 | **Student's own number** (`students.student_phone`, optional, ≠ guardian phone). It has its **own** consent record (consent belongs to a number; `studentConsent` at add time, a separate switch on the profile, asked again for a new number). The app's Call / WhatsApp ask "Parent or Student?" when it exists. Automatic messages (fee reminders, absence alerts, notices, results, receipts) go to it too as separate messages (own dedupe keys), **only with its consent** (checked at send time), each counting against the quota; a fee reminder there covers only that student's dues; "remind now" queues both. Erasure clears it and forgets its consent and queued messages | Owner request: older students have phones. Students are often minors (DPDP: verifiable parental consent), so a parent-confirmed, per-number consent is required before anything automatic goes to a child's phone |
 | 51 | 2026-10 | **No payment gateway for parents in the MVP.** Parents pay the institute directly (cash, its own UPI ID, bank transfer); the owner or staff records it (`payments.method`: `upi`/`cash`/`bank`/`other`; every payment can be voided). Reminders, receipts and result cards carry **no links**: the text says what's due / what was received / the marks. No pay page, payment links, payouts/KYC, payment webhooks or public parent pages; removed from the schema (`payments.provider`, `provider_payment_id`, `payment_link_id`, `institutes.payout_*`; `upi_vpa` kept for an optional "pay to this UPI ID" line). **Razorpay is used only for Coaching Desk's own subscriptions** (owners paying for plans). The website on coachingdesk.in is a small static site (home, privacy policy, terms, account-deletion instructions, contact) for Google Play and Meta verification. Supersedes #8, #9, #24, P-1, P-2 | Owner feedback: small institutes refuse the ~2% + GST gateway cut, want money instantly (no T+2 settlement), and parents are easy phishing targets: if real messages NEVER contain a payment link, any fee link a parent receives is fake. Can return later as an opt-in (the `PaymentProvider` slot stays in the architecture) |
+| 52 | 2026-10 | **Pricing for tier-3 India.** Free ₹0 (25 students, no automatic messages); Starter ₹199/mo · ₹1,999/yr (100 students, 1 helper, 500 messages); Pro ₹449 · ₹4,499 (300, 5, 1,500 + tests/results); Academy ₹999 · ₹9,999 (unlimited, 4,000). Yearly = 10 months. Message pack 1,000 for ₹199. Closes open question 9 | Small-town tutors with 30–80 students won't pay ₹299+ for the first paid tier; ₹199 is an easy yes, while quotas sized to real use (~5–10 messages per student a month) keep every plan profitable even at full quota (see §3 cost check). A helper on Starter matches how small centres work. Free (no message cost) brings sign-ups; WhatsApp automation is the reason to upgrade |
 
 ## 7. Open questions
 
@@ -193,7 +194,7 @@ Each needs Hindi version. Template approval takes time — submit early.
 6. SMS fallback in v1.0 or v1.1?
 7. Proration for mid-cycle joiners — needed by users?
 8. **GST:** are plan prices GST-inclusive or exclusive? We need GST registration and GST invoices for subscriptions once over the threshold (confirm with a CA).
-9. **Message economics vs NFR-14:** at full quota, messaging alone exceeds 25% of every paid plan (see §3 cost check). Options: lower included quotas, raise prices, define NFR-14 against expected (not maximum) usage, use free customer-service-window sends where possible, and re-price message packs above cost.
+9. ~~**Message economics vs NFR-14**~~ — **decided, #52** (lower quotas + tier-3 prices; NFR-14 against expected usage). Was: at full quota, messaging alone exceeds 25% of every paid plan (see §3 cost check). Options: lower included quotas, raise prices, define NFR-14 against expected (not maximum) usage, use free customer-service-window sends where possible, and re-price message packs above cost.
 10. **Free/Starter members:** plans table gives Free and Starter 0 members besides the owner, but our ICP includes 1–3 teacher centers. Should Starter allow 1–2 teachers?
 11. **Data residency:** DPDP doesn't generally require data to stay in India (cross-border transfer is allowed except to restricted countries). Keeping everything in ap-south-1 is a **product choice** (trust, sales pitch), not a legal requirement — confirm and keep or relax.
 

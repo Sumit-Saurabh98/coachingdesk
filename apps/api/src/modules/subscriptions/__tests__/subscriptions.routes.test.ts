@@ -33,10 +33,10 @@ describe('GET /v1/plans (public)', () => {
     expect(body.plans[1]).toEqual({
       id: 'starter',
       maxActiveStudents: 100,
-      maxMembers: 0,
-      monthlyMessages: 1000,
-      monthlyPricePaise: 29900,
-      yearlyPricePaise: 299900,
+      maxMembers: 1,
+      monthlyMessages: 500,
+      monthlyPricePaise: 19900,
+      yearlyPricePaise: 199900,
       features: ['automatic_messages'],
     });
     expect(body.trial).toEqual({ plan: 'pro', days: 30, messageTotal: 200 });
@@ -60,7 +60,7 @@ describe('GET /v1/institutes/:instituteId/subscription (owner)', () => {
       plan: 'pro',
       status: 'trialing',
       currentPeriodEnd: '2026-11-18T10:00:00.000Z',
-      limits: { maxActiveStudents: 300, maxMembers: 5, monthlyMessages: 3000 },
+      limits: { maxActiveStudents: 300, maxMembers: 5, monthlyMessages: 1500 },
       usage: { activeStudents: 1, members: 1, messages: { used: 0, todayLimit: 100 } },
     });
   });

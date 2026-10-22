@@ -63,7 +63,7 @@ describe('EntitlementsService', () => {
     const limits = await entitlements.messagingLimits('inst-1', new Date('2026-10-19T10:00:00Z'));
 
     expect(limits).toEqual({
-      monthly: 3000,
+      monthly: 1500,
       daily: 100,
       trialTotal: { limit: 200, since: new Date('2026-10-19T10:00:00Z') },
     });
@@ -80,7 +80,7 @@ describe('EntitlementsService', () => {
       createdAt: new Date('2026-01-01T00:00:00Z'),
     });
     expect(await entitlements.messagingLimits('inst-1', new Date('2026-10-19T10:00:00Z'))).toEqual({
-      monthly: 1000,
+      monthly: 500,
       daily: null,
       trialTotal: null,
     });
