@@ -16,16 +16,63 @@ const due = (studentId: string, rupees: number, date: string): Due => ({
   dueDate: LocalDate.parse(date),
 });
 
-function renderer(students: Student[], dues: Due[], ownNumberOf: Student[] = []) {
+function renderer(
+  students: Student[],
+  dues: Due[],
+  ownNumberOf: Student[] = [],
+  reminderUpiId: string | null = null,
+) {
   return new FeeReminderRenderer(
     { activeByGuardianPhone: async () => students, activeByStudentPhone: async () => ownNumberOf },
     { openForStudents: async (_i, ids) => dues.filter((d) => ids.includes(d.studentId)) },
-    { get: async () => ({ name: 'Sharma Classes' }) },
+    { get: async () => ({ name: 'Sharma Classes', reminderUpiId }) },
   );
 }
 
 const aarav = { id: 'a', name: 'Aarav', guardianName: 'Neha Sharma' };
 const bhavya = { id: 'b', name: 'Bhavya', guardianName: null };
+
+describe('FeeReminderRenderer: the UPI line (FR-7.5)', () => {
+  it('one child, UPI line on: fee_reminder_upi with the UPI ID', async () => {
+    const result = await renderer(
+      [aarav],
+      [due('a', 1500, '2026-10-07')],
+      [],
+      'sharma@okaxis',
+    ).check(message);
+    expect(result).toEqual({
+      kind: 'send',
+      template: 'fee_reminder_upi',
+      params: {
+        guardian: 'Neha Sharma',
+        student: 'Aarav',
+        amount: '1,500',
+        institute: 'Sharma Classes',
+        date: '7 Oct 2026',
+        upi: 'sharma@okaxis',
+      },
+    });
+  });
+
+  it('siblings, UPI line on: fee_reminder_multi_upi with the UPI ID', async () => {
+    const result = await renderer(
+      [aarav, bhavya],
+      [due('a', 1500, '2026-10-07'), due('b', 1000, '2026-10-07')],
+      [],
+      'sharma@okaxis',
+    ).check(message);
+    expect(result).toMatchObject({
+      kind: 'send',
+      template: 'fee_reminder_multi_upi',
+      params: { total: '2,500', upi: 'sharma@okaxis' },
+    });
+  });
+
+  it('nothing due: still skipped, UPI line or not', async () => {
+    const result = await renderer([aarav], [], [], 'sharma@okaxis').check(message);
+    expect(result).toEqual({ kind: 'skip', reason: 'nothing_due' });
+  });
+});
 
 describe('FeeReminderRenderer', () => {
   it('one child: fee_reminder with the total and the oldest due date', async () => {

@@ -22,13 +22,18 @@ export interface OpenDuesLookup {
   ): Promise<Array<{ studentId: string; remaining: Money; dueDate: LocalDate }>>;
 }
 export interface InstituteNameLookup {
-  get(instituteId: string): Promise<{ name: string }>;
+  /** reminderUpiId: the UPI ID to print, or null when the owner hasn't turned it on (FR-7.5). */
+  get(instituteId: string): Promise<{ name: string; reminderUpiId: string | null }>;
 }
 
 /**
  * Renders a fee reminder at SEND time (LLD §6.2, §6.3; FR-5.4): the guardian's open dues NOW,
  * across siblings (FR-5.2: one message per guardian). Paid everything while the message waited?
  * Skipped ('nothing_due'). Students who left get no reminders (FR-2.5).
+ *
+ * With the owner's "show my UPI ID" on (FR-7.5), the `_upi` twin of the template adds the line
+ * "Pay by UPI to: {{upi}}". WhatsApp templates are fixed text, so the line is a second template,
+ * not an optional part of one. Read at send time too: switching it off stops it at once.
  */
 export class FeeReminderRenderer implements Revalidator {
   constructor(
@@ -57,7 +62,9 @@ export class FeeReminderRenderer implements Revalidator {
     }
     const owing = students.filter((s) => dues.some((d) => d.studentId === s.id));
     const total = dues.reduce((sum, d) => sum.add(d.remaining), Money.zero());
-    const { name: institute } = await this.institutes.get(message.instituteId);
+    const { name: institute, reminderUpiId } = await this.institutes.get(message.instituteId);
+    const upi: Record<string, string> = reminderUpiId === null ? {} : { upi: reminderUpiId };
+    const withUpi = (template: string) => (reminderUpiId === null ? template : `${template}_upi`);
     // Same guardian for all siblings: any sibling's record may carry the name.
     const guardian =
       ownNumber[0]?.name ?? students.find((s) => s.guardianName)?.guardianName ?? 'Parent';
@@ -68,25 +75,27 @@ export class FeeReminderRenderer implements Revalidator {
       const oldest = dues.reduce((a, b) => (b.dueDate.isBefore(a.dueDate) ? b : a));
       return {
         kind: 'send',
-        template: 'fee_reminder',
+        template: withUpi('fee_reminder'),
         params: {
           guardian,
           student: owing[0]!.name,
           amount: rupees(total),
           institute,
           date: displayDate(oldest.dueDate),
+          ...upi,
         },
       };
     }
     // fee_reminder_multi: "Hello {{guardian}}, fees of ₹{{total}} are due for {{students}} at {{institute}}."
     return {
       kind: 'send',
-      template: 'fee_reminder_multi',
+      template: withUpi('fee_reminder_multi'),
       params: {
         guardian,
         total: rupees(total),
         students: joinNames(owing.map((s) => s.name)),
         institute,
+        ...upi,
       },
     };
   }

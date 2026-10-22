@@ -558,7 +558,7 @@ for each group:
 - An offset hitting **any** of a guardian's invoices triggers the reminder; the message covers **all** of that guardian's open dues at the institute (matches the pay page, §6.6).
 - **Implemented** (`ReminderPlanner`, worker every 15 min, `REMINDER_POLL_MS`): only active students; plan must include `automatic_messages`; `reminderOffsets` from institute settings; the message is queued with `params: {}` (no `$mint` yet: pay page later) and `expires_at` = 21:00 the next day.
 - **Manual "remind now"** (`POST /invoices/{id}/remind`) uses the same key, so it is refused with `409 ALREADY_REMINDED_TODAY` if the guardian already got a fee reminder today. With `force: true` (owner only) it uses `fee_reminder:manual:{instituteId}:{phone}:{date}` instead — at most one extra per day. Quiet hours always apply: during them the message is scheduled for 08:00 and the response says so (`scheduledFor`).
-- Names, amounts, and template choice (`fee_reminder` vs `fee_reminder_multi`) are **not** frozen here — the send worker computes them from current data, so a payment made while the message waited in quiet hours is reflected.
+- Names, amounts, and template choice (`fee_reminder` vs `fee_reminder_multi`, and their `_upi` twins when the owner shows the UPI ID, FR-7.5) are **not** frozen here — the send worker computes them from current data, so a payment made while the message waited in quiet hours is reflected.
 
 ### 6.3 Send worker
 

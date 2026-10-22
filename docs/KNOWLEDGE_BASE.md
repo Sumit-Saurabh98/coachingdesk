@@ -103,15 +103,21 @@ NFR-14 is now read against **expected** usage (messaging + payment fees ≤ 25% 
 
 | Name | Category | Example (EN) | Button |
 |---|---|---|---|
-| `fee_reminder` | utility | "Hello {{guardian}}, {{student}}'s fee of ₹{{amount}} at {{institute}} is due on {{date}}." | "Pay now" → `https://<domain>/p/{{token}}` |
-| `fee_reminder_multi` | utility | "Hello {{guardian}}, fees of ₹{{total}} are due for {{students}} at {{institute}}." | "Pay now" → `https://<domain>/p/{{token}}` |
-| `payment_receipt` | utility | "Received ₹{{amount}} for {{students}} at {{institute}}. Thank you!" | "View receipt" → `https://<domain>/r/{{token}}` |
+| `fee_reminder` | utility | "Hello {{guardian}}, {{student}}'s fee of ₹{{amount}} at {{institute}} is due on {{date}}." | — |
+| `fee_reminder_multi` | utility | "Hello {{guardian}}, fees of ₹{{total}} are due for {{students}} at {{institute}}." | — |
+| `fee_reminder_upi` | utility | `fee_reminder` + "Pay by UPI to: {{upi}}. We never send payment links." | — |
+| `fee_reminder_multi_upi` | utility | `fee_reminder_multi` + "Pay by UPI to: {{upi}}. We never send payment links." | — |
+| `payment_receipt` | utility | "Received ₹{{amount}} for {{students}} at {{institute}}. Thank you!" | — |
 | `absence_alert` | utility | "{{student}} was absent on {{date}} from {{batch}} at {{institute}}." | — |
-| `result_card` | utility | "{{student}}'s result for {{test}} at {{institute}}: {{marks}}/{{max}}." | "View details" → `https://<domain>/t/{{token}}` |
+| `result_card` | utility | "{{student}}'s result for {{test}} at {{institute}}: {{marks}}/{{max}}." | — |
 | `notice` | utility | "Notice from {{institute}}: {{text}}" (1–500 chars, sanitised, no promos) | — |
 | `notice_holiday` | utility | "{{institute}} will be closed on {{date}} ({{reason}}). Classes resume on {{resume_date}}." | — |
 | `notice_schedule_change` | utility | "{{batch}} at {{institute}} will be held at {{time}} on {{date}} instead of the usual time." | — |
 | `otp` | authentication | "{{code}} is your login code." | — |
+
+No template carries a link or button (decision #51): a parent who gets a "fee link" knows it's fake.
+
+The `_upi` twins are sent instead of the plain reminders when the owner turns on "Show my UPI ID in fee reminders" (FR-7.5, decision #53). Hindi: `fee_reminder_upi` = "नमस्ते {{guardian}}, {{institute}} में {{student}} की ₹{{amount}} फ़ीस {{date}} तक देनी है। UPI से भुगतान करें: {{upi}}। हम कभी पेमेंट लिंक नहीं भेजते।"; `fee_reminder_multi_upi` = "नमस्ते {{guardian}}, {{institute}} में {{students}} की ₹{{total}} फ़ीस बाकी है। UPI से भुगतान करें: {{upi}}। हम कभी पेमेंट लिंक नहीं भेजते।"
 
 The free-text `notice` template is the one most likely to be rejected or re-categorised as marketing by Meta, since it can carry any text. Submit the structured `notice_holiday` / `notice_schedule_change` templates too. The app offers those first ("Holiday", "Timing change", "Other"), so most notices still work if `notice` is rejected.
 
@@ -183,6 +189,7 @@ Each needs Hindi version. Template approval takes time — submit early.
 | 50 | 2026-10 | **Student's own number** (`students.student_phone`, optional, ≠ guardian phone). It has its **own** consent record (consent belongs to a number; `studentConsent` at add time, a separate switch on the profile, asked again for a new number). The app's Call / WhatsApp ask "Parent or Student?" when it exists. Automatic messages (fee reminders, absence alerts, notices, results, receipts) go to it too as separate messages (own dedupe keys), **only with its consent** (checked at send time), each counting against the quota; a fee reminder there covers only that student's dues; "remind now" queues both. Erasure clears it and forgets its consent and queued messages | Owner request: older students have phones. Students are often minors (DPDP: verifiable parental consent), so a parent-confirmed, per-number consent is required before anything automatic goes to a child's phone |
 | 51 | 2026-10 | **No payment gateway for parents in the MVP.** Parents pay the institute directly (cash, its own UPI ID, bank transfer); the owner or staff records it (`payments.method`: `upi`/`cash`/`bank`/`other`; every payment can be voided). Reminders, receipts and result cards carry **no links**: the text says what's due / what was received / the marks. No pay page, payment links, payouts/KYC, payment webhooks or public parent pages; removed from the schema (`payments.provider`, `provider_payment_id`, `payment_link_id`, `institutes.payout_*`; `upi_vpa` kept for an optional "pay to this UPI ID" line). **Razorpay is used only for Coaching Desk's own subscriptions** (owners paying for plans). The website on coachingdesk.in is a small static site (home, privacy policy, terms, account-deletion instructions, contact) for Google Play and Meta verification. Supersedes #8, #9, #24, P-1, P-2 | Owner feedback: small institutes refuse the ~2% + GST gateway cut, want money instantly (no T+2 settlement), and parents are easy phishing targets: if real messages NEVER contain a payment link, any fee link a parent receives is fake. Can return later as an opt-in (the `PaymentProvider` slot stays in the architecture) |
 | 52 | 2026-10 | **Pricing for tier-3 India.** Free ₹0 (25 students, no automatic messages); Starter ₹199/mo · ₹1,999/yr (100 students, 1 helper, 500 messages); Pro ₹449 · ₹4,499 (300, 5, 1,500 + tests/results); Academy ₹999 · ₹9,999 (unlimited, 4,000). Yearly = 10 months. Message pack 1,000 for ₹199. Closes open question 9 | Small-town tutors with 30–80 students won't pay ₹299+ for the first paid tier; ₹199 is an easy yes, while quotas sized to real use (~5–10 messages per student a month) keep every plan profitable even at full quota (see §3 cost check). A helper on Starter matches how small centres work. Free (no message cost) brings sign-ups; WhatsApp automation is the reason to upgrade |
+| 53 | 2026-10 | **"Pay by UPI to" line in fee reminders (FR-7.5).** Owner setting, off by default: the institute's own UPI ID (`institutes.upi_vpa`, `handle@bank`, lowercase) plus `settings.showUpiInReminders`. On → the renderer sends `fee_reminder_upi` / `fee_reminder_multi_upi` (the plain templates + "Pay by UPI to: {{upi}}. We never send payment links."), read at send time. The switch needs a UPI ID; removing the ID turns it off | Parents learn where to pay without any link (#51 stays: no links, so a link is always fake). WhatsApp templates are fixed text, so an optional line needs twin templates. Owner choice because some prefer cash or keep their UPI ID private |
 
 ## 7. Open questions
 
