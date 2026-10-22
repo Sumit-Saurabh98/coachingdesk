@@ -1,7 +1,7 @@
 // Pure TypeScript: the fee dashboard's rules, unit-tested in Node.
 import type { PaymentMethod } from './fees-api';
 
-const METHOD_ORDER: readonly PaymentMethod[] = ['upi_link', 'cash', 'bank', 'other'];
+const METHOD_ORDER: readonly PaymentMethod[] = ['upi', 'cash', 'bank', 'other'];
 
 /** How this month's money came in: only the methods used, in a fixed order (UPI first). */
 export function methodParts(

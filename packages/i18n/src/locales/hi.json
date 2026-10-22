@@ -354,7 +354,7 @@
     "daysOverdue_one": "{{count}} दिन से बकाया",
     "daysOverdue_other": "{{count}} दिन से बकाया",
     "method": {
-      "upi_link": "UPI",
+      "upi": "UPI",
       "cash": "नकद",
       "bank": "बैंक",
       "other": "अन्य"

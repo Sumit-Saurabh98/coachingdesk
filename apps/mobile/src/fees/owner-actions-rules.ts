@@ -14,9 +14,9 @@ export function canCancel(invoice: { status: InvoiceStatus; paidPaise: number })
   return invoice.status === 'due' && invoice.paidPaise === 0;
 }
 
-/** Void: a payment entered by mistake. Online (UPI) money is reversed by refund, never here. */
+/** Void: a payment entered by mistake (every method is recorded by hand, so any can be). */
 export function canVoid(payment: { status: string; method: PaymentMethod }): boolean {
-  return payment.status === 'active' && payment.method !== 'upi_link';
+  return payment.status === 'active';
 }
 
 /** A reason is required for every one of them (audited), at most 500 characters. */

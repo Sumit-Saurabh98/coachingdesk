@@ -27,7 +27,7 @@ import { useMonthLabels } from '@/lib/use-month-labels';
 import { studentKeys } from '@/students/students-api';
 import { useAppTheme } from '@/theme/theme';
 
-type Method = 'cash' | 'bank' | 'other';
+type Method = 'upi' | 'cash' | 'bank' | 'other';
 
 export default function RecordPaymentScreen() {
   const { t } = useTranslation();
@@ -81,7 +81,7 @@ function PaymentForm({ instituteId, invoice }: { instituteId: string; invoice: I
   const today = toLocalDateString(new Date());
 
   const [amountText, setAmountText] = useState(() => paiseToInput(invoice.remainingPaise));
-  const [method, setMethod] = useState<Method>('cash');
+  const [method, setMethod] = useState<Method>('upi'); // most parents pay by UPI
   const [day, setDay] = useState(today);
   const [note, setNote] = useState('');
   const [pickingDate, setPickingDate] = useState(false);
@@ -165,8 +165,11 @@ function PaymentForm({ instituteId, invoice }: { instituteId: string; invoice: I
       </Text>
       <SegmentedButtons
         value={method}
-        onValueChange={(value) => setMethod(value === 'bank' || value === 'other' ? value : 'cash')}
+        onValueChange={(value) =>
+          setMethod(value === 'cash' || value === 'bank' || value === 'other' ? value : 'upi')
+        }
         buttons={[
+          { value: 'upi', label: t('fees.method.upi') },
           { value: 'cash', label: t('fees.method.cash'), icon: 'cash' },
           { value: 'bank', label: t('fees.method.bank'), icon: 'bank' },
           { value: 'other', label: t('fees.method.other') },

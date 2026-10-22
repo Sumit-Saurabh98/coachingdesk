@@ -2,7 +2,8 @@ import { api } from '@/api';
 import { type InvoiceFilter, type InvoiceStatus, invoiceQuery } from './invoice-rules';
 import type { ManualInvoiceRequest } from './owner-actions-rules';
 
-export type PaymentMethod = 'upi_link' | 'cash' | 'bank' | 'other';
+/** All recorded by the owner or staff: parents pay the institute directly (KB #51). */
+export type PaymentMethod = 'upi' | 'cash' | 'bank' | 'other';
 
 /** GET .../fees/dashboard (owner, staff). Money in paise (integers), like everywhere. */
 export interface FeeDashboard {
@@ -113,7 +114,7 @@ export function getInvoice(
 
 export interface RecordPaymentRequest {
   amountPaise: number;
-  method: 'cash' | 'bank' | 'other'; // UPI payments arrive from the payment provider, not here
+  method: PaymentMethod; // upi = to the institute's own UPI ID
   paidAt: string; // ISO with a zone
   note: string | null;
 }

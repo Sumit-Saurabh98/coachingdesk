@@ -27,7 +27,7 @@ describe('canVoid', () => {
   it.each([
     ['active', 'cash', true],
     ['active', 'bank', true],
-    ['active', 'upi_link', false], // refunds go through the provider
+    ['active', 'upi', true], // recorded by hand like cash (KB #51)
     ['voided', 'cash', false],
   ] as const)('%s %s -> %s', (status, method, result) => {
     expect(canVoid({ status, method })).toBe(result);

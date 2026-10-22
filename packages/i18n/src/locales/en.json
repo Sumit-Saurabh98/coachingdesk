@@ -354,7 +354,7 @@
     "daysOverdue_one": "{{count}} day overdue",
     "daysOverdue_other": "{{count}} days overdue",
     "method": {
-      "upi_link": "UPI",
+      "upi": "UPI",
       "cash": "Cash",
       "bank": "Bank",
       "other": "Other"
