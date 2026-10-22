@@ -24,7 +24,7 @@ Instructions for AI coding agents (Claude Code, Codex, Cursor, etc.) working in 
 apps/mobile    Expo React Native app (owner/teacher)
 apps/api       Fastify API (modular monolith)
 apps/worker    (planned) BullMQ schedulers. Today the worker runs from apps/api: src/worker.ts (KB #33)
-apps/web       Next.js guardian pages, landing, free tools
+apps/web       Static website for coachingdesk.in (privacy, terms, account deletion, contact); deployed on Vercel
 packages/shared     Zod schemas, types, money/date/phone utils, error codes
 packages/db         Drizzle schema + migrations + seed
 packages/providers  WhatsApp / SMS / payment adapters + fakes

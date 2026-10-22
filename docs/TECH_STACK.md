@@ -12,7 +12,7 @@ Principle: **one language (TypeScript) end to end, boring managed infrastructure
 | Mobile local storage | expo-sqlite (offline attendance queue) + MMKV (small KV) | Fast, works on low-end phones |
 | Mobile UI | **React Native Paper** (Material 3) + custom theme — the only UI library (KNOWLEDGE_BASE #47) | Ready, accessible components, light/dark |
 | Mobile i18n | i18next + react-i18next | EN + HI at launch |
-| Guardian web pages + landing + free tools | **Next.js (App Router)** | SSR for fast pay/receipt pages on slow phones; SEO for landing & free tools |
+| Website (coachingdesk.in) | **Static HTML + CSS** built by a tiny Node script (`apps/web`), hosted on **Vercel**. No JavaScript, no trackers | Home, pricing, privacy, terms, account deletion, contact (Google Play + Meta verification). No parent pages in the MVP (KB #51). Next.js only if landing pages / free tools need it later |
 | API | **Node.js (LTS) + Fastify + TypeScript** | Fast, schema-first, good plugin system |
 | Validation / contracts | **Zod** (shared package) + `fastify-type-provider-zod` | Same schemas on mobile, web, API; generates OpenAPI |
 | Database | **PostgreSQL 18** (or the newest major RDS supports in ap-south-1 at setup; minimum 17) | Relational data (fees, attendance), transactions, JSONB where needed |
@@ -47,7 +47,7 @@ coachingdesk/            # repo root (product working name: Coaching Desk)
 │   ├── mobile/          # Expo app (owner/teacher)
 │   ├── api/             # Fastify HTTP API
 │   ├── worker/          # BullMQ workers + schedulers
-│   └── web/             # Next.js: guardian pages, landing, free tools
+│   └── web/             # Static website (coachingdesk.in): home, privacy, terms, account deletion, contact
 ├── packages/
 │   ├── shared/          # Zod schemas, types, constants, money/date utils
 │   ├── db/              # Drizzle schema, migrations, seed

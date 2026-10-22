@@ -1,0 +1,173 @@
+/* One small stylesheet, no web fonts, no scripts: fast on slow 3G (FR-8.2). */
+:root {
+  --blue: #1565c0;
+  --blue-dark: #0d47a1;
+  --ink: #1b1f24;
+  --muted: #5a6470;
+  --line: #e3e7ec;
+  --soft: #f4f7fb;
+  --radius: 14px;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    'Noto Sans',
+    'Noto Sans Devanagari',
+    sans-serif;
+  color: var(--ink);
+  line-height: 1.6;
+  background: #fff;
+}
+a {
+  color: var(--blue);
+}
+.wrap {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+.site-header {
+  border-bottom: 1px solid var(--line);
+}
+.site-header .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--ink);
+  text-decoration: none;
+}
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+nav a {
+  text-decoration: none;
+  color: var(--muted);
+}
+nav a:hover {
+  color: var(--blue);
+}
+main {
+  padding-top: 24px;
+  padding-bottom: 48px;
+}
+h1 {
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  line-height: 1.2;
+  margin: 24px 0 12px;
+}
+h2 {
+  font-size: 1.5rem;
+  margin: 40px 0 12px;
+}
+h3 {
+  margin: 0 0 6px;
+}
+.lead {
+  font-size: 1.15rem;
+  color: var(--muted);
+  max-width: 680px;
+}
+.hindi {
+  color: var(--muted);
+}
+.badge {
+  display: inline-block;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+.card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  background: #fff;
+}
+.card p {
+  margin: 0;
+  color: var(--muted);
+}
+.plans {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+}
+.plan {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  background: var(--soft);
+}
+.price {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 4px 0 0;
+}
+.price span,
+.yearly,
+.note {
+  font-size: 0.95rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+.yearly {
+  margin: 0;
+}
+.plan ul {
+  padding-left: 18px;
+  margin: 12px 0 0;
+}
+.callout {
+  border-left: 4px solid var(--blue);
+  background: var(--soft);
+  padding: 14px 18px;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+.legal h2 {
+  font-size: 1.25rem;
+  margin-top: 32px;
+}
+.legal li {
+  margin-bottom: 6px;
+}
+.muted {
+  color: var(--muted);
+}
+.site-footer {
+  border-top: 1px solid var(--line);
+  background: var(--soft);
+  padding: 24px 0;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+.site-footer p {
+  margin: 8px 0 0;
+}

@@ -1,0 +1,53 @@
+{
+  "productName": "Coaching Desk",
+  "domain": "coachingdesk.in",
+  "supportEmail": "",
+  "legalName": "",
+  "address": "",
+  "grievanceOfficer": "",
+  "jurisdictionCity": "",
+  "lastUpdated": "22 October 2026",
+  "trialDays": 30,
+  "plans": [
+    {
+      "id": "free",
+      "name": "Free",
+      "monthlyRupees": 0,
+      "yearlyRupees": 0,
+      "maxActiveStudents": 25,
+      "maxMembers": 0,
+      "monthlyMessages": 0,
+      "features": []
+    },
+    {
+      "id": "starter",
+      "name": "Starter",
+      "monthlyRupees": 299,
+      "yearlyRupees": 2999,
+      "maxActiveStudents": 100,
+      "maxMembers": 0,
+      "monthlyMessages": 1000,
+      "features": ["automatic_messages"]
+    },
+    {
+      "id": "pro",
+      "name": "Pro",
+      "monthlyRupees": 699,
+      "yearlyRupees": 6999,
+      "maxActiveStudents": 300,
+      "maxMembers": 5,
+      "monthlyMessages": 3000,
+      "features": ["automatic_messages", "result_cards"]
+    },
+    {
+      "id": "academy",
+      "name": "Academy",
+      "monthlyRupees": 1499,
+      "yearlyRupees": 14999,
+      "maxActiveStudents": null,
+      "maxMembers": null,
+      "monthlyMessages": 8000,
+      "features": ["automatic_messages", "result_cards"]
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "@coachingdesk/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@coachingdesk/shared": "workspace:*",
+    "vitest": "^5.0.5"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "index.html": {
+    "title": "Coaching Desk: fees, attendance and parent updates for tuition centres",
+    "description": "Coaching Desk is a mobile app for tuition centres, coaching academies and home tutors in India: students and batches, attendance, fee tracking, WhatsApp reminders, receipts, tests and results, in English and Hindi."
+  },
+  "privacy.html": {
+    "title": "Privacy policy · Coaching Desk",
+    "description": "How Coaching Desk collects, uses, stores and protects personal data, including students' and parents' data entered by institutes."
+  },
+  "terms.html": {
+    "title": "Terms of service · Coaching Desk",
+    "description": "The terms for using the Coaching Desk app and website."
+  },
+  "delete-account.html": {
+    "title": "Delete your account · Coaching Desk",
+    "description": "How to delete your Coaching Desk account, your institute's data, or a student's personal data."
+  },
+  "contact.html": {
+    "title": "Contact · Coaching Desk",
+    "description": "Contact the Coaching Desk team for support, privacy requests and business enquiries."
+  }
+}
