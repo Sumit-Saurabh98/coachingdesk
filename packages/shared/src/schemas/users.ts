@@ -17,4 +17,8 @@ export const UpdateMeBody = z
     message: 'Send at least one of: name, locale',
   });
 
+/** POST /v1/me/terms: accept the current Terms and Privacy Policy (TERMS_VERSION). */
+export const AcceptTermsBody = z.object({ version: z.string().max(32) }).strict();
+
 export type UpdateMeBody = z.infer<typeof UpdateMeBody>;
+export type AcceptTermsBody = z.infer<typeof AcceptTermsBody>;

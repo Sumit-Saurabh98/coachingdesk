@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { PLAN_IDS, PLANS, TRIAL_DAYS } from '@coachingdesk/shared';
+import { PLANS, PLAN_IDS, TERMS_VERSION, TRIAL_DAYS } from '@coachingdesk/shared';
 import { describe, expect, it } from 'vitest';
 import {
   escapeHtml,
@@ -57,6 +57,14 @@ describe('pricing on the website', () => {
   it('formats rupees the Indian way', () => {
     expect(rupees(14999)).toBe('14,999');
     expect(rupees(149999)).toBe('1,49,999');
+  });
+});
+
+describe('terms version', () => {
+  it('the app asks users to accept the version these pages show (KB #54)', () => {
+    // site.json says "22 October 2026"; TERMS_VERSION is "2026-10-22". Change both together.
+    const shown = new Date(`${site.lastUpdated} UTC`).toISOString().slice(0, 10);
+    expect(shown).toBe(TERMS_VERSION);
   });
 });
 

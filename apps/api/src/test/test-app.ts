@@ -70,6 +70,9 @@ import { PrivacyController } from '../modules/privacy/privacy.controller';
 import { SubscriptionsController } from '../modules/subscriptions/subscriptions.controller';
 import { MeController } from '../modules/users/me.controller';
 import { InMemoryUserRepository } from '../modules/users/user.repository';
+import { InMemoryTermsAcceptanceRepository } from '../modules/legal/terms-acceptance.repository';
+import { TermsController } from '../modules/legal/terms.controller';
+import { TermsService } from '../modules/legal/terms.service';
 import { UserService } from '../modules/users/user.service';
 
 /** Every OTP in test apps is this code, so tests can log in without reading an SMS. */
@@ -240,15 +243,19 @@ export function buildTestApp(options: { apiRateLimits?: ApiRateLimitPolicy } = {
   });
   const dataExportRepository = new InMemoryDataExportRepository();
   const fileStore = new InMemoryFileStore();
+  const termsAcceptanceRepository = new InMemoryTermsAcceptanceRepository();
+  const termsService = new TermsService(termsAcceptanceRepository, ids, clock);
   const authService = new AuthService({
     otp: otpService,
     users: userService,
     sessions: sessionService,
+    terms: termsService,
   });
 
   const app = buildApp({
     authController: new AuthController({ otpService, authService, sessionService }),
-    meController: new MeController(userService, instituteService, sessionService),
+    meController: new MeController(userService, instituteService, sessionService, termsService),
+    termsController: new TermsController(termsService),
     institutesController: new InstitutesController(instituteService, entitlements),
     auditController: new AuditController(auditLog),
     exportsController: new ExportsController(
@@ -308,6 +315,7 @@ export function buildTestApp(options: { apiRateLimits?: ApiRateLimitPolicy } = {
     paymentService,
     dataExportRepository,
     fileStore,
+    termsAcceptanceRepository,
   };
 }
 

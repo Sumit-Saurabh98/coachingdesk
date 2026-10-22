@@ -15,6 +15,8 @@ export const VerifyOtpBody = z.object({
   phone: zPhoneIN,
   otp: z.string().regex(/^\d{6}$/, 'OTP must be 6 digits'),
   device: DeviceInfoSchema.optional(),
+  // The terms version the user ticked on the login screen (TERMS_VERSION). Recorded on success.
+  acceptedTerms: z.string().max(32).optional(),
 });
 
 // Our refresh tokens are 43 characters (32 bytes, base64url). The bounds just reject garbage early.

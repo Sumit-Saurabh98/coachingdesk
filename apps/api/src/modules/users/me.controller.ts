@@ -21,6 +21,12 @@ export interface AccountMemberships {
   removeAllMembershipsOf(userId: string): Promise<void>;
 }
 
+/** What /me needs from the legal module (TermsService fits). */
+export interface AccountTerms {
+  hasAcceptedCurrent(userId: string): Promise<boolean>;
+  deleteAllFor(userId: string): Promise<void>;
+}
+
 /** What account deletion needs from auth (SessionService fits). */
 export interface AccountSessions {
   endAllSessions(userId: string): Promise<void>;
@@ -35,17 +41,22 @@ export class MeController {
     private readonly users: UserService,
     private readonly institutes: UserInstitutesLookup & AccountMemberships,
     private readonly sessions: AccountSessions,
+    private readonly terms: AccountTerms,
   ) {}
 
-  /** GET /v1/me -> 200 { user, institutes: [{ id, name, type, role }] } */
+  /**
+   * GET /v1/me -> 200 { user, institutes: [{ id, name, type, role }], termsAccepted }.
+   * termsAccepted false: the app asks the user to accept the current terms (KB #54).
+   */
   async getMe(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     const userId = currentUserId(request);
-    // Both lookups are independent, so run them at the same time.
-    const [user, institutes] = await Promise.all([
+    // The lookups are independent, so run them at the same time.
+    const [user, institutes, termsAccepted] = await Promise.all([
       this.users.getProfile(userId),
       this.institutes.listForUser(userId),
+      this.terms.hasAcceptedCurrent(userId),
     ]);
-    await reply.status(200).send({ user: user.toPublicJSON(), institutes });
+    await reply.status(200).send({ user: user.toPublicJSON(), institutes, termsAccepted });
   }
 
   /** PATCH /v1/me { name?, locale? } -> 200 { user } */
@@ -71,6 +82,7 @@ export class MeController {
     }
     await this.sessions.endAllSessions(userId); // every device is logged out
     await this.institutes.removeAllMembershipsOf(userId);
+    await this.terms.deleteAllFor(userId); // rows pointing at the user go first
     await this.users.delete(userId);
     await reply.status(204).send();
   }

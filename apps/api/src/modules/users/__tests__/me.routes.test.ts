@@ -40,6 +40,7 @@ describe('GET /v1/me', () => {
     expect(response.json()).toEqual({
       user: { id: login.user.id, name: null, locale: 'en' },
       institutes: [],
+      termsAccepted: false, // loginOverHttp doesn't tick the terms (KB #54)
     });
   });
 

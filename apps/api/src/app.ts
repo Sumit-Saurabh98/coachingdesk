@@ -37,12 +37,15 @@ import { registerSubscriptionRoutes } from './modules/subscriptions/subscription
 import type { TestsController } from './modules/tests/tests.controller';
 import { registerTestRoutes } from './modules/tests/tests.routes';
 import type { MeController } from './modules/users/me.controller';
+import { registerLegalRoutes } from './modules/legal/legal.routes';
+import type { TermsController } from './modules/legal/terms.controller';
 import { registerUserRoutes } from './modules/users/users.routes';
 
 // What the app needs from outside. Tests pass fakes; server.ts passes the real container.
 export interface AppDependencies {
   authController: AuthController;
   meController: MeController;
+  termsController: TermsController;
   institutesController: InstitutesController;
   membersController: MembersController;
   batchesController: BatchesController;
@@ -115,6 +118,7 @@ export function buildApp(deps: AppDependencies, options: AppOptions = {}): Fasti
 
   registerAuthRoutes(app, deps.authController);
   registerUserRoutes(app, deps.meController, requireAuth);
+  registerLegalRoutes(app, deps.termsController, requireAuth);
   registerInstituteRoutes(app, deps.institutesController, deps.membersController, {
     requireAuth,
     requireMember,

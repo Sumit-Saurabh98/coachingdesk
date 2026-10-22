@@ -29,7 +29,12 @@ export class AuthController {
   /** POST /v1/auth/otp/verify -> 200 { accessToken, refreshToken, user, isNewUser } */
   async verifyOtp(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     const body = VerifyOtpBody.parse(request.body);
-    const result = await this.deps.authService.login(body.phone, body.otp, body.device ?? null);
+    const result = await this.deps.authService.login(
+      body.phone,
+      body.otp,
+      body.device ?? null,
+      body.acceptedTerms ?? null,
+    );
     await reply.status(200).send({
       accessToken: result.tokens.accessToken,
       refreshToken: result.tokens.refreshToken,

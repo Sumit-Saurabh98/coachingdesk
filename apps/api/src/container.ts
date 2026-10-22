@@ -38,6 +38,9 @@ import { ExportsController } from './modules/privacy/exports.controller';
 import { PrivacyController } from './modules/privacy/privacy.controller';
 import { SubscriptionsController } from './modules/subscriptions/subscriptions.controller';
 import { MeController } from './modules/users/me.controller';
+import { DrizzleTermsAcceptanceRepository } from './modules/legal/drizzle-terms-acceptance.repository';
+import { TermsController } from './modules/legal/terms.controller';
+import { TermsService } from './modules/legal/terms.service';
 import { createDomainServices } from './services';
 
 export interface Container extends AppDependencies {
@@ -89,15 +92,27 @@ export function createContainer(config: Config): Container {
     clock,
   });
   const services = createDomainServices(database.db, clock, ids);
+  const termsService = new TermsService(
+    new DrizzleTermsAcceptanceRepository(database.db),
+    ids,
+    clock,
+  );
   const authService = new AuthService({
     otp: otpService,
     users: services.userService,
     sessions: sessionService,
+    terms: termsService,
   });
 
   return {
     authController: new AuthController({ otpService, authService, sessionService }),
-    meController: new MeController(services.userService, services.instituteService, sessionService),
+    meController: new MeController(
+      services.userService,
+      services.instituteService,
+      sessionService,
+      termsService,
+    ),
+    termsController: new TermsController(termsService),
     institutesController: new InstitutesController(
       services.instituteService,
       services.entitlements,

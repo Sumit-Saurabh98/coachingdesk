@@ -14,6 +14,23 @@ export const users = pgTable(
   (t) => [check('users_locale_check', sql`${t.locale} in ('en', 'hi')`)],
 );
 
+/**
+ * Every time a user accepts the Terms of Service and Privacy Policy (KB #54): which version and
+ * when. Append-only history, kept as proof; deleted with the account.
+ */
+export const termsAcceptances = pgTable(
+  'terms_acceptances',
+  {
+    id: uuid().primaryKey(),
+    userId: uuid()
+      .notNull()
+      .references(() => users.id),
+    version: text().notNull(),
+    acceptedAt: timestamp({ withTimezone: true }).notNull(),
+  },
+  (t) => [index('terms_acceptances_user_id_idx').on(t.userId, t.acceptedAt)],
+);
+
 export const refreshTokens = pgTable(
   'refresh_tokens',
   {

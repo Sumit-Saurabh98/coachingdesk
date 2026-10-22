@@ -44,6 +44,10 @@ users (
   created_at, updated_at
 )
 
+terms_acceptances (            -- KB #54: append-only proof of who accepted which terms, when
+  id uuid pk, user_id uuid fk, version text not null, accepted_at timestamptz not null
+)                              -- index (user_id, accepted_at); deleted with the account
+
 refresh_tokens (
   id uuid pk, user_id uuid fk, token_hash text unique not null,
   family_id uuid not null, expires_at timestamptz, revoked_at timestamptz,

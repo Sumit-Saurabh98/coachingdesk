@@ -57,8 +57,10 @@ Roles are institute-wide in MVP (`memberships.batch_scope` stays null). Fixed pe
 
 ### `POST /auth/otp/verify`
 ```json
-{ "phone": "+919876543210", "otp": "482913", "device": { "platform": "android", "appVersion": "1.0.0" } }
+{ "phone": "+919876543210", "otp": "482913", "device": { "platform": "android", "appVersion": "1.0.0" }, "acceptedTerms": "2026-10-22" }
 ```
+`acceptedTerms` (optional): the Terms/Privacy version ticked on the login screen (`TERMS_VERSION`); recorded on success (KB #54). An older version → `409 TERMS_OUTDATED` `{ currentVersion }`, checked **before** the code, so the code is not used up.
+
 → `200`
 ```json
 { "accessToken": "...", "refreshToken": "...", "user": { "id": "...", "name": null, "locale": "en" }, "isNewUser": true }
@@ -74,9 +76,10 @@ Roles are institute-wide in MVP (`memberships.batch_scope` stays null). Fixed pe
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/me` | Profile + institutes with role |
+| GET | `/me` | Profile + institutes with role + `termsAccepted` (false → the app asks the user to accept the current terms, KB #54) |
+| POST | `/me/terms` | `{ version }` = the current `TERMS_VERSION` → `204`, recorded with the time. An older version → `409 TERMS_OUTDATED` `{ currentVersion }` |
 | PATCH | `/me` | `{ name?, locale? }` |
-| DELETE | `/me` | Delete own account → `204`: all sessions end (refresh tokens deleted), the user leaves every institute, the user row is deleted; the phone can sign up again as a new user. `409 OWNER_OF_INSTITUTES` while owner of an institute. Same flow on the web at `/delete-account` (OTP login), as Google Play requires |
+| DELETE | `/me` | Delete own account → `204`: all sessions end (refresh tokens deleted), the user leaves every institute, their terms acceptances and the user row are deleted; the phone can sign up again as a new user. `409 OWNER_OF_INSTITUTES` while owner of an institute. Same flow on the web at `/delete-account` (OTP login), as Google Play requires |
 
 ## 4. Institutes & members
 
