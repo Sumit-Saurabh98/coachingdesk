@@ -22,6 +22,126 @@
   </div>
 </section>
 
+<section id="video" class="showcase">
+  <div class="wrap">
+    <div class="showcase-head">
+      <span class="eyebrow eyebrow--dark">{{t:video.eyebrow}}</span>
+      <h2>{{t:video.title}}</h2>
+      <p>{{t:video.text}}</p>
+    </div>
+    <div class="showcase-grid">
+      <div class="contrast contrast--before">
+        <h3>{{t:video.before}}</h3>
+        <ul>
+          <li>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="11" fill="#3a1f24" />
+              <path
+                d="M8 8l8 8M16 8l-8 8"
+                stroke="#ff8a7a"
+                stroke-width="2.4"
+                stroke-linecap="round"
+              /></svg
+            ><span>{{t:video.before1}}</span>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="11" fill="#3a1f24" />
+              <path
+                d="M8 8l8 8M16 8l-8 8"
+                stroke="#ff8a7a"
+                stroke-width="2.4"
+                stroke-linecap="round"
+              /></svg
+            ><span>{{t:video.before2}}</span>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="11" fill="#3a1f24" />
+              <path
+                d="M8 8l8 8M16 8l-8 8"
+                stroke="#ff8a7a"
+                stroke-width="2.4"
+                stroke-linecap="round"
+              /></svg
+            ><span>{{t:video.before3}}</span>
+          </li>
+        </ul>
+      </div>
+      <div class="showcase-player">
+        <div class="promo-phone">
+          <video
+            class="promo"
+            controls
+            playsinline
+            preload="none"
+            width="1080"
+            height="1920"
+            poster="/coachingdesk-{{lang}}.jpg"
+            src="/coachingdesk-{{lang}}.mp4"
+            data-lang="{{lang}}"
+            aria-label="{{t:video.label}}"
+          >
+            {{t:video.fallback}}
+            <a href="/coachingdesk-{{lang}}.mp4">coachingdesk-{{lang}}.mp4</a>
+          </video>
+        </div>
+        <!-- Without JavaScript these are plain links to the files; video.js switches the player instead. -->
+        <div class="video-langs">
+          <span>{{t:video.choose}}</span>
+          <a href="/coachingdesk-en.mp4" data-video-lang="en" hreflang="en">{{t:video.en}}</a>
+          <a href="/coachingdesk-hi.mp4" data-video-lang="hi" hreflang="hi">{{t:video.hi}}</a>
+        </div>
+      </div>
+      <div class="contrast contrast--after">
+        <h3>{{t:video.after}}</h3>
+        <ul>
+          <li>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="11" fill="#173d2c" />
+              <path
+                d="M7 12.5l3.2 3.2L17 9"
+                fill="none"
+                stroke="#5ee29a"
+                stroke-width="2.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              /></svg
+            ><span>{{t:video.after1}}</span>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="11" fill="#173d2c" />
+              <path
+                d="M7 12.5l3.2 3.2L17 9"
+                fill="none"
+                stroke="#5ee29a"
+                stroke-width="2.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              /></svg
+            ><span>{{t:video.after2}}</span>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="11" fill="#173d2c" />
+              <path
+                d="M7 12.5l3.2 3.2L17 9"
+                fill="none"
+                stroke="#5ee29a"
+                stroke-width="2.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              /></svg
+            ><span>{{t:video.after3}}</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <script src="/video.js" defer></script>
+</section>
+
 <section class="band">
   <div class="wrap">
     <h2 class="center">{{t:audience.title}}</h2>

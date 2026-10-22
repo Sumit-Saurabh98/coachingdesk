@@ -1,5 +1,9 @@
 {
-  "lang": { "code": "en", "switchTo": "हिंदी", "switchLabel": "पढ़ें हिंदी में" },
+  "lang": {
+    "code": "en",
+    "switchTo": "हिंदी",
+    "switchLabel": "पढ़ें हिंदी में"
+  },
   "meta": {
     "index": {
       "title": "Coaching Desk: fees, attendance and parent updates for tuition centres",
@@ -40,6 +44,24 @@
     "trust1": "Works without internet",
     "trust2": "Hindi and English",
     "trust3": "No commission on your fees"
+  },
+  "video": {
+    "eyebrow": "Watch · 20 seconds",
+    "title": "The diary had a good run.",
+    "text": "Here is one day at a coaching centre, the old way and the Coaching Desk way.",
+    "before": "The old way",
+    "before1": "Fees written in a diary",
+    "before2": "Attendance on paper",
+    "before3": "Calling every parent, one by one",
+    "after": "With Coaching Desk",
+    "after1": "Attendance in one tap",
+    "after2": "Parents updated on WhatsApp, automatically",
+    "after3": "Every rupee straight to you, ₹0 commission",
+    "choose": "Watch in",
+    "en": "English",
+    "hi": "हिंदी",
+    "label": "Coaching Desk product video",
+    "fallback": "Your browser can't play this video. Download it:"
   },
   "audience": {
     "title": "Built for how you teach",

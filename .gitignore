@@ -13,3 +13,6 @@ coverage/
 .env
 .env.*
 !.env.example
+
+# Product video workspace (frames, renders); the final videos live in apps/web/static
+brag-output*/

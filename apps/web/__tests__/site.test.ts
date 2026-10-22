@@ -90,8 +90,18 @@ describe('building', () => {
         expect(html).toContain(`href="${pageUrl(lang === 'en' ? 'hi' : 'en', page)}"`);
         expect(html).not.toMatch(/\{\{|\{[a-z]+\}/);
         expect(html).toContain(site.supportEmail);
-        expect(html).not.toMatch(/<script/i); // no scripts, no trackers (DPDP: children's data)
+        // No trackers (DPDP: children's data): only the self-hosted video switcher, on the home page.
+        const scripts = html.match(/<script[^>]*>/gi) ?? [];
+        expect(scripts).toEqual(page === 'index' ? ['<script src="/video.js" defer>'] : []);
       }
+    }
+  });
+
+  it('the product video and its poster exist in every language', () => {
+    const files = readdirSync(join(root, 'static'));
+    for (const lang of LANGUAGES) {
+      expect(files).toContain(`coachingdesk-${lang}.mp4`);
+      expect(files).toContain(`coachingdesk-${lang}.jpg`);
     }
   });
 
