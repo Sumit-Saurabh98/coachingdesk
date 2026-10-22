@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="{{lang}}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{title}}</title>
+    <meta name="description" content="{{description}}" />
+    <meta name="theme-color" content="#1565c0" />
+    <link rel="canonical" href="{{canonical}}" />
+    <link rel="alternate" hreflang="en" href="{{alternateEn}}" />
+    <link rel="alternate" hreflang="hi" href="{{alternateHi}}" />
+    <link rel="alternate" hreflang="x-default" href="{{alternateEn}}" />
+    <meta property="og:title" content="{{title}}" />
+    <meta property="og:description" content="{{description}}" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap header-row">
+        <a class="brand" href="{{link:index}}"
+          ><img src="/favicon.svg" alt="" width="32" height="32" /><span
+            >{{site:productName}}</span
+          ></a
+        >
+        <nav class="main-nav" aria-label="Main">
+          <a href="{{link:index}}#features">{{t:nav.features}}</a>
+          <a href="{{link:index}}#how">{{t:nav.how}}</a>
+          <a href="{{link:index}}#pricing">{{t:nav.pricing}}</a>
+          <a href="{{link:index}}#safety">{{t:nav.safety}}</a>
+          <a href="{{link:contact}}">{{t:nav.contact}}</a>
+        </nav>
+        <div class="header-actions">
+          <a
+            class="lang-switch"
+            href="{{switch}}"
+            hreflang="{{t:lang.code}}"
+            title="{{t:lang.switchLabel}}"
+            ><span aria-hidden="true">अ/A</span> {{t:lang.switchTo}}</a
+          >
+          <a class="btn btn-accent btn-small" href="{{link:contact}}">{{t:nav.getApp}}</a>
+        </div>
+      </div>
+    </header>
+    <main>{{body}}</main>
+    <footer class="site-footer">
+      <div class="wrap footer-grid">
+        <div>
+          <a class="brand brand--light" href="{{link:index}}"
+            ><img src="/favicon.svg" alt="" width="32" height="32" /><span
+              >{{site:productName}}</span
+            ></a
+          >
+          <p class="footer-tagline">{{t:footer.tagline}}</p>
+        </div>
+        <div>
+          <h4>{{t:footer.product}}</h4>
+          <a href="{{link:index}}#features">{{t:nav.features}}</a>
+          <a href="{{link:index}}#pricing">{{t:nav.pricing}}</a>
+          <a href="{{link:index}}#safety">{{t:nav.safety}}</a>
+        </div>
+        <div>
+          <h4>{{t:footer.legal}}</h4>
+          <a href="{{link:privacy}}">{{t:footer.privacy}}</a>
+          <a href="{{link:terms}}">{{t:footer.terms}}</a>
+          <a href="{{link:delete-account}}">{{t:footer.delete}}</a>
+        </div>
+        <div>
+          <h4>{{t:footer.contact}}</h4>
+          <a href="mailto:{{site:supportEmail}}">{{site:supportEmail}}</a>
+          <a href="{{link:contact}}">{{t:footer.contactPage}}</a>
+          <p class="footer-address">{{site:address}}</p>
+        </div>
+      </div>
+      <div class="wrap footer-bottom">
+        <p>© {{year}} {{site:legalName}}. {{t:footer.rights}}</p>
+        <a href="{{switch}}">{{t:lang.switchTo}}</a>
+      </div>
+    </footer>
+  </body>
+</html>

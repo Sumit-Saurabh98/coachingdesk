@@ -49,5 +49,6 @@
       "monthlyMessages": 4000,
       "features": ["automatic_messages", "result_cards"]
     }
-  ]
+  ],
+  "popularPlan": "starter"
 }
