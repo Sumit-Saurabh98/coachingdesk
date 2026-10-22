@@ -29,12 +29,15 @@ export interface InstituteSettings {
    * after it). Default: 3 before, on the day, 3 and 7 after. [] = automatic reminders off.
    */
   reminderOffsets: number[];
+  /** FR-7.5: add "Pay by UPI to: <upiId>" to fee reminders. Off by default; needs a UPI ID. */
+  showUpiInReminders: boolean;
 }
 
 const DEFAULT_SETTINGS: InstituteSettings = {
   absenceAlerts: true,
   messageLanguage: 'en',
   reminderOffsets: [3, 0, -3, -7],
+  showUpiInReminders: false,
 };
 
 /**
@@ -48,6 +51,7 @@ export function parseSettings(json: unknown): InstituteSettings {
       typeof raw.absenceAlerts === 'boolean' ? raw.absenceAlerts : DEFAULT_SETTINGS.absenceAlerts,
     messageLanguage: raw.messageLanguage === 'hi' ? 'hi' : DEFAULT_SETTINGS.messageLanguage,
     reminderOffsets: parseOffsets(raw.reminderOffsets),
+    showUpiInReminders: raw.showUpiInReminders === true,
   };
 }
 
@@ -75,6 +79,8 @@ export interface InstituteProps {
   settings: InstituteSettings;
   /** Owner asked to delete the institute (FR-7.7); null = not pending. */
   deletionRequestedAt: Date | null;
+  /** The institute's own UPI ID (FR-7.5), e.g. sharmaclasses@okaxis. Missing = none. */
+  upiId?: string | null;
 }
 
 /** FR-7.7: a deleted institute can be restored for 30 days, then everything is purged. */
@@ -104,6 +110,7 @@ export class Institute {
   readonly archivedAt: Date | null;
   readonly settings: InstituteSettings;
   readonly deletionRequestedAt: Date | null;
+  readonly upiId: string | null;
 
   // private: the only ways in are create() (new, validated) and restore() (from storage).
   // With 9 fields, a props OBJECT is safer than 9 positional parameters you could mix up.
@@ -119,6 +126,7 @@ export class Institute {
     this.archivedAt = props.archivedAt;
     this.settings = props.settings;
     this.deletionRequestedAt = props.deletionRequestedAt;
+    this.upiId = props.upiId ?? null;
   }
 
   /**
@@ -173,6 +181,22 @@ export class Institute {
   }
 
   /**
+   * Returns a new Institute with a changed UPI ID (null or "" removes it). Removing it also turns
+   * the reminder line off: there would be nothing to show.
+   */
+  withUpiId(raw: string | null): Institute {
+    const upiId = cleanUpiId(raw);
+    const settings =
+      upiId === null ? { ...this.settings, showUpiInReminders: false } : this.settings;
+    return new Institute({ ...this.toProps(), upiId, settings });
+  }
+
+  /** The UPI ID to print in fee reminders, or null when the owner hasn't turned the line on. */
+  get reminderUpiId(): string | null {
+    return this.settings.showUpiInReminders ? this.upiId : null;
+  }
+
+  /**
    * Returns a new Institute with changed settings (owner, PATCH). Unlike parseSettings (lenient,
    * for stored data), this is STRICT: a bad value is the owner's mistake and gets a 422.
    */
@@ -190,12 +214,16 @@ export class Institute {
         );
       }
     }
+    if (changes.showUpiInReminders === true && this.upiId === null) {
+      throw invalid('settings.showUpiInReminders', 'Add your UPI ID before turning this on');
+    }
     return new Institute({
       ...this.toProps(),
       settings: {
         absenceAlerts: changes.absenceAlerts ?? this.settings.absenceAlerts,
         messageLanguage: changes.messageLanguage ?? this.settings.messageLanguage,
         reminderOffsets: offsets ? [...offsets] : [...this.settings.reminderOffsets],
+        showUpiInReminders: changes.showUpiInReminders ?? this.settings.showUpiInReminders,
       },
     });
   }
@@ -227,6 +255,7 @@ export class Institute {
       billingDay: this.billingDay,
       dueAfterDays: this.dueAfterDays,
       settings: this.settings,
+      upiId: this.upiId,
       // The app shows "Scheduled for deletion on …  [Cancel]" when this is set.
       deletion:
         this.deletionRequestedAt === null
@@ -251,6 +280,7 @@ export class Institute {
       archivedAt: this.archivedAt,
       settings: this.settings,
       deletionRequestedAt: this.deletionRequestedAt,
+      upiId: this.upiId,
     };
   }
 
@@ -282,6 +312,23 @@ function cleanCity(raw: string | null | undefined): string | null {
     throw invalid('city', 'City must be at most 60 characters');
   }
   return city === '' ? null : city; // an empty city is "not given", not a city called ""
+}
+
+/**
+ * A UPI ID (VPA) is "handle@bank": the handle has letters, digits, dot, dash or underscore; the
+ * bank part is letters (okaxis, ybl, paytm, upi). Stored lowercase, as UPI apps treat it.
+ */
+const UPI_ID = /^[a-z0-9][a-z0-9._-]{1,99}@[a-z][a-z0-9]{1,49}$/;
+
+function cleanUpiId(raw: string | null): string | null {
+  const upiId = (raw ?? '').trim().toLowerCase();
+  if (upiId === '') {
+    return null;
+  }
+  if (!UPI_ID.test(upiId)) {
+    throw invalid('upiId', 'Enter a UPI ID like yourname@okaxis');
+  }
+  return upiId;
 }
 
 function assertBillingDay(day: number): void {

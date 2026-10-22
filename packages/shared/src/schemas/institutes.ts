@@ -20,12 +20,15 @@ export const UpdateInstituteBody = z
     city: z.string().max(200).nullable().optional(),
     billingDay: z.number().int().optional(),
     dueAfterDays: z.number().int().optional(),
+    // The institute's own UPI ID (FR-7.5); null or "" removes it. Format checked by the entity.
+    upiId: z.string().max(200).nullable().optional(),
     // Partial: send only the settings that change. Rules (offsets range etc.) live in the entity.
     settings: z
       .object({
         absenceAlerts: z.boolean().optional(),
         messageLanguage: z.enum(['en', 'hi']).optional(),
         reminderOffsets: z.array(z.number().int()).max(10).optional(),
+        showUpiInReminders: z.boolean().optional(),
       })
       .strict()
       .optional(),

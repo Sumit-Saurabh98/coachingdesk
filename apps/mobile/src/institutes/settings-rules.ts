@@ -35,6 +35,8 @@ export interface InstituteSettings {
   absenceAlerts: boolean;
   messageLanguage: 'en' | 'hi';
   reminderOffsets: number[];
+  // Optional: a cached institute saved before Step 37 doesn't have it (missing = off).
+  showUpiInReminders?: boolean;
 }
 
 export interface InstituteDetail {
@@ -44,6 +46,7 @@ export interface InstituteDetail {
   billingDay: number;
   dueAfterDays: number;
   settings: InstituteSettings;
+  upiId?: string | null; // FR-7.5; missing in a cache from before Step 37
 }
 
 export interface SettingsValues {
@@ -54,13 +57,33 @@ export interface SettingsValues {
   absenceAlerts: boolean;
   messageLanguage: 'en' | 'hi';
   reminderOffsets: number[];
+  upiId: string;
+  showUpiInReminders: boolean;
 }
 
 export type SettingsError =
   | 'institute.nameInvalid'
   | 'institute.cityInvalid'
   | 'instituteSettings.billingDayInvalid'
-  | 'instituteSettings.dueAfterInvalid';
+  | 'instituteSettings.dueAfterInvalid'
+  | 'instituteSettings.upiInvalid';
+
+type SettingsField = 'name' | 'city' | 'billingDay' | 'dueAfter' | 'upiId';
+
+/** Same rule as the API: "handle@bank", stored lowercase. */
+const UPI_ID = /^[a-z0-9][a-z0-9._-]{1,99}@[a-z][a-z0-9]{1,49}$/;
+
+/** The UPI ID as it will be saved: trimmed, lowercase; null when the box is empty. */
+export function cleanUpiId(text: string): string | null {
+  const upiId = text.trim().toLowerCase();
+  return upiId === '' ? null : upiId;
+}
+
+/** The reminder line can only be on with a UPI ID to show (the API refuses it otherwise). */
+export function canShowUpi(values: SettingsValues): boolean {
+  const upiId = cleanUpiId(values.upiId);
+  return upiId !== null && UPI_ID.test(upiId);
+}
 
 const tidy = (text: string) => text.trim().replace(/\s+/g, ' ');
 const wholeNumber = (text: string): number | null =>
@@ -75,13 +98,15 @@ export function valuesFromInstitute(institute: InstituteDetail): SettingsValues 
     absenceAlerts: institute.settings.absenceAlerts,
     messageLanguage: institute.settings.messageLanguage,
     reminderOffsets: [...institute.settings.reminderOffsets],
+    upiId: institute.upiId ?? '',
+    showUpiInReminders: institute.settings.showUpiInReminders ?? false,
   };
 }
 
 export function validateSettings(
   values: SettingsValues,
-): Partial<Record<'name' | 'city' | 'billingDay' | 'dueAfter', SettingsError>> {
-  const errors: Partial<Record<'name' | 'city' | 'billingDay' | 'dueAfter', SettingsError>> = {};
+): Partial<Record<SettingsField, SettingsError>> {
+  const errors: Partial<Record<SettingsField, SettingsError>> = {};
   const name = tidy(values.name);
   if (name.length < 2 || name.length > 80) {
     errors.name = 'institute.nameInvalid';
@@ -97,6 +122,10 @@ export function validateSettings(
   if (dueAfter === null || dueAfter > 27) {
     errors.dueAfter = 'instituteSettings.dueAfterInvalid';
   }
+  const upiId = cleanUpiId(values.upiId);
+  if (upiId !== null && !UPI_ID.test(upiId)) {
+    errors.upiId = 'instituteSettings.upiInvalid';
+  }
   return errors;
 }
 
@@ -111,6 +140,7 @@ export interface InstituteUpdate {
   city?: string | null;
   billingDay?: number;
   dueAfterDays?: number;
+  upiId?: string | null;
   settings?: Partial<InstituteSettings>;
 }
 
@@ -136,6 +166,10 @@ export function toInstituteUpdate(
   if (dueAfterDays !== original.dueAfterDays) {
     body.dueAfterDays = dueAfterDays;
   }
+  const upiId = cleanUpiId(values.upiId);
+  if (upiId !== (original.upiId ?? null)) {
+    body.upiId = upiId;
+  }
   const settings: Partial<InstituteSettings> = {};
   if (values.absenceAlerts !== original.settings.absenceAlerts) {
     settings.absenceAlerts = values.absenceAlerts;
@@ -148,6 +182,11 @@ export function toInstituteUpdate(
     values.reminderOffsets.every((o) => original.settings.reminderOffsets.includes(o));
   if (!sameOffsets) {
     settings.reminderOffsets = values.reminderOffsets;
+  }
+  // Without a UPI ID the line is off (the API turns it off when the ID is removed).
+  const showUpi = upiId !== null && values.showUpiInReminders;
+  if (showUpi !== (original.settings.showUpiInReminders ?? false) && upiId !== null) {
+    settings.showUpiInReminders = showUpi;
   }
   if (Object.keys(settings).length > 0) {
     body.settings = settings;

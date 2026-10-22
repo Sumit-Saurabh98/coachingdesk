@@ -84,7 +84,7 @@ Roles are institute-wide in MVP (`memberships.batch_scope` stays null). Fixed pe
 |---|---|---|
 | POST | `/institutes` | `{ name, type: "tuition"\|"academy"\|"home_tutor", city? }` → creates owner membership + 30-day Pro trial |
 | GET | `/institutes/{id}` | Any member → `200 { institute (incl. settings), role, entitlements: { plan, maxActiveStudents, maxMembers, monthlyMessages, features } }`. The app shows/hides features from `entitlements`, never from plan names |
-| PATCH | `/institutes/{id}` | Owner. `{ name?, city?, billingDay?, dueAfterDays?, settings? }`; `settings` is partial: `{ absenceAlerts?: boolean, messageLanguage?: "en"\|"hi", reminderOffsets?: number[] }` (≤ 6 different whole days, −30…30; `[]` = no automatic reminders) → `200 { institute }`. Unknown stored settings keys are kept |
+| PATCH | `/institutes/{id}` | Owner. `{ name?, city?, billingDay?, dueAfterDays?, upiId?, settings? }`; `settings` is partial: `{ absenceAlerts?: boolean, messageLanguage?: "en"\|"hi", reminderOffsets?: number[], showUpiInReminders?: boolean }` (≤ 6 different whole days, −30…30; `[]` = no automatic reminders) → `200 { institute }`. `upiId` (FR-7.5): the institute's own UPI ID, `handle@bank`, stored trimmed and lowercase; `null`/`""` removes it **and** turns `showUpiInReminders` off. Turning `showUpiInReminders` on without a UPI ID → 422 `settings.showUpiInReminders` (both can be sent in one request). Unknown stored settings keys are kept |
 | GET | `/institutes/{id}/members` | Owner. `200 { members: [{ userId, name, phone, role }] }`, owner first |
 | POST | `/institutes/{id}/members` | Owner. `{ phone, name, role: "teacher"\|"staff" }` → `201 { member }` — adds by phone. Creates the `users` row if the phone is new; they get access on first OTP login. `name` is used only if the person hasn't set their own. `409` already a member; member count (excluding owner) checked against plan atomically → `402 PLAN_LIMIT_REACHED` |
 | DELETE | `/institutes/{id}/members/{userId}` | Owner. Remove → `204`; they lose access immediately. `409` for the owner, `404` not a member |
@@ -113,7 +113,7 @@ Roles are institute-wide in MVP (`memberships.batch_scope` stays null). Fixed pe
 
 `settings` shape (defaults shown; quiet hours are fixed at 21:00–08:00 in MVP):
 ```json
-{ "absenceAlerts": true, "reminderOffsets": [3, 0, -3, -7], "messageLanguage": "en" }
+{ "absenceAlerts": true, "reminderOffsets": [3, 0, -3, -7], "messageLanguage": "en", "showUpiInReminders": false }
 ```
 
 ## 5. Batches

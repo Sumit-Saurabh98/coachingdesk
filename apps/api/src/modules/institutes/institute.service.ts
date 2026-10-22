@@ -102,12 +102,17 @@ export class InstituteService {
   /** PATCH /v1/institutes/:id (owner only). The entity applies the rules; we load, change, save. */
   async update(
     instituteId: string,
-    changes: DetailsChanges & BillingSettingsChanges & { settings?: Partial<InstituteSettings> },
+    changes: DetailsChanges &
+      BillingSettingsChanges & { upiId?: string | null; settings?: Partial<InstituteSettings> },
     actorUserId: string | null = null,
   ): Promise<Institute> {
     let updated = (await this.get(instituteId))
       .withDetails({ name: changes.name, city: changes.city })
       .withBillingSettings({ billingDay: changes.billingDay, dueAfterDays: changes.dueAfterDays });
+    // The UPI ID first: turning the reminder line on in the same request needs it.
+    if (changes.upiId !== undefined) {
+      updated = updated.withUpiId(changes.upiId);
+    }
     if (changes.settings) {
       updated = updated.withSettings(changes.settings);
     }
@@ -115,6 +120,7 @@ export class InstituteService {
     if (
       changes.billingDay !== undefined ||
       changes.dueAfterDays !== undefined ||
+      changes.upiId !== undefined ||
       changes.settings
     ) {
       await this.audit.record({
@@ -126,6 +132,7 @@ export class InstituteService {
         after: {
           billingDay: updated.billingDay,
           dueAfterDays: updated.dueAfterDays,
+          upiId: updated.upiId,
           settings: updated.settings,
         },
       });

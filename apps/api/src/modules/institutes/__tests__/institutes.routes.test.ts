@@ -195,9 +195,38 @@ describe('tenancy: /v1/institutes/:instituteId', () => {
       absenceAlerts: false,
       messageLanguage: 'en',
       reminderOffsets: [2, 0],
+      showUpiInReminders: false,
     });
     expect(bad.statusCode).toBe(422);
     expect(bad.json().error.details).toEqual({ field: 'settings.reminderOffsets' });
+  });
+
+  it('the owner sets a UPI ID and turns the reminder line on in one request; bad IDs -> 422', async () => {
+    setup();
+    const { owner, instituteId } = await ownerWithInstitute();
+    const token = owner.accessToken;
+
+    const tooEarly = await patch(token, instituteId, { settings: { showUpiInReminders: true } });
+    const bad = await patch(token, instituteId, { upiId: 'sharma classes' });
+    const ok = await patch(token, instituteId, {
+      upiId: ' Sharma@OkAxis ',
+      settings: { showUpiInReminders: true },
+    });
+    const removed = await patch(token, instituteId, { upiId: null });
+
+    expect(tooEarly.statusCode).toBe(422);
+    expect(tooEarly.json().error.details).toEqual({ field: 'settings.showUpiInReminders' });
+    expect(bad.statusCode).toBe(422);
+    expect(bad.json().error.details).toEqual({ field: 'upiId' });
+    expect(ok.statusCode).toBe(200);
+    expect(ok.json().institute).toMatchObject({
+      upiId: 'sharma@okaxis',
+      settings: { showUpiInReminders: true },
+    });
+    expect(removed.json().institute).toMatchObject({
+      upiId: null,
+      settings: { showUpiInReminders: false },
+    });
   });
 
   it('lets a teacher read but not change settings (403)', async () => {

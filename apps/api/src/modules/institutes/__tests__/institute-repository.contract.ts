@@ -83,7 +83,24 @@ export function describeInstituteRepositoryContract(
         absenceAlerts: false,
         messageLanguage: 'en',
         reminderOffsets: [1, -2],
+        showUpiInReminders: false,
       });
+    });
+
+    it('saves the UPI ID and the reminder switch', async () => {
+      const repo = create();
+      const institute = newInstitute(1);
+      await repo.createWithOwner(institute, trial);
+
+      await repo.update(
+        institute.withUpiId('sharma@okaxis').withSettings({ showUpiInReminders: true }),
+      );
+      const saved = await repo.findById(institute.id);
+      expect(saved?.upiId).toBe('sharma@okaxis');
+      expect(saved?.reminderUpiId).toBe('sharma@okaxis');
+
+      await repo.update(saved!.withUpiId(null));
+      expect((await repo.findById(institute.id))?.reminderUpiId).toBeNull();
     });
 
     it('refuses to update an institute that does not exist', async () => {

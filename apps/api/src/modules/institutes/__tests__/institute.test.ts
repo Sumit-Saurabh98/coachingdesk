@@ -22,7 +22,13 @@ describe('Institute.create', () => {
       timezone: 'Asia/Kolkata',
       billingDay: 1,
       dueAfterDays: 6,
-      settings: { absenceAlerts: true, messageLanguage: 'en', reminderOffsets: [3, 0, -3, -7] },
+      settings: {
+        absenceAlerts: true,
+        messageLanguage: 'en',
+        reminderOffsets: [3, 0, -3, -7],
+        showUpiInReminders: false,
+      },
+      upiId: null,
       deletion: null,
     });
     expect(create().createdBy).toBe('owner-1');
@@ -125,17 +131,25 @@ describe('settings', () => {
       absenceAlerts: true,
       messageLanguage: 'en',
       reminderOffsets: [3, 0, -3, -7],
+      showUpiInReminders: false,
     });
   });
 
-  const defaults = { absenceAlerts: true, messageLanguage: 'en', reminderOffsets: [3, 0, -3, -7] };
+  const defaults = {
+    absenceAlerts: true,
+    messageLanguage: 'en',
+    reminderOffsets: [3, 0, -3, -7],
+    showUpiInReminders: false,
+  };
 
   it.each([
     [{}, defaults],
     [
       { absenceAlerts: false, messageLanguage: 'hi', reminderOffsets: [1, -1] },
-      { absenceAlerts: false, messageLanguage: 'hi', reminderOffsets: [1, -1] },
+      { ...defaults, absenceAlerts: false, messageLanguage: 'hi', reminderOffsets: [1, -1] },
     ],
+    [{ showUpiInReminders: true }, { ...defaults, showUpiInReminders: true }],
+    [{ showUpiInReminders: 'yes' }, defaults],
     [{ reminderOffsets: [] }, { ...defaults, reminderOffsets: [] }], // reminders off
     [{ absenceAlerts: 'yes', messageLanguage: 'fr', reminderOffsets: [1, 1.5, 99] }, defaults],
     [{ reminderOffsets: [1, 1] }, defaults], // repeats
@@ -152,6 +166,7 @@ describe('Institute.withSettings', () => {
       absenceAlerts: true,
       messageLanguage: 'hi',
       reminderOffsets: [],
+      showUpiInReminders: false,
     });
   });
 
@@ -163,6 +178,51 @@ describe('Institute.withSettings', () => {
       );
     },
   );
+});
+
+describe('UPI ID (FR-7.5)', () => {
+  it('a new institute has no UPI ID and the reminder line off', () => {
+    expect(create().upiId).toBeNull();
+    expect(create().reminderUpiId).toBeNull();
+  });
+
+  it('tidies the UPI ID: trimmed and lowercase', () => {
+    expect(create().withUpiId('  SharmaClasses@OkAxis ').upiId).toBe('sharmaclasses@okaxis');
+  });
+
+  it.each(['sharma', 'sharma@', '@okaxis', 'sharma classes@okaxis', 'sharma@ok axis', 'a@b'])(
+    'rejects %j (422)',
+    (raw) => {
+      expect(() => create().withUpiId(raw)).toThrow(fieldError('upiId'));
+    },
+  );
+
+  it('accepts real-looking UPI IDs', () => {
+    for (const raw of ['9876543210@ybl', 'sharma.classes@okhdfcbank', 'ravi_k-1@paytm']) {
+      expect(create().withUpiId(raw).upiId).toBe(raw);
+    }
+  });
+
+  it('shows the UPI ID in reminders only when the owner turns the line on', () => {
+    const withId = create().withUpiId('sharma@okaxis');
+    expect(withId.reminderUpiId).toBeNull();
+    expect(withId.withSettings({ showUpiInReminders: true }).reminderUpiId).toBe('sharma@okaxis');
+  });
+
+  it('refuses to turn the line on without a UPI ID (422)', () => {
+    expect(() => create().withSettings({ showUpiInReminders: true })).toThrow(
+      fieldError('settings.showUpiInReminders'),
+    );
+  });
+
+  it('removing the UPI ID (null or "") also turns the line off', () => {
+    const on = create().withUpiId('sharma@okaxis').withSettings({ showUpiInReminders: true });
+    for (const removed of [on.withUpiId(null), on.withUpiId('  ')]) {
+      expect(removed.upiId).toBeNull();
+      expect(removed.settings.showUpiInReminders).toBe(false);
+      expect(removed.reminderUpiId).toBeNull();
+    }
+  });
 });
 
 describe('deletion state', () => {

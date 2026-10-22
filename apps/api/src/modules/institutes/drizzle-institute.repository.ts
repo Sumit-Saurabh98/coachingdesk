@@ -59,6 +59,7 @@ export class DrizzleInstituteRepository implements InstituteRepository {
         city: p.city,
         billingDay: p.billingDay,
         dueAfterDays: p.dueAfterDays,
+        upiVpa: p.upiId ?? null,
         // MERGE into the stored JSON (||): keys this code doesn't know yet are kept, not wiped.
         settings: sql`${institutes.settings} || ${JSON.stringify(p.settings)}::jsonb`,
         updatedAt: sql`now()`,
@@ -249,6 +250,7 @@ function toInstitute(row: InstituteRow): Institute {
     archivedAt: row.archivedAt,
     settings: parseSettings(row.settings),
     deletionRequestedAt: row.deletionRequestedAt,
+    upiId: row.upiVpa,
   });
 }
 

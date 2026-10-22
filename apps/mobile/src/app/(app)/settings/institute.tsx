@@ -1,5 +1,5 @@
-// Institute settings (owner): name and city, when fees are billed and due, and which automatic
-// WhatsApp messages go out (absence alerts, reminder days, the language they're written in).
+// Institute settings (owner): name and city, when fees are billed and due, the institute's own
+// UPI ID, and which automatic WhatsApp messages go out (absence alerts, reminder days, language).
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Redirect } from 'expo-router';
 import { useState } from 'react';
@@ -26,6 +26,8 @@ import {
   updateInstitute,
 } from '@/institutes/institutes-api';
 import {
+  canShowUpi,
+  cleanUpiId,
   dueDayOfMonth,
   MAX_REMINDERS,
   offsetLabel,
@@ -170,6 +172,39 @@ function SettingsForm({ data, onSaved }: { data: InstituteResponse; onSaved: () 
                 ? t('instituteSettings.dueExample', { billing: billingDay, due: dueDay })
                 : t('instituteSettings.dueExampleDays', { billing: billingDay, days: dueAfter })}
         </HelperText>
+
+        <List.Subheader style={styles.subheader}>{t('instituteSettings.upi')}</List.Subheader>
+        <TextInput
+          mode="outlined"
+          label={t('instituteSettings.upiId')}
+          placeholder="sharmaclasses@okaxis"
+          value={values.upiId}
+          onChangeText={(text) => set('upiId', text)}
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="email-address"
+          error={shown.upiId !== undefined}
+        />
+        <HelperText type={shown.upiId ? 'error' : 'info'} visible>
+          {shown.upiId ? t(shown.upiId) : t('instituteSettings.upiHelp')}
+        </HelperText>
+        <View style={styles.switchRow}>
+          <View style={styles.flex}>
+            <Text variant="bodyLarge">{t('instituteSettings.upiInReminders')}</Text>
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+              {canShowUpi(values) && values.showUpiInReminders
+                ? t('instituteSettings.upiPreview', { upiId: cleanUpiId(values.upiId) })
+                : canShowUpi(values)
+                  ? t('instituteSettings.upiInRemindersHelp')
+                  : t('instituteSettings.upiNeeded')}
+            </Text>
+          </View>
+          <Switch
+            value={canShowUpi(values) && values.showUpiInReminders}
+            disabled={!canShowUpi(values)}
+            onValueChange={(on) => set('showUpiInReminders', on)}
+          />
+        </View>
 
         <List.Subheader style={styles.subheader}>{t('instituteSettings.messages')}</List.Subheader>
         <View style={styles.switchRow}>
