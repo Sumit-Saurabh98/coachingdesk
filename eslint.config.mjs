@@ -59,6 +59,13 @@ export default tseslint.config(
     },
   },
   {
+    // Dev-only Node scripts in JavaScript (e.g. apps/mobile/scripts). TypeScript checks them
+    // (checkJs in their tsconfig) and knows Node's globals, so ESLint's no-undef only adds
+    // false alarms for `process` and `console`, as typescript-eslint advises.
+    files: ['**/scripts/**/*.mjs'],
+    rules: { 'no-undef': 'off' },
+  },
+  {
     // React's rules, for the app only. Two classic bugs they catch:
     //  - a hook called inside an `if` (React then mixes up which state belongs to which hook)
     //  - an effect that reads a value but doesn't list it as a dependency (stale data on screen)

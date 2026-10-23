@@ -1,0 +1,6 @@
+{
+  "//": "Dev-only Node scripts (not part of the app bundle): Node types, plain JavaScript.",
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": { "noEmit": true, "allowJs": true, "checkJs": true, "types": ["node"] },
+  "include": ["*.mjs"]
+}
