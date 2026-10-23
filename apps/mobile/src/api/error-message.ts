@@ -43,6 +43,9 @@ export function errorMessage(t: TFunction, error: unknown): string {
       return t('errors.pendingDeletion');
     case 'OWNER_OF_INSTITUTES':
       return t('errors.ownerOfInstitutes');
+    case 'TERMS_OUTDATED':
+      // The server has newer terms than this app shows: only an app update can show them.
+      return t('errors.termsOutdated');
     default:
       return t('errors.generic');
   }

@@ -1,3 +1,4 @@
+import { TERMS_VERSION } from '@coachingdesk/shared';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { api, session } from '@/api';
@@ -35,6 +36,8 @@ export async function login(
         platform: Platform.OS === 'ios' ? 'ios' : 'android',
         appVersion: Constants.expoConfig?.version ?? 'unknown',
       },
+      // The login screen only lets the user get here after ticking "I agree" (KB #54).
+      acceptedTerms: TERMS_VERSION,
     },
   );
   await session.start({ accessToken: result.accessToken, refreshToken: result.refreshToken });
@@ -43,8 +46,13 @@ export async function login(
   return { user: result.user, isNewUser: result.isNewUser };
 }
 
-/** GET /v1/me -> the user and their institutes. */
-export function getMe(signal?: AbortSignal): Promise<{ user: User; institutes: MyInstitute[] }> {
+/**
+ * GET /v1/me -> the user, their institutes, and whether they accepted the current terms.
+ * termsAccepted is missing in a cache saved before Step 38: treat that as "not known yet".
+ */
+export function getMe(
+  signal?: AbortSignal,
+): Promise<{ user: User; institutes: MyInstitute[]; termsAccepted?: boolean }> {
   return api.get('/v1/me', { signal });
 }
 

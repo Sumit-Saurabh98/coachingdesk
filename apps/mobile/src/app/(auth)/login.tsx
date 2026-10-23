@@ -1,15 +1,17 @@
-// Login, step 1: the mobile number. On "Send code" the API texts a 6-digit code (in local
-// development there's no SMS: the code is printed in the API's terminal).
+// Login, step 1: the mobile number, and agreeing to the Terms and Privacy Policy (KB #54). On
+// "Send code" the API texts a 6-digit code (in local development there's no SMS: the code is
+// printed in the API's terminal).
 import { RequestOtpBody } from '@coachingdesk/shared';
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, HelperText, Text, TextInput } from 'react-native-paper';
+import { Button, Checkbox, HelperText, Text, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { errorMessage } from '@/api/error-message';
 import { requestOtp } from '@/auth/auth-api';
+import { AgreeTermsText } from '@/legal/agree-terms-text';
 import { usePreferences } from '@/stores/preferences';
 import { useAppTheme } from '@/theme/theme';
 
@@ -22,6 +24,8 @@ export default function LoginScreen() {
   const [digits, setDigits] = useState(() => usePreferences.getState().lastPhone ?? '');
   // Show "invalid number" only after the user tried to continue, not while still typing.
   const [triedToSubmit, setTriedToSubmit] = useState(false);
+  // Unticked every time: the user isn't known yet, so we can't tell if they agreed before.
+  const [agreed, setAgreed] = useState(false);
 
   // The SAME rule as the API (packages/shared): a number the app accepts, the server accepts.
   const isValid = RequestOtpBody.safeParse({ phone: digits }).success;
@@ -36,7 +40,7 @@ export default function LoginScreen() {
 
   const submit = () => {
     setTriedToSubmit(true);
-    if (isValid && !sendCode.isPending) {
+    if (isValid && agreed && !sendCode.isPending) {
       sendCode.mutate();
     }
   };
@@ -81,6 +85,16 @@ export default function LoginScreen() {
             </HelperText>
           </View>
 
+          <View style={styles.agreeRow}>
+            <Checkbox.Android
+              status={agreed ? 'checked' : 'unchecked'}
+              onPress={() => setAgreed((on) => !on)}
+            />
+            <View style={styles.flex}>
+              <AgreeTermsText />
+            </View>
+          </View>
+
           {sendCode.isError && (
             <Text style={{ color: theme.colors.error }}>{errorMessage(t, sendCode.error)}</Text>
           )}
@@ -89,7 +103,7 @@ export default function LoginScreen() {
             mode="contained"
             onPress={submit}
             loading={sendCode.isPending}
-            disabled={sendCode.isPending}
+            disabled={sendCode.isPending || !agreed}
             contentStyle={styles.buttonContent}
           >
             {t('auth.sendCode')}
@@ -104,5 +118,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { flexGrow: 1, justifyContent: 'center', padding: 24, gap: 16 },
   header: { gap: 8, marginBottom: 24 },
+  agreeRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  flex: { flex: 1 },
   buttonContent: { paddingVertical: 6 },
 });

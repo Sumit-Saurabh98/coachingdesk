@@ -11,6 +11,7 @@ import { useAttendanceSync } from '@/attendance/sync';
 import { logout } from '@/auth/auth-api';
 import { useSessionStatus } from '@/auth/use-session-status';
 import { useCurrentInstitute } from '@/institutes/use-current-institute';
+import { AcceptTermsScreen } from '@/legal/accept-terms-screen';
 import { useAppTheme } from '@/theme/theme';
 
 /** The screens open without an institute (segments[1] under "(app)"). */
@@ -63,6 +64,12 @@ function SignedInLayout() {
         )}
       </View>
     );
+  }
+
+  // The terms changed (or were never accepted): agree first, then the app (KB #54). Only an
+  // explicit false: a cache from before this check doesn't say, and the next refresh will.
+  if (me.data.termsAccepted === false) {
+    return <AcceptTermsScreen />;
   }
 
   return (

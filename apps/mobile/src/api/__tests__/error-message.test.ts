@@ -24,6 +24,7 @@ describe('errorMessage', () => {
     [http('SERVICE_UNAVAILABLE', {}, 503), 'errors.unavailable'],
     [http('INSTITUTE_PENDING_DELETION', {}, 409), 'errors.pendingDeletion'],
     [http('OWNER_OF_INSTITUTES', {}, 409), 'errors.ownerOfInstitutes'],
+    [http('TERMS_OUTDATED', {}, 409), 'errors.termsOutdated'],
     [http('SOMETHING_NEW_FROM_A_NEWER_SERVER'), 'errors.generic'],
     [new Error('not ours'), 'errors.generic'],
   ])('%s -> %s', (error, expected) => {

@@ -29,6 +29,16 @@
     "codeSent": "A new code is on its way",
     "changeNumber": "Change number"
   },
+  "legal": {
+    "agreeStart": "I agree to the ",
+    "terms": "Terms of Service",
+    "agreeMiddle": " and ",
+    "privacy": "Privacy Policy",
+    "agreeEnd": "",
+    "updatedTitle": "Our Terms and Privacy Policy",
+    "updatedBody": "To keep using Coaching Desk, please read and accept our Terms of Service and Privacy Policy.",
+    "continue": "Continue"
+  },
   "errors": {
     "network": "No internet connection. Check it and try again.",
     "timeout": "The server is taking too long. Please try again.",
@@ -43,7 +53,8 @@
     "otpExpired": "This code has expired. Please request a new one.",
     "planLimit": "Your plan allows {{limit}} active students. Upgrade, or mark students who left as left.",
     "pendingDeletion": "This institute is scheduled for deletion. Cancel the deletion (More → Your data) to make changes.",
-    "ownerOfInstitutes": "You own an institute. Delete it first (More → Your data), then your account."
+    "ownerOfInstitutes": "You own an institute. Delete it first (More → Your data), then your account.",
+    "termsOutdated": "Our terms have been updated. Please update the app from Google Play, then try again."
   },
   "me": {
     "title": "Me",
