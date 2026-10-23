@@ -1,0 +1,299 @@
+<!doctype html>
+<!-- The Play Store graphics, drawn from the website's app screens (apps/web, built to dist).
+     ?kind=shot&n=1..6&lang=en|hi (1080×1920) · ?kind=feature&lang=… (1024×500) · ?kind=icon (512×512)
+     Rendered by scripts/render-store.mjs. -->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      html,
+      body {
+        margin: 0;
+      }
+      body {
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          Roboto,
+          'Noto Sans',
+          'Noto Sans Devanagari',
+          sans-serif;
+        color: #0a0a0a;
+      }
+      .accent {
+        color: #f15a22;
+      }
+      .blue {
+        color: #1565c0;
+      }
+      /* Screenshot */
+      .shot {
+        position: relative;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: linear-gradient(170deg, #e8f0fe 0%, #ffffff 55%, #fff7f2 100%);
+      }
+      .shot h1 {
+        position: absolute;
+        top: 150px;
+        left: 70px;
+        right: 70px;
+        margin: 0;
+        text-align: center;
+        font-size: 84px;
+        line-height: 1.15;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+      }
+      .shot p {
+        position: absolute;
+        top: 380px;
+        left: 90px;
+        right: 90px;
+        margin: 0;
+        text-align: center;
+        font-size: 44px;
+        line-height: 1.35;
+        color: #3a4452;
+        font-weight: 600;
+      }
+      .shot .phone {
+        position: absolute;
+        top: 560px;
+        left: 170px;
+        width: 740px;
+        filter: drop-shadow(0 50px 70px rgba(11, 31, 58, 0.35));
+      }
+      /* Last screenshot: everything in one card */
+      .end {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 44px;
+        text-align: center;
+      }
+      .end img {
+        width: 220px;
+        height: 220px;
+      }
+      .end .name {
+        font-size: 104px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .end .line {
+        font-size: 72px;
+        font-weight: 800;
+        line-height: 1.2;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 22px;
+        width: 900px;
+      }
+      .chips span {
+        background: #fff;
+        border: 3px solid #d6e4ff;
+        color: #0d47a1;
+        border-radius: 999px;
+        padding: 18px 36px;
+        font-size: 44px;
+        font-weight: 700;
+      }
+      .pill {
+        background: #f15a22;
+        color: #fff;
+        border-radius: 999px;
+        padding: 30px 64px;
+        font-size: 52px;
+        font-weight: 800;
+      }
+      .small {
+        font-size: 42px;
+        color: #5a6470;
+        font-weight: 600;
+      }
+      /* Feature graphic */
+      .feature {
+        position: relative;
+        width: 1024px;
+        height: 500px;
+        overflow: hidden;
+        color: #fff;
+        background:
+          radial-gradient(circle at 80% 60%, #1e88e5 0%, transparent 55%),
+          linear-gradient(135deg, #1565c0, #0b1f3a);
+      }
+      .feature .brand {
+        position: absolute;
+        left: 64px;
+        top: 70px;
+        display: flex;
+        align-items: center;
+        gap: 22px;
+      }
+      .feature .brand img {
+        width: 96px;
+        height: 96px;
+        border-radius: 22px;
+        box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.25);
+      }
+      .feature .brand span {
+        font-size: 58px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+      }
+      .feature .tag {
+        position: absolute;
+        left: 64px;
+        top: 210px;
+        width: 520px;
+        font-size: 38px;
+        line-height: 1.3;
+        font-weight: 700;
+      }
+      .feature .note {
+        position: absolute;
+        left: 64px;
+        bottom: 56px;
+        font-size: 26px;
+        color: #cfe0ff;
+        font-weight: 600;
+      }
+      .feature .p1,
+      .feature .p2 {
+        position: absolute;
+        width: 250px;
+        filter: drop-shadow(0 24px 40px rgba(0, 0, 0, 0.45));
+      }
+      .feature .p1 {
+        left: 640px;
+        top: 90px;
+        transform: rotate(-6deg);
+      }
+      .feature .p2 {
+        left: 790px;
+        top: 50px;
+        transform: rotate(6deg);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      const q = new URLSearchParams(location.search);
+      const lang = q.get('lang') === 'hi' ? 'hi' : 'en';
+      const img = (name) => `../../../web/dist/images/${lang}/${name}.svg`;
+      const LOGO = '../../../web/static/favicon.svg';
+      const T = {
+        en: {
+          shots: [
+            [
+              'today',
+              'Your whole coaching centre <span class="blue">in one app</span>',
+              'Batches, students and today’s classes at a glance',
+            ],
+            [
+              'register',
+              'Attendance in <span class="blue">one tap</span>',
+              'Works even without internet',
+            ],
+            [
+              'whatsapp',
+              'Parents updated on <span class="blue">WhatsApp</span>',
+              'Fee reminders, absence alerts and receipts, sent automatically',
+            ],
+            [
+              'fees',
+              'Every rupee, <span class="blue">tracked</span>',
+              'Parents pay you directly by UPI or cash. <span class="accent">₹0 commission.</span>',
+            ],
+            [
+              'results',
+              'Results to <span class="blue">every parent</span>',
+              'Enter marks once, send them in one tap',
+            ],
+          ],
+          end: {
+            line: 'Less paperwork.<br><span class="blue">More teaching.</span>',
+            chips: ['Students', 'Attendance', 'Fees', 'Results', 'Notices'],
+            pill: 'Start free · 30-day trial',
+            small: 'In Hindi and English',
+          },
+          feature: {
+            tag: 'Fees, attendance and WhatsApp updates for your coaching centre',
+            note: 'Hindi · English · Works offline',
+          },
+        },
+        hi: {
+          shots: [
+            [
+              'today',
+              'पूरा कोचिंग सेंटर <span class="blue">एक ऐप में</span>',
+              'बैच, छात्र और आज की क्लास एक नज़र में',
+            ],
+            ['register', '<span class="blue">एक टैप</span> में हाज़िरी', 'बिना इंटरनेट भी चलता है'],
+            [
+              'whatsapp',
+              'पेरेंट्स को <span class="blue">WhatsApp</span> पर अपडेट',
+              'फ़ीस रिमाइंडर, ग़ैरहाज़िरी की ख़बर और रसीद, अपने आप',
+            ],
+            [
+              'fees',
+              'हर रुपये का <span class="blue">हिसाब</span>',
+              'पेरेंट्स सीधे आपको UPI या नकद देते हैं। <span class="accent">₹0 कमीशन।</span>',
+            ],
+            [
+              'results',
+              '<span class="blue">हर पेरेंट</span> तक रिज़ल्ट',
+              'एक बार नंबर भरें, एक टैप में भेजें',
+            ],
+          ],
+          end: {
+            line: 'कागज़ी काम कम।<br><span class="blue">पढ़ाई ज़्यादा।</span>',
+            chips: ['छात्र', 'हाज़िरी', 'फ़ीस', 'रिज़ल्ट', 'नोटिस'],
+            pill: 'मुफ़्त शुरू करें · 30 दिन का ट्रायल',
+            small: 'हिंदी और अंग्रेज़ी में',
+          },
+          feature: {
+            tag: 'आपके कोचिंग सेंटर के लिए फ़ीस, हाज़िरी और WhatsApp अपडेट',
+            note: 'हिंदी · English · बिना इंटरनेट भी',
+          },
+        },
+      }[lang];
+
+      const root = document.getElementById('root');
+      const kind = q.get('kind');
+      if (kind === 'icon') {
+        // The SVG says width="1024": draw it at that size, then scale the box to 512.
+        root.innerHTML =
+          '<div style="width:1024px;height:1024px;transform:scale(0.5);transform-origin:0 0">' +
+          '<img src="../../assets/brand/icon.svg" width="1024" height="1024" style="display:block" /></div>';
+      } else if (kind === 'feature') {
+        root.innerHTML = `<div class="feature">
+    <div class="brand"><img src="${LOGO}" /><span>Coaching Desk</span></div>
+    <div class="tag">${T.feature.tag}</div>
+    <div class="note">${T.feature.note}</div>
+    <img class="p1" src="${img('today')}" /><img class="p2" src="${img('whatsapp')}" />
+  </div>`;
+      } else {
+        const n = Number(q.get('n') ?? 1);
+        if (n <= T.shots.length) {
+          const [screen, title, sub] = T.shots[n - 1];
+          root.innerHTML = `<div class="shot"><h1>${title}</h1><p>${sub}</p><img class="phone" src="${img(screen)}" /></div>`;
+        } else {
+          const e = T.end;
+          root.innerHTML = `<div class="shot end"><img src="${LOGO}" /><div class="name">Coaching Desk</div>
+      <div class="line">${e.line}</div><div class="chips">${e.chips.map((c) => `<span>${c}</span>`).join('')}</div>
+      <div class="pill">${e.pill}</div><div class="small">${e.small}</div></div>`;
+        }
+      }
+    </script>
+  </body>
+</html>
