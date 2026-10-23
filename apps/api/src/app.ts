@@ -3,6 +3,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { createAuthGuard } from './http/auth-guard';
 import type { ApiRateLimit } from './http/api-rate-limit';
 import { registerErrorHandler } from './http/error-handler';
+import type { ErrorReporter } from '@coachingdesk/providers';
 import { serializeRequest } from './http/log-redaction';
 import { createTenancyGuard, type MembershipLookup } from './http/tenancy-guard';
 import type { JwtAccessTokens } from './modules/auth/access-tokens';
@@ -66,6 +67,8 @@ export interface AppDependencies {
   accessTokens: JwtAccessTokens;
   memberships: MembershipLookup;
   isReady: () => Promise<boolean>;
+  /** Unexpected errors (500s) go here as well as to the log (Step 40). */
+  errorReporter?: ErrorReporter;
   /** Request limits (KB #46). Optional: unit-style tests of single routes may leave it out. */
   rateLimit?: ApiRateLimit;
 }
@@ -93,7 +96,7 @@ export function buildApp(deps: AppDependencies, options: AppOptions = {}): Fasti
   // Every request starts with auth = null; the guard fills it in on protected routes (9a).
   app.decorateRequest('auth', null);
   app.decorateRequest('tenant', null);
-  registerErrorHandler(app);
+  registerErrorHandler(app, deps.errorReporter);
 
   // ONE guard instance, created here and handed to every module that has protected routes.
   const requireAuth = createAuthGuard(deps.accessTokens, deps.rateLimit);

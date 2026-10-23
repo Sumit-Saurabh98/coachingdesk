@@ -8,6 +8,21 @@ const valid = {
   JWT_SECRET: 'y'.repeat(32),
 };
 
+describe('error tracking settings (Step 40)', () => {
+  it('optional: unset means errors are only logged', () => {
+    const config = loadConfig(valid);
+    expect(config.SENTRY_DSN).toBeUndefined();
+    expect(config.APP_RELEASE).toBeUndefined();
+  });
+
+  it('SENTRY_DSN must be a URL', () => {
+    expect(() => loadConfig({ ...valid, SENTRY_DSN: 'not a url' })).toThrow(/SENTRY_DSN/);
+    expect(loadConfig({ ...valid, SENTRY_DSN: 'https://k@o1.ingest.sentry.io/2' }).SENTRY_DSN).toBe(
+      'https://k@o1.ingest.sentry.io/2',
+    );
+  });
+});
+
 describe('loadConfig', () => {
   it('applies defaults', () => {
     const config = loadConfig(valid);

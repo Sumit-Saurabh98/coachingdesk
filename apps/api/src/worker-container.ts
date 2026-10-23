@@ -1,3 +1,5 @@
+import { createErrorReporter } from './lib/create-error-reporter';
+import type { ErrorReporter } from '@coachingdesk/providers';
 import { createDb } from '@coachingdesk/db';
 import { ConsoleWhatsAppSender, type WhatsAppSender } from '@coachingdesk/providers';
 import { SystemClock, UuidV7Generator } from '@coachingdesk/shared';
@@ -22,6 +24,7 @@ export interface WorkerContainer {
   reminders: ReminderScheduler;
   exports: ExportProcessor;
   purge: PurgeJob;
+  errorReporter: ErrorReporter;
   close: () => Promise<void>;
 }
 
@@ -79,7 +82,19 @@ export function createWorkerContainer(config: WorkerConfig): WorkerContainer {
   });
   const purge = new PurgeJob({ tenantData, files, clock });
 
-  return { dispatcher, billing, reminders, exports, purge, close: () => database.close() };
+  const errorReporter = createErrorReporter(config, 'worker');
+  return {
+    dispatcher,
+    billing,
+    reminders,
+    exports,
+    purge,
+    errorReporter,
+    close: async () => {
+      await database.close();
+      await errorReporter.flush(2000);
+    },
+  };
 }
 
 function createWhatsAppSender(config: WorkerConfig): WhatsAppSender {

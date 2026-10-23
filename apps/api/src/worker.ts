@@ -11,6 +11,19 @@ const container = createWorkerContainer(config);
 const log = (level: 'info' | 'error', msg: string, data: Record<string, unknown> = {}) =>
   console.log(JSON.stringify({ level, time: new Date().toISOString(), msg, ...data }));
 
+/** A job threw: log it AND report it (Step 40), so someone finds out. */
+const failed = (job: string) => (error: unknown) => {
+  log('error', `${job} run failed`, { error: String(error) });
+  container.errorReporter.capture(error, { job });
+};
+
+/** A run finished but some institutes failed inside it (each was caught so the rest went on). */
+const reportPartial = (job: string, count: number) => {
+  if (count > 0) {
+    container.errorReporter.capture(new Error(`${job}: ${count} failed in one run`), { job });
+  }
+};
+
 const poller = new Poller(
   async () => {
     const summary = await container.dispatcher.runOnce();
@@ -19,7 +32,7 @@ const poller = new Poller(
     }
   },
   config.OUTBOX_POLL_MS,
-  (error) => log('error', 'outbox run failed', { error: String(error) }),
+  failed('outbox'),
 );
 
 const billingPoller = new Poller(
@@ -27,10 +40,11 @@ const billingPoller = new Poller(
     const summary = await container.billing.runOnce();
     if (summary.billed > 0 || summary.failed.length > 0) {
       log(summary.failed.length > 0 ? 'error' : 'info', 'billing run', { ...summary });
+      reportPartial('billing', summary.failed.length);
     }
   },
   config.INVOICE_POLL_MS,
-  (error) => log('error', 'billing run failed', { error: String(error) }),
+  failed('billing'),
 );
 
 const reminderPoller = new Poller(
@@ -38,10 +52,11 @@ const reminderPoller = new Poller(
     const summary = await container.reminders.runOnce();
     if (summary.queued > 0 || summary.failed.length > 0) {
       log(summary.failed.length > 0 ? 'error' : 'info', 'reminders planned', { ...summary });
+      reportPartial('reminders', summary.failed.length);
     }
   },
   config.REMINDER_POLL_MS,
-  (error) => log('error', 'reminder planning failed', { error: String(error) }),
+  failed('reminders'),
 );
 
 const exportPoller = new Poller(
@@ -49,10 +64,11 @@ const exportPoller = new Poller(
     const summary = await container.exports.runOnce();
     if (summary.built + summary.retried + summary.failed + summary.expired > 0) {
       log(summary.failed > 0 ? 'error' : 'info', 'exports run', { ...summary });
+      reportPartial('exports', summary.failed);
     }
   },
   config.EXPORT_POLL_MS,
-  (error) => log('error', 'exports run failed', { error: String(error) }),
+  failed('exports'),
 );
 
 const purgePoller = new Poller(
@@ -61,10 +77,11 @@ const purgePoller = new Poller(
     if (summary.purged + summary.notDue + summary.failed > 0) {
       // Counts only: never the institute's name (it's in the DB tombstone if ever needed).
       log(summary.failed > 0 ? 'error' : 'info', 'purge run', { ...summary });
+      reportPartial('purge', summary.failed);
     }
   },
   config.RETENTION_POLL_MS,
-  (error) => log('error', 'purge run failed', { error: String(error) }),
+  failed('purge'),
 );
 
 // Graceful shutdown, like server.ts: finish the current runs, close the database, exit.
@@ -87,6 +104,17 @@ async function shutdown(signal: string): Promise<void> {
 }
 process.on('SIGTERM', () => void shutdown('SIGTERM'));
 process.on('SIGINT', () => void shutdown('SIGINT'));
+
+// A crash nothing else caught: report it, give the report 2 s to leave, then exit so the
+// platform restarts the worker (staying up in an unknown state is worse).
+async function crash(error: unknown): Promise<void> {
+  log('error', 'worker crashed', { error: String(error) });
+  container.errorReporter.capture(error, { job: 'process' });
+  await container.errorReporter.flush(2000);
+  process.exit(1);
+}
+process.on('uncaughtException', (error) => void crash(error));
+process.on('unhandledRejection', (reason) => void crash(reason));
 
 log('info', 'worker started', {
   outboxPollMs: config.OUTBOX_POLL_MS,

@@ -42,8 +42,11 @@ import { DrizzleTermsAcceptanceRepository } from './modules/legal/drizzle-terms-
 import { TermsController } from './modules/legal/terms.controller';
 import { TermsService } from './modules/legal/terms.service';
 import { createDomainServices } from './services';
+import { createErrorReporter } from './lib/create-error-reporter';
+import type { ErrorReporter } from '@coachingdesk/providers';
 
 export interface Container extends AppDependencies {
+  errorReporter: ErrorReporter;
   close: () => Promise<void>;
 }
 
@@ -54,6 +57,7 @@ export interface Container extends AppDependencies {
 export function createContainer(config: Config): Container {
   assertSafeForProduction(config); // first, before connecting to anything
 
+  const errorReporter = createErrorReporter(config, 'api');
   const clock = new SystemClock();
   const ids = new UuidV7Generator(clock);
   const database = createDb(config.DATABASE_URL);
@@ -185,6 +189,7 @@ export function createContainer(config: Config): Container {
           JSON.stringify({ level: 'warn', msg: 'rate limiter unavailable', error: String(error) }),
         ),
     ),
+    errorReporter,
     isReady: async () => {
       try {
         const [redisReply] = await Promise.all([redis.ping(), database.db.execute(sql`select 1`)]);
@@ -196,6 +201,7 @@ export function createContainer(config: Config): Container {
     close: async () => {
       await redis.quit(); // finish pending commands, then disconnect
       await database.close();
+      await errorReporter.flush(2000); // errors reported just before shutdown still go out
     },
   };
 }

@@ -32,6 +32,10 @@ const WorkerConfigSchema = z.object({
     .int()
     .min(1000)
     .default(60 * 60_000),
+  // Error tracking (Step 40). Unset: errors are only logged. APP_RELEASE: the deployed
+  // version (e.g. the git commit), so Sentry shows which code an error came from.
+  SENTRY_DSN: z.url().optional(),
+  APP_RELEASE: z.string().max(100).optional(),
   ...FileStoreConfig,
 });
 

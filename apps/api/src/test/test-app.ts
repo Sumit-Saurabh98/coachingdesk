@@ -1,3 +1,4 @@
+import { RecordingErrorReporter } from '@coachingdesk/providers';
 import { FakeSmsProvider, InMemoryFileStore } from '@coachingdesk/providers';
 import { FixedClock, SequentialIdGenerator } from '@coachingdesk/shared';
 import type { FastifyInstance } from 'fastify';
@@ -243,6 +244,7 @@ export function buildTestApp(options: { apiRateLimits?: ApiRateLimitPolicy } = {
   });
   const dataExportRepository = new InMemoryDataExportRepository();
   const fileStore = new InMemoryFileStore();
+  const errorReporter = new RecordingErrorReporter();
   const termsAcceptanceRepository = new InMemoryTermsAcceptanceRepository();
   const termsService = new TermsService(termsAcceptanceRepository, ids, clock);
   const authService = new AuthService({
@@ -295,6 +297,7 @@ export function buildTestApp(options: { apiRateLimits?: ApiRateLimitPolicy } = {
     // Same limiter as OTPs (in memory). Tests that check the limits pass their own app.
     rateLimit: new ApiRateLimit(new InMemoryRateLimiter(clock), options.apiRateLimits),
     isReady: async () => true,
+    errorReporter,
   });
 
   return {
@@ -316,6 +319,7 @@ export function buildTestApp(options: { apiRateLimits?: ApiRateLimitPolicy } = {
     dataExportRepository,
     fileStore,
     termsAcceptanceRepository,
+    errorReporter,
   };
 }
 

@@ -24,6 +24,10 @@ const ConfigSchema = z.object({
   // Request limits per minute (KB #46). Generous: they stop scripts and runaway loops, not people.
   API_RATE_LIMIT_PER_IP: z.coerce.number().int().positive().default(600),
   API_RATE_LIMIT_PER_USER: z.coerce.number().int().positive().default(300),
+  // Error tracking (Step 40). Unset: errors are only logged. APP_RELEASE: the deployed
+  // version (e.g. the git commit), so Sentry shows which code an error came from.
+  SENTRY_DSN: z.url().optional(),
+  APP_RELEASE: z.string().max(100).optional(),
   ...FileStoreConfig,
 });
 

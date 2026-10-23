@@ -1,6 +1,7 @@
 import { AppError, type ErrorCode } from '@coachingdesk/shared';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { ZodError } from 'zod';
+import type { ErrorReporter } from '@coachingdesk/providers';
 
 // Record<ErrorCode, number> means EVERY error code must be listed here.
 // Add a new code to errors.ts and forget it here: compile error. You can't ship an unmapped error.
@@ -39,7 +40,7 @@ function sendError(
     .send({ error: { code, message, details }, requestId: request.id });
 }
 
-export function registerErrorHandler(app: FastifyInstance): void {
+export function registerErrorHandler(app: FastifyInstance, reporter?: ErrorReporter): void {
   app.setErrorHandler((error, request, reply) => {
     // 1. Our own business errors: safe to show the message to the user.
     if (error instanceof AppError) {
@@ -68,6 +69,12 @@ export function registerErrorHandler(app: FastifyInstance): void {
     // 4. Anything else is OUR bug. Log the details, but NEVER send them to the client:
     //    error messages can contain SQL, file paths, even secrets.
     request.log.error({ err: error }, 'unhandled error');
+    reporter?.capture(error, {
+      requestId: request.id,
+      route: `${request.method} ${request.routeOptions.url ?? 'unknown route'}`,
+      userId: request.auth?.userId,
+      instituteId: request.tenant?.instituteId,
+    });
     return sendError(request, reply, 'INTERNAL', 'Something went wrong. Please try again.');
   });
 
