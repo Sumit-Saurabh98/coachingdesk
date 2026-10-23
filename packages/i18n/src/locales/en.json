@@ -37,7 +37,8 @@
     "agreeEnd": "",
     "updatedTitle": "Our Terms and Privacy Policy",
     "updatedBody": "To keep using Coaching Desk, please read and accept our Terms of Service and Privacy Policy.",
-    "continue": "Continue"
+    "continue": "Continue",
+    "termsTitle": "Terms of Service"
   },
   "errors": {
     "network": "No internet connection. Check it and try again.",
@@ -75,7 +76,12 @@
     "deleteAccount": "Delete my account",
     "deleteTitle": "Delete your account?",
     "deleteBody": "Your login, name and phone number are deleted and you're logged out on every phone. You leave every institute you're part of. If you own an institute, delete it (or hand it over) first.",
-    "deleteConfirm": "Delete account"
+    "deleteConfirm": "Delete account",
+    "help": "Help and legal",
+    "contactSupport": "Contact support",
+    "contactSupportHelp": "Email us with any question or problem",
+    "supportSubject": "Coaching Desk: help",
+    "version": "Version {{version}}"
   },
   "institute": {
     "typeLabel": "What kind of institute is it?",

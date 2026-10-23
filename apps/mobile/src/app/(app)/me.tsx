@@ -1,11 +1,12 @@
 // "Me": who is logged in (name, number, institutes), this phone's settings (theme, language),
-// and logging out.
+// help and legal pages, the app version, and logging out.
 import { LANGUAGE_NAMES } from '@coachingdesk/i18n';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import {
   ActivityIndicator,
   Avatar,
@@ -23,11 +24,15 @@ import { deleteAccount, logout, updateName } from '@/auth/auth-api';
 import { ME_KEY, type MeData, useMe } from '@/auth/use-me';
 import type { MyInstitute } from '@/institutes/current-institute';
 import { useCurrentInstitute } from '@/institutes/use-current-institute';
+import { openLegalPage, openSupportEmail } from '@/legal/open-legal-page';
 import { usePreferences } from '@/stores/preferences';
 import { useAppTheme } from '@/theme/theme';
 
+/** The version in app.json (what the Play Store shows), e.g. "1.0.0". */
+const APP_VERSION = Constants.expoConfig?.version ?? '?';
+
 export default function MeScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const theme = useAppTheme();
   const queryClient = useQueryClient();
 
@@ -181,6 +186,32 @@ export default function MeScreen() {
         </View>
       </List.Section>
 
+      <Divider />
+
+      <List.Section>
+        <List.Subheader>{t('me.help')}</List.Subheader>
+        <List.Item
+          title={t('me.contactSupport')}
+          description={t('me.contactSupportHelp')}
+          left={(props) => <List.Icon {...props} icon="email-outline" />}
+          onPress={() =>
+            openSupportEmail(t('me.supportSubject'), APP_VERSION, Platform.OS, i18n.language)
+          }
+        />
+        <List.Item
+          title={t('legal.privacy')}
+          left={(props) => <List.Icon {...props} icon="shield-lock-outline" />}
+          right={(props) => <List.Icon {...props} icon="open-in-new" />}
+          onPress={() => openLegalPage('privacy', i18n.language)}
+        />
+        <List.Item
+          title={t('legal.termsTitle')}
+          left={(props) => <List.Icon {...props} icon="file-document-outline" />}
+          right={(props) => <List.Icon {...props} icon="open-in-new" />}
+          onPress={() => openLegalPage('terms', i18n.language)}
+        />
+      </List.Section>
+
       <Button
         mode="outlined"
         icon="logout"
@@ -200,6 +231,10 @@ export default function MeScreen() {
       >
         {t('me.deleteAccount')}
       </Button>
+
+      <Text variant="bodySmall" style={[styles.version, { color: theme.colors.onSurfaceVariant }]}>
+        {t('me.version', { version: APP_VERSION })}
+      </Text>
 
       {/* Portal draws dialogs ABOVE the whole screen (PaperProvider hosts them). */}
       <Portal>
@@ -298,4 +333,5 @@ const styles = StyleSheet.create({
   settings: { paddingHorizontal: 16, gap: 12 },
   logout: { marginHorizontal: 16, marginTop: 24 },
   dialogContent: { gap: 8 },
+  version: { textAlign: 'center', marginTop: 16 },
 });

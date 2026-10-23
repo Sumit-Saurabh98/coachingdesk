@@ -16,5 +16,6 @@ the same Wi-Fi. Staging/production builds must set `EXPO_PUBLIC_API_URL`.
 
 Links to the Terms, Privacy Policy and help pages open the website (`src/legal/legal-links.ts`):
 `https://coachingdesk.in` unless `EXPO_PUBLIC_WEB_URL` says otherwise (e.g. a staging site).
+"Contact support" (Me screen) emails `support@coachingdesk.in` unless `EXPO_PUBLIC_SUPPORT_EMAIL` is set.
 
 `pnpm test` here runs the app's unit tests (Vitest), e.g. the API client.
