@@ -1,0 +1,9 @@
+# Security headers for every page and file (Cloudflare Pages reads this file, KB #57).
+# The site has no third-party scripts, styles, fonts or trackers: everything comes from this
+# domain ('self'); the only script is video.js (the video's language switch).
+/*
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; media-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Strict-Transport-Security: max-age=63072000; includeSubDomains

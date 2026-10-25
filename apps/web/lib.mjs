@@ -142,9 +142,11 @@ export function fill(template, ctx) {
 /** One page in one language: the layout around the page's body, everything filled. */
 export function renderPage(layout, body, ctx) {
   const page = ctx.page;
+  // The 404 page has its own title but links (canonical, language switch) like the home page.
+  const metaPage = ctx.metaPage ?? page;
   const html = layout
-    .replaceAll('{{title}}', escapeHtml(lookup(ctx.content, `meta.${page}.title`)))
-    .replaceAll('{{description}}', escapeHtml(lookup(ctx.content, `meta.${page}.description`)))
+    .replaceAll('{{title}}', escapeHtml(lookup(ctx.content, `meta.${metaPage}.title`)))
+    .replaceAll('{{description}}', escapeHtml(lookup(ctx.content, `meta.${metaPage}.description`)))
     .replaceAll('{{canonical}}', `https://${ctx.site.domain}${pageUrl(ctx.lang, page)}`)
     .replaceAll('{{alternateEn}}', `https://${ctx.site.domain}${pageUrl('en', page)}`)
     .replaceAll('{{alternateHi}}', `https://${ctx.site.domain}${pageUrl('hi', page)}`)

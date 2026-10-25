@@ -24,6 +24,10 @@
     "contact": {
       "title": "Contact · Coaching Desk",
       "description": "Contact the Coaching Desk team for support, privacy requests and business enquiries."
+    },
+    "notFound": {
+      "title": "Page not found · Coaching Desk",
+      "description": "This page doesn't exist."
     }
   },
   "nav": {
@@ -229,5 +233,10 @@
     "high": "Highest",
     "low": "Lowest",
     "sendResults": "Send results"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "The page you're looking for doesn't exist or has moved.",
+    "home": "Go to the home page"
   }
 }

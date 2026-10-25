@@ -1,4 +1,4 @@
-// Builds the static website into dist/ (Vercel serves that folder as-is).
+// Builds the static website into dist/ (Cloudflare Pages serves that folder as-is, KB #57).
 //   node build.mjs
 // English pages at /, Hindi at /hi; illustrations per language under /images/<lang>/.
 import { copyFileSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -31,10 +31,11 @@ for (const lang of LANGUAGES) {
       page === 'index'
         ? read('templates', 'index.html')
         : read('templates', 'legal', lang, `${page}.html`);
-    writeFileSync(
-      join(pageDir, `${page}.html`),
-      renderPage(layout, body, { site, content, lang, page }),
-    );
+    // The Hindi home page is hi.html, not hi/index.html: Cloudflare serves "/hi" from hi.html,
+    // but would redirect "/hi" to "/hi/" for a folder index (our links say "/hi").
+    const file =
+      lang === 'hi' && page === 'index' ? join(out, 'hi.html') : join(pageDir, `${page}.html`);
+    writeFileSync(file, renderPage(layout, body, { site, content, lang, page }));
   }
   const imageDir = join(out, 'images', lang);
   mkdirSync(imageDir, { recursive: true });
@@ -43,6 +44,19 @@ for (const lang of LANGUAGES) {
     writeFileSync(join(imageDir, file), fill(svg, { site, content, lang, page: 'index' }));
   }
 }
+// "Page not found" (English: Cloudflare has one 404 page). Without it, Cloudflare Pages would
+// answer every unknown address with the home page and a 200, as for a single-page app.
+const english = JSON.parse(read('content', 'en.json'));
+writeFileSync(
+  join(out, '404.html'),
+  renderPage(layout, read('templates', '404.html'), {
+    site,
+    content: english,
+    lang: 'en',
+    page: 'index',
+    metaPage: 'notFound',
+  }),
+);
 for (const file of readdirSync(join(root, 'static'))) {
   copyFileSync(join(root, 'static', file), join(out, file));
 }

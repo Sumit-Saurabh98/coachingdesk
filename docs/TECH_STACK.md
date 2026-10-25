@@ -12,7 +12,7 @@ Principle: **one language (TypeScript) end to end, boring managed infrastructure
 | Mobile local storage | expo-sqlite (offline attendance queue) + MMKV (small KV) | Fast, works on low-end phones |
 | Mobile UI | **React Native Paper** (Material 3) + custom theme — the only UI library (KNOWLEDGE_BASE #47) | Ready, accessible components, light/dark |
 | Mobile i18n | i18next + react-i18next | EN + HI at launch |
-| Website (coachingdesk.in) | **Static HTML + CSS** built by a tiny Node script (`apps/web`), hosted on **Vercel**. No JavaScript, no trackers | Home, pricing, privacy, terms, account deletion, contact (Google Play + Meta verification). No parent pages in the MVP (KB #51). Next.js only if landing pages / free tools need it later |
+| Website (coachingdesk.in) | **Static HTML + CSS** built by a tiny Node script (`apps/web`), hosted on **Cloudflare Pages** (free, commercial use allowed; KB #57). No trackers; the only script is the video's language switch | Home, pricing, privacy, terms, account deletion, contact (Google Play + Meta verification). No parent pages in the MVP (KB #51). Next.js only if landing pages / free tools need it later |
 | API | **Node.js (LTS) + Fastify + TypeScript** | Fast, schema-first, good plugin system |
 | Validation / contracts | **Zod** (shared package) + `fastify-type-provider-zod` | Same schemas on mobile, web, API; generates OpenAPI |
 | Database | **PostgreSQL 18** (or the newest major RDS supports in ap-south-1 at setup; minimum 17) | Relational data (fees, attendance), transactions, JSONB where needed |
@@ -27,7 +27,7 @@ Principle: **one language (TypeScript) end to end, boring managed infrastructure
 | PDF generation | `@react-pdf/renderer` in worker (v2 reports) | No headless browser needed |
 | Auth | Custom: phone OTP → JWT (access, 15 min) + rotating refresh token (hashed in DB) | Simple, no vendor lock-in |
 | Hosting (API, worker) | **AWS ap-south-1 (Mumbai)**. MVP: one EC2 instance running api + worker containers (docker compose, Caddy for TLS), RDS Postgres (managed backups + PITR for NFR-10), ElastiCache Redis. Growth: move api/worker to ECS Fargate + ALB | Data in India; known AWS experience; no ALB/NAT cost at MVP. (Railway/Render dropped: no India region.) |
-| Web hosting | Vercel with serverless function region `bom1` (Mumbai), or the same EC2 | Guardian pages are server-rendered from India-hosted API data |
+| Web hosting | Cloudflare Pages: static files only (`apps/web/dist`), security headers in `static/_headers` | No parent pages in the MVP (KB #51), so nothing server-rendered; Vercel's free plan doesn't allow commercial use |
 | Infra as code | Terraform | Reproducible envs |
 | CI/CD | GitHub Actions; EAS Build/Submit for mobile | Free tier sufficient early |
 | Monorepo | **pnpm workspaces + Turborepo** | Shared packages, cached builds |

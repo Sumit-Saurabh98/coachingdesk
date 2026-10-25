@@ -60,6 +60,36 @@ describe('pricing on the website', () => {
   });
 });
 
+describe('hosting (Cloudflare Pages, KB #57)', () => {
+  it('_headers sends the security headers on every path', () => {
+    const headers = read('static', '_headers');
+    expect(headers).toContain('/*\n');
+    expect(headers).toContain(
+      "Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; media-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+    );
+    for (const header of [
+      'X-Content-Type-Options: nosniff',
+      'Referrer-Policy: no-referrer',
+      'Strict-Transport-Security: max-age=63072000; includeSubDomains',
+    ]) {
+      expect(headers).toContain(header);
+    }
+  });
+
+  it('the 404 page renders in English with its own title and a way home', () => {
+    const html = renderPage(read('templates', 'layout.html'), read('templates', '404.html'), {
+      site,
+      content: content.en,
+      lang: 'en',
+      page: 'index',
+      metaPage: 'notFound',
+    });
+    expect(html).toContain('<title>Page not found · Coaching Desk</title>');
+    expect(html).toContain('href="/"');
+    expect(html).not.toMatch(/\{\{/);
+  });
+});
+
 describe('terms version', () => {
   it('the app asks users to accept the version these pages show (KB #54)', () => {
     // site.json says "22 October 2026"; TERMS_VERSION is "2026-10-22". Change both together.
